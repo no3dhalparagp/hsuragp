@@ -6,7 +6,10 @@ import { bulkUploadAction, UploadResult } from "./action";
 
 export default function BulkUploadVendorPage() {
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction] = useFormState<UploadResult, FormData>(bulkUploadAction, undefined);
+  const [state, formAction] = useFormState<UploadResult, FormData>(
+    bulkUploadAction,
+    { message: "" }
+  );
 
   return (
     <div className="max-w-xl mx-auto py-10">
