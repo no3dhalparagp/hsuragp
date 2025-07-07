@@ -163,6 +163,7 @@ export const adminMenuItems: MenuItemProps[] = [
     createMenuItem("Register New Vendor", `${BASE_URLS.admin}/manage-vendor/add`, FaChevronCircleRight, COLORS.indigo),
     createMenuItem("Update Vendor Details", `${BASE_URLS.admin}/manage-vendor/edit`, FaChevronCircleRight, COLORS.red),
     createMenuItem("Vendor Directory", `${BASE_URLS.admin}/manage-vendor/view`, FaChevronCircleRight, COLORS.red),
+    createMenuItem("Upload Bulk Vendor", `${BASE_URLS.admin}/manage-vendor/bulk-upload`, FaChevronCircleRight, COLORS.red),
     createMenuItem("Vendor Analytics", undefined, FaChartBar, COLORS.teal, [
       createMenuItem("Bid Participation Summary", `${BASE_URLS.admin}/reports/vendor-participation`, FaChevronCircleRight, COLORS.blue),
       createMenuItem("Earnest Money Status", `${BASE_URLS.admin}/reports/earnest-money`, FaChevronCircleRight, COLORS.green),

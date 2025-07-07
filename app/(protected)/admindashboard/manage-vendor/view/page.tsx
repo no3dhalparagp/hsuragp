@@ -59,6 +59,15 @@ export default async function VendorViewPage() {
                 </Link>
               </Button>
               <Button
+                asChild
+                className="gap-2 shadow-sm bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Link href="/admindashboard/manage-vendor/bulk-upload">
+                  <PlusCircle className="h-5 w-5" />
+                  <span>Bulk Upload</span>
+                </Link>
+              </Button>
+              <Button
                 variant="outline"
                 asChild
                 className="gap-2 border-gray-300 shadow-sm"
