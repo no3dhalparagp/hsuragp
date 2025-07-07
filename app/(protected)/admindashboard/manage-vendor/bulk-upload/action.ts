@@ -1,3 +1,4 @@
+"use server"
 import { db } from "@/lib/db";
 import * as XLSX from "xlsx";
 import { revalidatePath } from "next/cache";
