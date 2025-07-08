@@ -1,13 +1,12 @@
-
-
 "use client";
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, FileDown, Loader2, Printer } from "lucide-react";
+
+import { Loader2, Printer } from "lucide-react";
 import { generatePDF } from "../pdfgenerator";
 import { workdetailsforprint } from "@/types";
+import { blockname, gpcode, gpname } from "@/constants/gpinfor";
 
 const templatePath = "/templates/scrutnisheettemplete.json";
 
@@ -30,9 +29,10 @@ export default function PDFGeneratorComponent({
     try {
       const inputs = [
         {
+          gpheading: `${gpname}, ${blockname.toUpperCase()} BLOCK, DAKSHIN DINAJPUR`,
           field2: `Scrutiny Report of Tender Papers for NIT No. ${
             workdetails.nitDetails.memoNumber
-          }/DGP/${new Date(
+          }/${gpcode}/${new Date(
             workdetails.nitDetails.memoDate
           ).getFullYear()}  Dated: ${
             workdetails.nitDetails.memoDate
