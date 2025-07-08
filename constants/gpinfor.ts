@@ -4,3 +4,4 @@ export const nameinprodhan = "No 4 Hasura Gram Panchayat";
 export const gpcode = "HGP";
 export const gpnameinshort = "Hasura";
 export const blockname= "Tapan Dev."
+export const gpshortname= "Hasura"
