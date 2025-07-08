@@ -227,3 +227,14 @@ export function getFinancialYear(date: Date): string {
     return `${year - 1}-${year.toString().slice(-2)}`;
   }
 }
+export function formatDateTimeCustom(date: Date): string {
+  const istDate = new Date(
+    date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+  );
+  const day = istDate.getDate().toString().padStart(2, "0");
+  const month = (istDate.getMonth() + 1).toString().padStart(2, "0");
+  const year = istDate.getFullYear();
+  const hours = istDate.getHours().toString().padStart(2, "0");
+  const minutes = istDate.getMinutes().toString().padStart(2, "0");
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
