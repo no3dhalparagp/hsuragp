@@ -5,7 +5,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Loader2, Printer } from "lucide-react";
 import { generatePDF } from "../pdfgeneratortwo";
 import { fetchnitdetailsType } from "@/types/nitDetails";
-
+import { formatDateTimeCustom } from "@/utils/utils";
 import { formatDate } from "@/utils/utils";
 import { tendertermcon, tenderForwardedTo } from "@/constants/tenderterm";
 import {
@@ -14,6 +14,7 @@ import {
   gpname,
   gpnameinshort,
   nameinprodhan,
+  gpshortname
 } from "@/constants/gpinfor";
 
 const templatePath = "/templates/nitsamplecopy.json";
@@ -70,18 +71,21 @@ export const NITCopy = ({
         timetable: [
           [
             "Tender Publishing Date",
-            nitdetails.publishingDate.toLocaleString(),
+            formatDateTimeCustom(nitdetails.publishingDate),
           ],
-          ["Bid Submission Start Date", nitdetails.startTime.toLocaleString()],
-          ["Bid Submission End Date", nitdetails.endTime.toLocaleString()],
+          [
+            "Bid Submission Start Date",
+            formatDateTimeCustom(nitdetails.startTime),
+          ],
+          ["Bid Submission End Date", formatDateTimeCustom(nitdetails.endTime)],
           [
             "Technical Bid Opening Date",
-            nitdetails.technicalBidOpeningDate.toLocaleString(),
+            formatDateTimeCustom(nitdetails.technicalBidOpeningDate),
           ],
           ["Financial Bid Opening Date", "To be Notified later on"],
           [
             "Place of Opening Bids",
-            "Office of The Pradhan, DHALPARA Gram Panchayat.",
+            `Office of The Pradhan, ${gpshortname} Gram Panchayat.`,
           ],
           ["Validity of Bids", "120 days"],
         ],
