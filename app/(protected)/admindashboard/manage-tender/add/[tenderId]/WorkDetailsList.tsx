@@ -189,6 +189,12 @@ function WorkDetailsList({ workDetails }: WorkDetailsListProps) {
     (work) => work.ApprovedActionPlanDetails.isPublish
   );
 
+  // Calculate total estimated amount
+  const totalEstimatedAmount = workDetails.WorksDetail.reduce(
+    (sum, item) => sum + item.finalEstimateAmount,
+    0
+  );
+
   const handleDeleteAll = useCallback(async () => {
     startTransition(async () => {
       try {
@@ -316,6 +322,21 @@ function WorkDetailsList({ workDetails }: WorkDetailsListProps) {
   return (
     <Card className="w-full max-w-3xl mx-auto">
       <CardContent className="py-6">
+        {/* Total Estimated Amount Display */}
+        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-blue-800">
+              Total Estimated Amount
+            </h3>
+            <p className="text-2xl font-bold text-blue-900">
+              ₹{totalEstimatedAmount.toLocaleString()}
+            </p>
+          </div>
+          <p className="text-sm text-blue-600 mt-1">
+            Based on {workDetails.WorksDetail.length} work items
+          </p>
+        </div>
+
         <Accordion type="single" collapsible className="w-full">
           {workDetails.WorksDetail.map((item, index) => (
             <WorkDetailItem
