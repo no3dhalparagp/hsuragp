@@ -53,6 +53,7 @@ export const NITCopy = ({
         adress: gpaddress,
         gpnameinfo2: nameinprodhan,
         gpnameinfo: nameinprodhan,
+        heading: `For and on behalf of the ${gpshortname} Gram Panchayat, the Pradhan, ${gpshortname} Gram Panchayat invites online percentage rate basis tenders for the following works by two cover system. Pre-qualification documents in a separate cover and Bid documents with schedule rate in another cover are to be submitted online by the contractors who satisfy the terms and conditions set out in pre-qualification documents.`,
         memoDate1: `Date: ${formatDate(nitdetails.memoDate)}`,
         memoDate2: `Date: ${formatDate(nitdetails.memoDate)}`,
         worklist: workItems,
