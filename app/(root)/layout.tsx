@@ -23,9 +23,6 @@ export default function HomeLayout({ children }: Props) {
           </div>
         </main>
       </div>
-
-      {/* Footer Section */}
-      <Footer />
     </div>
   );
 }

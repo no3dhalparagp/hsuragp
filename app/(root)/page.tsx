@@ -1,10 +1,11 @@
+"use client";
 import React from "react";
 
 import { auth } from "@/auth";
 import { useRouter } from "next/navigation";
-
+import { useSession } from "next-auth/react";
 const Home = () => {
-  const session = auth();
+  const session = useSession();
   const router = useRouter();
   if (!session) {
     return (
