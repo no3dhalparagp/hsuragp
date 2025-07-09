@@ -22,7 +22,7 @@ import { toggleMenu } from "@/redux/slices/menuSlice";
 import ImprovedFooter from "../improved-footer";
 
 // Types - Updated to match constant roles
-type Role = "public" | "admin" | "employee" | "superAdmin";
+type Role = "public" | "admin" | "staff" | "superAdmin";
 
 interface DashboardConfig {
   title: string;
