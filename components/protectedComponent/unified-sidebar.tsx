@@ -29,7 +29,7 @@ interface DashboardConfig {
   items: MenuItemProps[];
 }
 
-// Updated configuration for Super Admin to show both admin and public menus
+// Fixed configuration for Super Admin
 const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
   user: {
     title: "User Dashboard",
@@ -46,14 +46,14 @@ const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
   superadmin: {
     title: "Super Admin Portal",
     items: [
-      // Admin menu items marked as allowed for superadmin
-      ...adminMenuItems.map(item => ({
+      // Admin menu items with superadmin access
+      ...adminMenuItems.map<MenuItemProps>(item => ({
         ...item,
         allowedRoles: [...item.allowedRoles, "superadmin"]
       })),
       
-      // User menu items marked as allowed for superadmin
-      ...publicUserMenuItems.map(item => ({
+      // User menu items with superadmin access
+      ...publicUserMenuItems.map<MenuItemProps>(item => ({
         ...item,
         allowedRoles: [...item.allowedRoles, "superadmin"]
       })),
