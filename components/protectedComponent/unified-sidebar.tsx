@@ -22,7 +22,7 @@ import { toggleMenu } from "@/redux/slices/menuSlice";
 import ImprovedFooter from "../improved-footer";
 
 // Types - Updated to match constant roles
-type Role = "public" | "admin" | "staff" | "superAdmin";
+type Role = "user" | "admin" | "staff" | "superadmin";
 
 interface DashboardConfig {
   title: string;
@@ -31,7 +31,7 @@ interface DashboardConfig {
 
 // Updated configuration for Super Admin to show both admin and public menus
 const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
-  public: {
+  user: {
     title: "User Dashboard",
     items: publicUserMenuItems,
   },
@@ -39,23 +39,23 @@ const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
     title: "Admin Portal",
     items: adminMenuItems,
   },
-  employee: {
+  staff: {
     title: "Staff Portal",
     items: employeeMenuItems,
   },
-  superAdmin: {
+  superadmin: {
     title: "Super Admin Portal",
     items: [
-      // Admin menu items marked as allowed for superAdmin
+      // Admin menu items marked as allowed for superadmin
       ...adminMenuItems.map(item => ({
         ...item,
-        allowedRoles: [...item.allowedRoles, "superAdmin"]
+        allowedRoles: [...item.allowedRoles, "superadmin"]
       })),
       
-      // Public menu items marked as allowed for superAdmin
+      // User menu items marked as allowed for superadmin
       ...publicUserMenuItems.map(item => ({
         ...item,
-        allowedRoles: [...item.allowedRoles, "superAdmin"]
+        allowedRoles: [...item.allowedRoles, "superadmin"]
       })),
       
       // Specific super admin items
@@ -209,7 +209,7 @@ function SidebarContent({ role }: { role: Role }) {
   );
 }
 
-export default function UnifiedSidebar({ role = "public" }: { role?: Role }) {
+export default function UnifiedSidebar({ role = "user" }: { role?: Role }) {
   const isMenuOpen = useSelector((state: RootState) => state.menu.isOpen);
   const dispatch = useDispatch();
   const [isMounted, setIsMounted] = useState(false);
