@@ -17,7 +17,7 @@ export type MenuItemProps = {
   color?: string;
   submenu: boolean;
   subMenuItems: MenuItemProps[];
-  allowedRoles: ("public" | "admin" | "employee" | "superAdmin")[];
+  allowedRoles: ("public" | "admin" | "staff" | "superAdmin")[];
 };
 
 // Color Constants
@@ -47,7 +47,7 @@ const BASE_URLS = {
 // Enhanced helper to create menu items with allowedRoles
 const createMenuItem = (
   text: string,
-  roles: ("public" | "admin" | "employee" | "superAdmin")[],
+  roles: ("public" | "admin" | "staff" | "superAdmin")[],
   link?: string,
   Icon?: IconType,
   color: string = COLORS.blue,
