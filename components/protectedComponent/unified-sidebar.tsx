@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSelector, useDispatch } from "react-redux";
-import { ChevronDown, ChevronUp, Menu, User } from "lucide-react";
+import { ChevronDown, ChevronUp, Menu, User, Lock } from "lucide-react"; // Added Lock icon
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -14,22 +15,23 @@ import {
   employeeMenuItems,
   superAdminMenuItems,
   type MenuItemProps,
+  isRestrictedForRole,
 } from "@/constants/protected-menu";
 import { RootState } from "@/redux/store";
 import { toggleMenu } from "@/redux/slices/menuSlice";
 import ImprovedFooter from "../improved-footer";
 
-// Types
-type Role = "user" | "admin" | "staff" | "superadmin";
+// Types - Updated to match constant roles
+type Role = "public" | "admin" | "employee" | "superAdmin";
 
 interface DashboardConfig {
   title: string;
   items: MenuItemProps[];
 }
 
-// Configuration
+// Configuration - Updated to use constant roles
 const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
-  user: {
+  public: {
     title: "User Dashboard",
     items: publicUserMenuItems,
   },
@@ -37,61 +39,98 @@ const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
     title: "Admin Portal",
     items: adminMenuItems,
   },
-  staff: {
+  employee: {
     title: "Staff Portal",
     items: employeeMenuItems,
   },
-  superadmin: {
+  superAdmin: {
     title: "Super Admin Portal",
     items: superAdminMenuItems,
   },
 };
 
 // Components
-function MenuItem({ item }: { item: MenuItemProps }) {
+function MenuItem({ 
+  item, 
+  currentRole 
+}: { 
+  item: MenuItemProps; 
+  currentRole: Role; 
+}) {
   const [isOpen, setIsOpen] = useState(false);
+  const isRestricted = isRestrictedForRole(item, currentRole);
 
-  const toggleSubMenu = () => setIsOpen(!isOpen);
+  const toggleSubMenu = () => {
+    if (!isRestricted) {
+      setIsOpen(!isOpen);
+    }
+  };
 
   return (
     <div className="mb-1 relative group">
       <Button
         variant="ghost"
-        className="w-full justify-start px-4 py-3 rounded-lg hover:bg-accent/30 
-                   transition-all duration-300 group hover:pl-6 active:scale-[0.98] shadow-sm"
+        className={`w-full justify-start px-4 py-3 rounded-lg transition-all duration-300 group 
+                   hover:pl-6 active:scale-[0.98] shadow-sm ${
+                     isRestricted 
+                       ? "opacity-50 cursor-not-allowed hover:bg-transparent" 
+                       : "hover:bg-accent/30"
+                   }`}
         onClick={item.submenu ? toggleSubMenu : undefined}
+        disabled={isRestricted}
       >
         <Link
-          href={item.menuItemLink || "#"}
-          className="flex items-center gap-3 w-full text-foreground"
-          onClick={(e) => item.submenu && e.preventDefault()}
+          href={isRestricted ? "#" : item.menuItemLink || "#"}
+          className="flex items-center gap-3 w-full"
+          onClick={(e) => {
+            if (item.submenu || isRestricted) {
+              e.preventDefault();
+            }
+          }}
         >
           {item.Icon && (
             <div
-              className="p-1.5 rounded-md bg-gradient-to-br from-background to-accent/10 
-                          group-hover:from-accent/20 group-hover:to-accent/30 shadow-md"
+              className={`p-1.5 rounded-md shadow-md ${
+                isRestricted
+                  ? "bg-muted"
+                  : "bg-gradient-to-br from-background to-accent/10 group-hover:from-accent/20 group-hover:to-accent/30"
+              }`}
             >
               <item.Icon
-                className={`w-5 h-5 ${item.color} transition-colors`}
+                className={`w-5 h-5 transition-colors ${
+                  isRestricted ? "text-muted-foreground" : item.color
+                }`}
               />
             </div>
           )}
-          <span className="font-medium text-sm group-hover:text-primary transition-colors">
+          <span
+            className={`font-medium text-sm transition-colors ${
+              isRestricted
+                ? "text-muted-foreground"
+                : "group-hover:text-primary"
+            }`}
+          >
             {item.menuItemText}
           </span>
-          {item.submenu && (
-            <span className="ml-auto transform transition-transform duration-300">
-              {isOpen ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              )}
-            </span>
-          )}
+          
+          <div className="ml-auto flex items-center">
+            {isRestricted && (
+              <Lock className="w-4 h-4 text-red-500 mr-2" />
+            )}
+            {item.submenu && !isRestricted && (
+              <span className="transform transition-transform duration-300">
+                {isOpen ? (
+                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                )}
+              </span>
+            )}
+          </div>
         </Link>
       </Button>
 
-      {item.submenu && (
+      {item.submenu && !isRestricted && (
         <div
           className={`ml-6 space-y-1 overflow-hidden transition-all duration-500 
                      ease-[cubic-bezier(0.4,0,0.2,1)] ${
@@ -99,7 +138,11 @@ function MenuItem({ item }: { item: MenuItemProps }) {
                      }`}
         >
           {item.subMenuItems.map((subItem) => (
-            <MenuItem key={subItem.menuItemText} item={subItem} />
+            <MenuItem 
+              key={subItem.menuItemText} 
+              item={subItem} 
+              currentRole={currentRole} 
+            />
           ))}
         </div>
       )}
@@ -137,7 +180,11 @@ function SidebarContent({ role }: { role: Role }) {
       <ScrollArea className="flex-grow p-3">
         <nav className="space-y-1" aria-label={`${role} navigation`}>
           {config.items.map((item) => (
-            <MenuItem key={item.menuItemText} item={item} />
+            <MenuItem 
+              key={item.menuItemText} 
+              item={item} 
+              currentRole={role} 
+            />
           ))}
         </nav>
       </ScrollArea>
@@ -147,7 +194,7 @@ function SidebarContent({ role }: { role: Role }) {
   );
 }
 
-export default function UnifiedSidebar({ role = "user" }: { role?: Role }) {
+export default function UnifiedSidebar({ role = "public" }: { role?: Role }) {
   const isMenuOpen = useSelector((state: RootState) => state.menu.isOpen);
   const dispatch = useDispatch();
   const [isMounted, setIsMounted] = useState(false);
