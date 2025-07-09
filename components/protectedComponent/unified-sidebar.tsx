@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSelector, useDispatch } from "react-redux";
-import { ChevronDown, ChevronUp, Menu, User, Lock } from "lucide-react"; // Added Lock icon
+import { ChevronDown, ChevronUp, Menu, User, Lock } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -29,7 +29,7 @@ interface DashboardConfig {
   items: MenuItemProps[];
 }
 
-// Configuration - Updated to use constant roles
+// Updated configuration for Super Admin to show both admin and public menus
 const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
   public: {
     title: "User Dashboard",
@@ -45,7 +45,22 @@ const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
   },
   superAdmin: {
     title: "Super Admin Portal",
-    items: superAdminMenuItems,
+    items: [
+      // Admin menu items marked as allowed for superAdmin
+      ...adminMenuItems.map(item => ({
+        ...item,
+        allowedRoles: [...item.allowedRoles, "superAdmin"]
+      })),
+      
+      // Public menu items marked as allowed for superAdmin
+      ...publicUserMenuItems.map(item => ({
+        ...item,
+        allowedRoles: [...item.allowedRoles, "superAdmin"]
+      })),
+      
+      // Specific super admin items
+      ...superAdminMenuItems
+    ],
   },
 };
 
