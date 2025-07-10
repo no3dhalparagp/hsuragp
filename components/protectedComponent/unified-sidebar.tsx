@@ -9,74 +9,45 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  publicUserMenuItems,
-  adminMenuItems,
-  employeeMenuItems,
-  superAdminMenuItems,
-  type MenuItemProps,
-  isRestrictedForRole,
-} from "@/constants/protected-menu";
 import { RootState } from "@/redux/store";
 import { toggleMenu } from "@/redux/slices/menuSlice";
 import ImprovedFooter from "../improved-footer";
+import { useQuery } from "@tanstack/react-query";
+import { getIconComponent } from "@/utils/menu-icons";
+import { Role } from "@prisma/client";
 
-// Types - Updated to match constant roles
-type Role = "user" | "admin" | "staff" | "superadmin";
-
-interface DashboardConfig {
-  title: string;
-  items: MenuItemProps[];
-}
-
-// Fixed configuration for Super Admin
-const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
-  user: {
-    title: "User Dashboard",
-    items: publicUserMenuItems,
-  },
-  admin: {
-    title: "Admin Portal",
-    items: adminMenuItems,
-  },
-  staff: {
-    title: "Staff Portal",
-    items: employeeMenuItems,
-  },
-  superadmin: {
-    title: "Super Admin Portal",
-    items: [
-      // Admin menu items with superadmin access
-      ...adminMenuItems.map<MenuItemProps>(item => ({
-        ...item,
-        allowedRoles: [...item.allowedRoles, "superadmin"]
-      })),
-      
-      // User menu items with superadmin access
-      ...publicUserMenuItems.map<MenuItemProps>(item => ({
-        ...item,
-        allowedRoles: [...item.allowedRoles, "superadmin"]
-      })),
-      
-      // Specific super admin items
-      ...superAdminMenuItems
-    ],
-  },
+// Types
+type MenuItemData = {
+  id: string;
+  text: string;
+  link?: string;
+  icon?: string;
+  color?: string;
+  children: MenuItemData[];
+  allowedRoles: Role[];
 };
 
-// Components
+async function fetchMenu(role: Role): Promise<MenuItemData[]> {
+  const res = await fetch('/api/menu');
+  if (!res.ok) throw new Error('Failed to fetch menu');
+  return res.json();
+}
+
+// Menu Item Component
 function MenuItem({ 
   item, 
   currentRole 
 }: { 
-  item: MenuItemProps; 
+  item: MenuItemData; 
   currentRole: Role; 
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const isRestricted = isRestrictedForRole(item, currentRole);
+  const isRestricted = !item.allowedRoles.includes(currentRole);
+  const hasChildren = item.children && item.children.length > 0;
+  const IconComponent = item.icon ? getIconComponent(item.icon) : null;
 
   const toggleSubMenu = () => {
-    if (!isRestricted) {
+    if (!isRestricted && hasChildren) {
       setIsOpen(!isOpen);
     }
   };
@@ -91,19 +62,19 @@ function MenuItem({
                        ? "opacity-50 cursor-not-allowed hover:bg-transparent" 
                        : "hover:bg-accent/30"
                    }`}
-        onClick={item.submenu ? toggleSubMenu : undefined}
+        onClick={toggleSubMenu}
         disabled={isRestricted}
       >
         <Link
-          href={isRestricted ? "#" : item.menuItemLink || "#"}
+          href={isRestricted ? "#" : item.link || "#"}
           className="flex items-center gap-3 w-full"
           onClick={(e) => {
-            if (item.submenu || isRestricted) {
+            if (isRestricted || hasChildren) {
               e.preventDefault();
             }
           }}
         >
-          {item.Icon && (
+          {IconComponent && (
             <div
               className={`p-1.5 rounded-md shadow-md ${
                 isRestricted
@@ -111,9 +82,9 @@ function MenuItem({
                   : "bg-gradient-to-br from-background to-accent/10 group-hover:from-accent/20 group-hover:to-accent/30"
               }`}
             >
-              <item.Icon
+              <IconComponent
                 className={`w-5 h-5 transition-colors ${
-                  isRestricted ? "text-muted-foreground" : item.color
+                  isRestricted ? "text-muted-foreground" : item.color || "text-blue-500"
                 }`}
               />
             </div>
@@ -125,14 +96,14 @@ function MenuItem({
                 : "group-hover:text-primary"
             }`}
           >
-            {item.menuItemText}
+            {item.text}
           </span>
           
           <div className="ml-auto flex items-center">
             {isRestricted && (
               <Lock className="w-4 h-4 text-red-500 mr-2" />
             )}
-            {item.submenu && !isRestricted && (
+            {hasChildren && !isRestricted && (
               <span className="transform transition-transform duration-300">
                 {isOpen ? (
                   <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -145,17 +116,17 @@ function MenuItem({
         </Link>
       </Button>
 
-      {item.submenu && !isRestricted && (
+      {hasChildren && !isRestricted && (
         <div
           className={`ml-6 space-y-1 overflow-hidden transition-all duration-500 
                      ease-[cubic-bezier(0.4,0,0.2,1)] ${
                        isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
                      }`}
         >
-          {item.subMenuItems.map((subItem) => (
+          {item.children.map((child) => (
             <MenuItem 
-              key={subItem.menuItemText} 
-              item={subItem} 
+              key={child.id} 
+              item={child} 
               currentRole={currentRole} 
             />
           ))}
@@ -166,7 +137,37 @@ function MenuItem({
 }
 
 function SidebarContent({ role }: { role: Role }) {
-  const config = DASHBOARD_CONFIG[role];
+  const { data: menuItems, isLoading, isError } = useQuery<MenuItemData[]>({
+    queryKey: ['menu', role],
+    queryFn: () => fetchMenu(role),
+    staleTime: 60 * 60 * 1000 // 1 hour cache
+  });
+
+  const getTitle = () => {
+    switch (role) {
+      case Role.PUBLIC: return "User Dashboard";
+      case Role.ADMIN: return "Admin Portal";
+      case Role.EMPLOYEE: return "Staff Portal";
+      case Role.SUPERADMIN: return "Super Admin Portal";
+      default: return "Dashboard";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-full text-red-500 p-4 text-center">
+        Error loading menu. Please try again later.
+      </div>
+    );
+  }
 
   return (
     <div
@@ -179,7 +180,7 @@ function SidebarContent({ role }: { role: Role }) {
       >
         <div className="absolute inset-0 bg-noise opacity-10 pointer-events-none" />
         <h1 className="text-lg font-semibold tracking-tight text-primary relative">
-          {config.title}
+          {getTitle()}
         </h1>
         <Avatar
           className="w-8 h-8 border-2 border-primary/20 shadow-sm 
@@ -194,12 +195,8 @@ function SidebarContent({ role }: { role: Role }) {
 
       <ScrollArea className="flex-grow p-3">
         <nav className="space-y-1" aria-label={`${role} navigation`}>
-          {config.items.map((item) => (
-            <MenuItem 
-              key={item.menuItemText} 
-              item={item} 
-              currentRole={role} 
-            />
+          {menuItems?.map((item) => (
+            <MenuItem key={item.id} item={item} currentRole={role} />
           ))}
         </nav>
       </ScrollArea>
@@ -209,7 +206,7 @@ function SidebarContent({ role }: { role: Role }) {
   );
 }
 
-export default function UnifiedSidebar({ role = "user" }: { role?: Role }) {
+export default function UnifiedSidebar({ role = Role.PUBLIC }: { role?: Role }) {
   const isMenuOpen = useSelector((state: RootState) => state.menu.isOpen);
   const dispatch = useDispatch();
   const [isMounted, setIsMounted] = useState(false);
