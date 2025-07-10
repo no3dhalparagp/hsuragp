@@ -14,7 +14,7 @@ import { toggleMenu } from "@/redux/slices/menuSlice";
 import ImprovedFooter from "../improved-footer";
 import { useQuery } from "@tanstack/react-query";
 import { getIconComponent } from "@/utils/menu-icons";
-import { Role } from "@prisma/client";
+import { UserRole } from "@prisma/client";
 
 // Types
 type MenuItemData = {
@@ -24,10 +24,10 @@ type MenuItemData = {
   icon?: string;
   color?: string;
   children: MenuItemData[];
-  allowedRoles: Role[];
+  allowedRoles: UserRole[];
 };
 
-async function fetchMenu(role: Role): Promise<MenuItemData[]> {
+async function fetchMenu(role: UserRole): Promise<MenuItemData[]> {
   const res = await fetch('/api/menu');
   if (!res.ok) throw new Error('Failed to fetch menu');
   return res.json();
@@ -39,7 +39,7 @@ function MenuItem({
   currentRole 
 }: { 
   item: MenuItemData; 
-  currentRole: Role; 
+  currentRole: UserRole; 
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const isRestricted = !item.allowedRoles.includes(currentRole);
@@ -136,7 +136,7 @@ function MenuItem({
   );
 }
 
-function SidebarContent({ role }: { role: Role }) {
+function SidebarContent({ role }: { role: UserRole }) {
   const { data: menuItems, isLoading, isError } = useQuery<MenuItemData[]>({
     queryKey: ['menu', role],
     queryFn: () => fetchMenu(role),
@@ -145,10 +145,10 @@ function SidebarContent({ role }: { role: Role }) {
 
   const getTitle = () => {
     switch (role) {
-      case Role.PUBLIC: return "User Dashboard";
-      case Role.ADMIN: return "Admin Portal";
-      case Role.EMPLOYEE: return "Staff Portal";
-      case Role.SUPERADMIN: return "Super Admin Portal";
+      case UserRole.user: return "User Dashboard";
+      case UserRole.admin: return "Admin Portal";
+      case UserRole.staff: return "Staff Portal";
+      case UserRole.superadmin: return "Super Admin Portal";
       default: return "Dashboard";
     }
   };
@@ -206,7 +206,7 @@ function SidebarContent({ role }: { role: Role }) {
   );
 }
 
-export default function UnifiedSidebar({ role = Role.PUBLIC }: { role?: Role }) {
+export default function UnifiedSidebar({ role = UserRole.user }: { role?: UserRole }) {
   const isMenuOpen = useSelector((state: RootState) => state.menu.isOpen);
   const dispatch = useDispatch();
   const [isMounted, setIsMounted] = useState(false);

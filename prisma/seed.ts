@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, UserRole } from '@prisma/client';
 import {
   publicUserMenuItems,
   adminMenuItems,
@@ -31,7 +31,7 @@ async function createMenuItems(
         color: item.color,
         order: i,
         parentId: parentId,
-        allowedRoles: item.allowedRoles as Role[],
+        allowedRoles: item.allowedRoles as UserRole[],
       },
     });
 
@@ -61,7 +61,7 @@ async function main() {
   const publicIds = await createMenuItems(publicUserMenuItems);
   await prisma.menuConfiguration.create({
     data: {
-      role: Role.PUBLIC,
+      role: UserRole.user,
       menuItems: { connect: publicIds.map(id => ({ id })) }
     }
   });
@@ -70,7 +70,7 @@ async function main() {
   const adminIds = await createMenuItems(adminMenuItems);
   await prisma.menuConfiguration.create({
     data: {
-      role: Role.ADMIN,
+      role: UserRole.admin,
       menuItems: { connect: adminIds.map(id => ({ id })) }
     }
   });
@@ -79,7 +79,7 @@ async function main() {
   const employeeIds = await createMenuItems(employeeMenuItems);
   await prisma.menuConfiguration.create({
     data: {
-      role: Role.EMPLOYEE,
+      role: UserRole.staff,
       menuItems: { connect: employeeIds.map(id => ({ id })) }
     }
   });
@@ -88,7 +88,7 @@ async function main() {
   const superAdminIds = await createMenuItems(superAdminMenuItems);
   await prisma.menuConfiguration.create({
     data: {
-      role: Role.SUPERADMIN,
+      role: UserRole.superadmin,
       menuItems: { connect: superAdminIds.map(id => ({ id })) }
     }
   });

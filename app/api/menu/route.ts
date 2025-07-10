@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Role } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 
 export async function GET() {
@@ -12,7 +12,7 @@ export async function GET() {
   }
 
   try {
-    const userRole = session.user.role as Role;
+    const userRole = session.user.role as UserRole;
     
     // Fetch menu configuration for the user's role
     const menuConfig = await prisma.menuConfiguration.findUnique({

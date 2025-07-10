@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Role } from "@prisma/client";
+import { UserRole } from "@prisma/client";
 
 type MenuItemData = {
   id: string;
@@ -10,16 +10,16 @@ type MenuItemData = {
   icon?: string;
   color?: string;
   children: MenuItemData[];
-  allowedRoles: Role[];
+  allowedRoles: UserRole[];
 };
 
-async function fetchMenu(role: Role): Promise<MenuItemData[]> {
+async function fetchMenu(role: UserRole): Promise<MenuItemData[]> {
   const res = await fetch('/api/menu');
   if (!res.ok) throw new Error('Failed to fetch menu');
   return res.json();
 }
 
-export default function MenuTest({ role = Role.PUBLIC }: { role?: Role }) {
+export default function MenuTest({ role = UserRole.user }: { role?: UserRole }) {
   const { data: menuItems, isLoading, isError, error } = useQuery<MenuItemData[]>({
     queryKey: ['menu', role],
     queryFn: () => fetchMenu(role),
