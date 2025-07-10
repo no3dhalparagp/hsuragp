@@ -67,12 +67,12 @@ const createMenuItem = (
 export const publicUserMenuItems: MenuItemProps[] = [
   createMenuItem("Dashboard", ["user"], `${BASE_URLS.user}/home`, MdDashboard, COLORS.blue),
   
-  createMenuItem("Certificate Services", ["user"], undefined, MdDescription, COLORS.green, [
+  createMenuItem("Certificate Services", [], undefined, MdDescription, COLORS.green, [
     createMenuItem("Application Process", ["user"], undefined, FaChevronCircleRight, COLORS.yellow, [
       createMenuItem("Apply for Certificate", ["user"], `${BASE_URLS.user}/warish/apply`, FaChevronCircleRight, COLORS.yellow),
       createMenuItem("Check Status", ["user"], `${BASE_URLS.user}/warish/status`, FaChevronCircleRight, COLORS.blue),
     ]),
-    createMenuItem("Documentation", ["user"], undefined, FaChevronCircleRight, COLORS.teal, [
+    createMenuItem("Documentation", [], undefined, FaChevronCircleRight, COLORS.teal, [
       createMenuItem("Required Documents", ["user"], `${BASE_URLS.user}/warish/docs`, FaChevronCircleRight, COLORS.teal),
       createMenuItem("Upload Documents", ["user"], `${BASE_URLS.user}/warish/upload`, FaChevronCircleRight, COLORS.cyan),
     ]),
@@ -83,38 +83,38 @@ export const publicUserMenuItems: MenuItemProps[] = [
       createMenuItem("View Profile", ["user"], `${BASE_URLS.user}/profile/view`, FaChevronCircleRight, COLORS.indigo),
       createMenuItem("Edit Profile", ["user"], `${BASE_URLS.user}/profile/edit`, FaChevronCircleRight, COLORS.pink),
     ]),
-    createMenuItem("Security", ["user"], undefined, FaChevronCircleRight, COLORS.red, [
+    createMenuItem("Security", [], undefined, FaChevronCircleRight, COLORS.red, [
       createMenuItem("Change Password", ["user"], `${BASE_URLS.user}/profile/change-password`, FaChevronCircleRight, COLORS.red),
       createMenuItem("Two-Factor Auth", ["user"], `${BASE_URLS.user}/profile/2fa`, FaChevronCircleRight, COLORS.orange),
     ]),
   ]),
 
-  createMenuItem("Financial Services", ["user"], undefined, MdPayment, COLORS.lime, [
+  createMenuItem("Financial Services", [], undefined, MdPayment, COLORS.lime, [
     createMenuItem("Payments", ["user"], undefined, FaChevronCircleRight, COLORS.lime, [
-      createMenuItem("Payment History", ["user"], `${BASE_URLS.user}/payments/history`, FaChevronCircleRight, COLORS.lime),
+      createMenuItem("Payment History", [], `${BASE_URLS.user}/payments/history`, FaChevronCircleRight, COLORS.lime),
       createMenuItem("Payment Methods", ["user"], `${BASE_URLS.user}/payments/methods`, FaChevronCircleRight, COLORS.blue),
     ]),
-    createMenuItem("Receipts", ["user"], `${BASE_URLS.user}/payments/receipts`, FaChevronCircleRight, COLORS.green),
+    createMenuItem("Receipts", [], `${BASE_URLS.user}/payments/receipts`, FaChevronCircleRight, COLORS.green),
   ]),
 
-  createMenuItem("Support Center", ["user"], undefined, MdFeedback, COLORS.orange, [
+  createMenuItem("Support Center", [], undefined, MdFeedback, COLORS.orange, [
     createMenuItem("Help Desk", ["user"], undefined, FaChevronCircleRight, COLORS.orange, [
       createMenuItem("Submit Feedback", ["user"], `${BASE_URLS.user}/feedback`, FaChevronCircleRight, COLORS.orange),
       createMenuItem("File Complaint", ["user"], `${BASE_URLS.user}/record-complaint`, FaChevronCircleRight, COLORS.red),
     ]),
-    createMenuItem("Knowledge Base", ["user"], undefined, FaChevronCircleRight, COLORS.teal, [
+    createMenuItem("Knowledge Base", [], undefined, FaChevronCircleRight, COLORS.teal, [
       createMenuItem("FAQs", ["user"], `${BASE_URLS.user}/resources/faqs`, FaChevronCircleRight, COLORS.cyan),
       createMenuItem("User Guides", ["user"], `${BASE_URLS.user}/resources/user-guide`, FaChevronCircleRight, COLORS.blue),
     ]),
   ]),
 
-  createMenuItem("Resources", ["user"], undefined, MdLocalLibrary, COLORS.teal, [
+  createMenuItem("Resources", [], undefined, MdLocalLibrary, COLORS.teal, [
     createMenuItem("Documents", ["user"], `${BASE_URLS.user}/resources/documents`, FaChevronCircleRight, COLORS.teal),
     createMenuItem("Announcements", ["user"], `${BASE_URLS.user}/announcements`, FaChevronCircleRight, COLORS.red),
     createMenuItem("Calendar", ["user"], `${BASE_URLS.user}/calendar`, FaChevronCircleRight, COLORS.red),
   ]),
 
-  createMenuItem("Notifications", ["user"], `${BASE_URLS.user}/notifications`, MdNotifications, COLORS.pink),
+  createMenuItem("Notifications", [], `${BASE_URLS.user}/notifications`, MdNotifications, COLORS.pink),
 ];
 
 // Admin Menu
@@ -130,7 +130,7 @@ export const adminMenuItems: MenuItemProps[] = [
 
   createMenuItem("Approved Action Plan", ["admin"], `${BASE_URLS.admin}/approvedactionplan`, MdListAlt, COLORS.green),
 
-  createMenuItem("Certificate Management", ["admin", "superadmin"], undefined, MdDescription, COLORS.red, [
+  createMenuItem("Certificate Management", [], undefined, MdDescription, COLORS.red, [
     createMenuItem("Application Lifecycle", ["admin"], undefined, FaChevronCircleRight, COLORS.yellow, [
       createMenuItem("Submission", ["admin"], undefined, FaChevronDown, COLORS.teal, [
         createMenuItem("New Application", ["admin"], `${BASE_URLS.admin}/manage-warish/application`, FaChevronCircleRight, COLORS.teal),
@@ -197,7 +197,7 @@ export const adminMenuItems: MenuItemProps[] = [
     ]),
   ]),
 
-  createMenuItem("Financial Management", ["admin"], undefined, MdMoney, COLORS.indigo, [
+  createMenuItem("Financial Management", [], undefined, MdMoney, COLORS.indigo, [
     createMenuItem("Transactions", ["admin"], undefined, FaChevronCircleRight, COLORS.indigo, [
       createMenuItem("Payment Records", ["admin"], `${BASE_URLS.admin}/addpaymentdetails`, FaChevronCircleRight, COLORS.indigo),
       createMenuItem("Receipt Management", ["admin"], `${BASE_URLS.admin}/payments/receipts`, FaChevronCircleRight, COLORS.green),
@@ -225,7 +225,7 @@ export const adminMenuItems: MenuItemProps[] = [
     createMenuItem("Document Covers", ["admin"], `${BASE_URLS.admin}/generate/cover-page`, FaChevronCircleRight, COLORS.red),
   ]),
 
-  createMenuItem("Reports & Analytics", ["admin"], undefined, MdAnalytics, COLORS.blue, [
+  createMenuItem("Reports & Analytics", [], undefined, MdAnalytics, COLORS.blue, [
     createMenuItem("Financial Reports", ["admin"], undefined, FaChartBar, COLORS.green, [
       createMenuItem("Budget Analysis", ["admin"], `${BASE_URLS.admin}/reports/budget`, FaChevronCircleRight, COLORS.blue),
       createMenuItem("Expenditure Summary", ["admin"], `${BASE_URLS.admin}/reports/expenditure`, FaChevronCircleRight, COLORS.green),
@@ -239,13 +239,13 @@ export const adminMenuItems: MenuItemProps[] = [
     createMenuItem("View Notices", ["admin"], `${BASE_URLS.admin}/notice/view`, FaChevronCircleRight, COLORS.cyan),
   ]),
 
-  createMenuItem("System Administration", ["admin", "superadmin"], undefined, MdSettingsApplications, COLORS.gray, [
+  createMenuItem("System Administration", [], undefined, MdSettingsApplications, COLORS.gray, [
     createMenuItem("User Management", ["admin", "superadmin"], undefined, FaChevronCircleRight, COLORS.green, [
       createMenuItem("User Accounts", ["admin", "superadmin"], undefined, FaChevronDown, COLORS.blue, [
         createMenuItem("Create User", ["admin", "superadmin"], `${BASE_URLS.admin}/user/add`, FaChevronCircleRight, COLORS.green),
         createMenuItem("Modify User", ["admin", "superadmin"], `${BASE_URLS.admin}/user/edit`, FaChevronCircleRight, COLORS.red),
       ]),
-      createMenuItem("Directories", ["admin", "superadmin"], undefined, FaChevronDown, COLORS.purple, [
+      createMenuItem("Directories", [], undefined, FaChevronDown, COLORS.purple, [
         createMenuItem("User Directory", ["admin", "superadmin"], `${BASE_URLS.admin}/user`, FaChevronCircleRight, COLORS.green),
         createMenuItem("Staff Directory", ["admin", "superadmin"], `${BASE_URLS.admin}/staff`, FaChevronCircleRight, COLORS.red),
       ]),
@@ -256,7 +256,7 @@ export const adminMenuItems: MenuItemProps[] = [
         createMenuItem("Email Services", ["admin", "superadmin"], `${BASE_URLS.admin}/master/utils/emails-service`, FaChevronCircleRight, COLORS.purple),
         createMenuItem("Notifications", ["admin", "superadmin"], `${BASE_URLS.admin}/master/utils/notifications`, FaChevronCircleRight, COLORS.purple),
       ]),
-      createMenuItem("Content", ["admin", "superadmin"], undefined, FaChevronDown, COLORS.teal, [
+      createMenuItem("Content", [], undefined, FaChevronDown, COLORS.teal, [
         createMenuItem("System Messages", ["admin", "superadmin"], `${BASE_URLS.admin}/master/addimpsmessage`, FaChevronCircleRight, COLORS.green),
         createMenuItem("Forms Repository", ["admin", "superadmin"], `${BASE_URLS.admin}/master/uploadform`, FaChevronCircleRight, COLORS.green),
       ]),
@@ -273,7 +273,7 @@ export const adminMenuItems: MenuItemProps[] = [
     createMenuItem("API Management", ["admin", "superadmin"], `${BASE_URLS.admin}/integrations/api`, FaChevronCircleRight, COLORS.red),
   ]),
 
-  createMenuItem("Manage Villages", ["admin"], undefined, MdHolidayVillage, COLORS.cyan, [
+  createMenuItem("Manage Villages", [], undefined, MdHolidayVillage, COLORS.cyan, [
     createMenuItem("View Villages", ["admin"], `${BASE_URLS.admin}/manage-villages/view`, FaChevronCircleRight, COLORS.cyan),
     createMenuItem("Village Population", ["admin"], `${BASE_URLS.admin}/manage-villages/population`, FaChevronCircleRight, COLORS.cyan),
     createMenuItem("Village Education", ["admin"], `${BASE_URLS.admin}/manage-villages/education`, FaChevronCircleRight, COLORS.cyan),
@@ -282,7 +282,7 @@ export const adminMenuItems: MenuItemProps[] = [
     createMenuItem("Village Agriculture", ["admin"], `${BASE_URLS.admin}/manage-villages/agriculture`, FaChevronCircleRight, COLORS.cyan),
   ]),
 
-  createMenuItem("Water Tanker Management", ["admin"], undefined, FaTruck, COLORS.blue, [
+  createMenuItem("Water Tanker Management", [], undefined, FaTruck, COLORS.blue, [
     createMenuItem("Service Fee Management", ["admin"], `${BASE_URLS.admin}/water-tanker/fees`, FaChevronCircleRight, COLORS.green),
     createMenuItem("Tanker Schedule", ["admin"], `${BASE_URLS.admin}/water-tanker/schedule`, FaChevronCircleRight, COLORS.yellow),
     createMenuItem("Tanker Requests", ["admin"], `${BASE_URLS.admin}/water-tanker/requests`, FaChevronCircleRight, COLORS.red),
@@ -292,9 +292,9 @@ export const adminMenuItems: MenuItemProps[] = [
 
 // Staff Menu
 export const employeeMenuItems: MenuItemProps[] = [
-  createMenuItem("Staff Dashboard", ["staff", "superadmin"], `${BASE_URLS.staff}/home`, MdDashboard, COLORS.blue),
+  createMenuItem("Staff Dashboard", ["staff"], `${BASE_URLS.staff}/home`, MdDashboard, COLORS.blue),
   
-  createMenuItem("Certificate Processing", ["staff"], undefined, MdAssignment, COLORS.red, [
+  createMenuItem("Certificate Processing", [], undefined, MdAssignment, COLORS.red, [
     createMenuItem("My Assignments", ["staff"], undefined, FaChevronCircleRight, COLORS.yellow, [
       createMenuItem("Current Tasks", ["staff"], `${BASE_URLS.staff}/warish/view-assigned`, FaChevronCircleRight, COLORS.yellow),
       createMenuItem("Process Applications", ["staff"], `${BASE_URLS.staff}/warish/process`, FaChevronCircleRight, COLORS.green),
@@ -305,29 +305,29 @@ export const employeeMenuItems: MenuItemProps[] = [
     ]),
   ]),
 
-  createMenuItem("Work Management", ["staff"], undefined, MdAssignmentTurnedIn, COLORS.cyan, [
+  createMenuItem("Work Management", [], undefined, MdAssignmentTurnedIn, COLORS.cyan, [
     createMenuItem("Tasks", ["staff"], undefined, FaChevronCircleRight, COLORS.blue, [
       createMenuItem("My Tasks", ["staff"], `${BASE_URLS.staff}/tasks`, FaChevronCircleRight, COLORS.blue),
       createMenuItem("Team Tasks", ["staff"], `${BASE_URLS.staff}/tasks/team`, FaChevronCircleRight, COLORS.green),
     ]),
-    createMenuItem("Reporting", ["staff"], undefined, FaChevronCircleRight, COLORS.pink, [
+    createMenuItem("Reporting", [], undefined, FaChevronCircleRight, COLORS.pink, [
       createMenuItem("Daily Reports", ["staff"], `${BASE_URLS.staff}/reports`, FaChevronCircleRight, COLORS.blue),
       createMenuItem("Performance Metrics", ["staff"], `${BASE_URLS.staff}/reports/metrics`, FaChevronCircleRight, COLORS.green),
     ]),
   ]),
 
-  createMenuItem("Personal", ["staff"], undefined, MdPersonAdd, COLORS.purple, [
+  createMenuItem("Personal", [], undefined, MdPersonAdd, COLORS.purple, [
     createMenuItem("Leave Management", ["staff"], undefined, FaChevronCircleRight, COLORS.pink, [
       createMenuItem("Apply Leave", ["staff"], `${BASE_URLS.staff}/leave/apply`, FaChevronCircleRight, COLORS.blue),
       createMenuItem("Leave Balance", ["staff"], `${BASE_URLS.staff}/leave/balance`, FaChevronCircleRight, COLORS.green),
     ]),
-    createMenuItem("Training", ["staff"], undefined, FaChevronCircleRight, COLORS.purple, [
+    createMenuItem("Training", [], undefined, FaChevronCircleRight, COLORS.purple, [
       createMenuItem("Available Courses", ["staff"], `${BASE_URLS.staff}/training/courses`, FaChevronCircleRight, COLORS.blue),
       createMenuItem("My Certifications", ["staff"], `${BASE_URLS.staff}/training/certifications`, FaChevronCircleRight, COLORS.green),
     ]),
   ]),
 
-  createMenuItem("Water Tanker Management", ["staff"], undefined, FaTruck, COLORS.blue, [
+  createMenuItem("Water Tanker Management", [], undefined, FaTruck, COLORS.blue, [
     createMenuItem("Booking Requests", ["staff"], `${BASE_URLS.staff}/water-tanker/booking`, FaChevronCircleRight, COLORS.yellow),
     createMenuItem("Service History", ["staff"], `${BASE_URLS.staff}/water-tanker/history`, FaChevronCircleRight, COLORS.red),
   ]),
