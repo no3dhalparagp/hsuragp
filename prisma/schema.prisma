@@ -56,6 +56,10 @@ model User {
   bookings                 Booking[]
   auditLog                 AuditLog[]
   familyLineageCertificate FamilyLineageCertificate[]
+  Quotation                Quotation[]
+  Order                    Order[]
+  meetings                 Meeting[]                  @relation("MeetingCreatedBy")
+  meetingDocuments         MeetingDocument[]          @relation("MeetingDocumentUploadedBy")
 }
 
 model Account {
@@ -165,27 +169,28 @@ model WarishApplication {
   nameOfDeceased        String
   dateOfDeath           DateTime
 
-  gender                  Gender
-  maritialStatus          MaritialStatus
-  fatherName              String
-  spouseName              String?
-  villageName             String
-  postOffice              String
-  warishDetails           WarishDetail[]
-  assingstaffId           String?                 @db.ObjectId
-  fieldreportRemark       String?
-  adminNoteRemark         String?
-  warishRefNo             String?
-  warishRefDate           DateTime?
-  approvalYear            String?
-  renewdate               DateTime?
-  warishApplicationStatus WarishApplicationStatus @default(submitted)
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime                @updatedAt
-  User                    User?                   @relation(fields: [userId], references: [id])
-  userId                  String?                 @db.ObjectId
-  warishdocumentverified  Boolean                 @default(false)
-  WarishDocument          WarishDocument[]
+  gender                    Gender
+  maritialStatus            MaritialStatus
+  fatherName                String
+  spouseName                String?
+  villageName               String
+  postOffice                String
+  warishDetails             WarishDetail[]
+  assingstaffId             String?                     @db.ObjectId
+  fieldreportRemark         String?
+  adminNoteRemark           String?
+  warishRefNo               String?
+  warishRefDate             DateTime?
+  approvalYear              String?
+  renewdate                 DateTime?
+  warishApplicationStatus   WarishApplicationStatus     @default(submitted)
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
+  User                      User?                       @relation(fields: [userId], references: [id])
+  userId                    String?                     @db.ObjectId
+  warishdocumentverified    Boolean                     @default(false)
+  WarishDocument            WarishDocument[]
+  WarishModificationRequest WarishModificationRequest[]
 
   @@index([applicantName, nameOfDeceased])
 }
@@ -277,9 +282,16 @@ enum FamilyRelationship {
   GreatNiece
 }
 
+enum AgencyType {
+  FARM
+  INDIVIDUAL
+}
+
 model AgencyDetails {
   id             String      @id @default(auto()) @map("_id") @db.ObjectId
   name           String      @unique
+  agencyType     AgencyType  @default(INDIVIDUAL)
+  proprietorName String? // Added for farm agencies
   mobileNumber   String?
   email          String?
   pan            String?
@@ -287,6 +299,9 @@ model AgencyDetails {
   gst            String?
   contactDetails String
   Bidagency      Bidagency[]
+  Bid            Bid[]
+  Order          Order[]
+  
 }
 
 model ApprovedActionPlanDetails {
@@ -834,42 +849,18 @@ model GovernmentScheme {
   @@map("government_schemes")
 }
 
-model Quotation {
-  id                       String   @id @default(auto()) @map("_id") @db.ObjectId
-  nitMemoNo                String
-  nitMemoDate              DateTime
-  materialName             String
-  submissionDate           DateTime
-  quotationStartDate       DateTime
-  quotationEndDate         DateTime
-  quotationOpeningDateTime DateTime
-
-  openingLocation String
-
-  items QuotationItem[]
-}
-
-model QuotationItem {
-  id               String    @id @default(auto()) @map("_id") @db.ObjectId
-  quotationId      String    @db.ObjectId
-  quotation        Quotation @relation(fields: [quotationId], references: [id])
-  itemName         String
-  itemDescription  String
-  itemQuantity     Int
-  itemUnit         String
-  itemCost         Float
-  deliverySite     String
-  deliveryDeadline DateTime
-}
-
 model Document {
-  id        String     @id @default(auto()) @map("_id") @db.ObjectId
-  fileUrl   String
-  fileKey   String
-  nitId     String     @db.ObjectId
-  nit       NitDetails @relation(fields: [nitId], references: [id])
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  fileUrl     String
+  fileKey     String
+  nitId       String     @db.ObjectId
+  nit         NitDetails @relation(fields: [nitId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  Quotation   Quotation? @relation(fields: [quotationId], references: [id])
+  quotationId String?    @db.ObjectId
+  Order       Order?     @relation(fields: [orderId], references: [id])
+  orderId     String?    @db.ObjectId
 }
 
 enum ProdhanStatus {
@@ -1062,14 +1053,16 @@ model ServiceAvailability {
 }
 
 model AuditLog {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  action     String
-  entityId   String
-  entityType String
-  details    String?
-  userId     String   @db.ObjectId
-  user       User     @relation(fields: [userId], references: [id])
-  createdAt  DateTime @default(now())
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  action      String
+  entityId    String
+  entityType  String
+  details     String?
+  userId      String     @db.ObjectId
+  user        User       @relation(fields: [userId], references: [id])
+  createdAt   DateTime   @default(now())
+  Quotation   Quotation? @relation(fields: [quotationId], references: [id])
+  quotationId String?    @db.ObjectId
 }
 
 model FamilyMember {
@@ -1249,98 +1242,108 @@ model ApiSecretKey {
   updatedAt DateTime @updatedAt
 }
 
-model Village {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  jlNo              String   @unique
-  name              String
-  state             String
-  district          String
-  block             String
-  gramPanchayatName String
-  pincode           String?
-  households        Int
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relations
-  yearlyData                 YearlyPopulationData[]
-  educationalInstitutionData EducationalInstitutionData[]
-  villageInfrastructure      VillageInfrastructure[]
-  villageEducation           VillageEducation[]
-  healthData                 HealthData[]
-  sanitationData             SanitationData[]
-  waterSupplyData            WaterSupplyData[]
-  economicData               EconomicData[]
-
-  @@map("villages")
+model Yeardatas {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  yeardata    String        @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  villageInfo VillageInfo[]
 }
 
-model YearlyPopulationData {
-  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
-  villageId            String    @db.ObjectId
-  village              Village   @relation(fields: [villageId], references: [id], onDelete: Cascade)
-  year                 Int
-  totalPopulation      Int
-  malePopulation       Int
-  femalePopulation     Int
-  totalLiterate        Int
-  maleLiterate         Int
-  femaleLiterate       Int
-  scPopulation         Int
-  stPopulation         Int
-  obcPopulation        Int
-  generalPopulation    Int
-  illiteratePopulation Int
-  childPopulation      Int // 0-6 years
-  adultPopulation      Int // 18+ years
-  seniorPopulation     Int // 60+ years
-  workingPopulation    Int // 15-59 years
-  verified             Boolean   @default(false)
-  verifiedBy           String?
-  verifiedAt           DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+model VillageInfo {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  lgdcode   Int
+  jlno      Int
+  name      String
+  isDraft   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@unique([villageId, year])
-  @@map("yearly_population_data")
+  // Relations
+  EducationalInstitutionData EducationalInstitutionData? @relation(fields: [educationalInstitutionDataId], references: [id])
+  villagePopulation          VillagePopulation?          @relation(fields: [villagePopulationId], references: [id])
+  VillageEducation           VillageEducation?           @relation(fields: [villageEducationId], references: [id])
+  VillageInfrastructure      VillageInfrastructure?      @relation(fields: [villageInfrastructureId], references: [id])
+  HealthData                 HealthData?                 @relation(fields: [healthDataId], references: [id])
+  SanitationData             SanitationData?             @relation(fields: [sanitationDataId], references: [id])
+  WaterSupplyData            WaterSupplyData?            @relation(fields: [waterSupplyDataId], references: [id])
+  EconomicData               EconomicData?               @relation(fields: [economicDataId], references: [id])
+  yeardatas                  Yeardatas?                  @relation(fields: [yeardatasId], references: [id])
+
+  // Foreign Keys
+  villagePopulationId          String?             @db.ObjectId
+  educationalInstitutionDataId String?             @db.ObjectId
+  villageInfrastructureId      String?             @db.ObjectId
+  villageEducationId           String?             @db.ObjectId
+  healthDataId                 String?             @db.ObjectId
+  sanitationDataId             String?             @db.ObjectId
+  waterSupplyDataId            String?             @db.ObjectId
+  economicDataId               String?             @db.ObjectId
+  yeardatasId                  String?             @db.ObjectId
+  ElectorInformation           ElectorInformation? @relation(fields: [electorInformationId], references: [id])
+  electorInformationId         String?             @db.ObjectId
+  PublicPlace                  PublicPlace?        @relation(fields: [publicPlaceId], references: [id])
+  publicPlaceId                String?             @db.ObjectId
+  IndustryInfo                 IndustryInfo?       @relation(fields: [industryInfoId], references: [id])
+  industryInfoId               String?             @db.ObjectId
+
+  // Composite unique constraint for lgdcode + year combination
+  @@unique([lgdcode, yeardatasId])
+  @@unique([jlno, yeardatasId])
+}
+
+model VillagePopulation {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  household        Int      @default(0)
+  male             Int      @default(0)
+  female           Int      @default(0)
+  ltmale           Int      @default(0)
+  ltfemale         Int      @default(0)
+  scmale           Int      @default(0)
+  scfemale         Int      @default(0)
+  stmale           Int      @default(0)
+  stfemale         Int      @default(0)
+  obcmale          Int      @default(0)
+  obcfemale        Int      @default(0)
+  childrenmale06   Int      @default(0)
+  childrenfemale06 Int      @default(0)
+  isDraft          Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  VillageInfo VillageInfo[]
 }
 
 model EducationalInstitutionData {
   id                   String   @id @default(auto()) @map("_id") @db.ObjectId
-  villageId            String   @db.ObjectId
-  village              Village  @relation(fields: [villageId], references: [id], onDelete: Cascade)
-  year                 Int
-  ssk                  Int // Shishu Shiksha Kendra
-  anganwadi            Int
-  primarySchool        Int
-  upperPrimary         Int
-  highSchool           Int
-  higherSecondary      Int
-  madrasah             Int
-  juniorHigh           Int
-  college              Int
+  ssk                  Int      @default(0) // Shishu Shiksha Kendra
+  anganwadi            Int      @default(0)
+  primarySchool        Int      @default(0)
+  upperPrimary         Int      @default(0)
+  highSchool           Int      @default(0)
+  higherSecondary      Int      @default(0)
+  madrasah             Int      @default(0)
+  juniorHigh           Int      @default(0)
+  college              Int      @default(0)
   university           Int      @default(0)
   technicalInstitute   Int      @default(0)
   vocationalCenter     Int      @default(0)
   adultEducationCenter Int      @default(0)
   libraryCount         Int      @default(0)
   computerCenter       Int      @default(0)
+  isDraft              Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  @@unique([villageId, year])
-  @@map("educational_institution_data")
+  VillageInfo VillageInfo[]
 }
 
 model VillageInfrastructure {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
-  villageId             String   @db.ObjectId
-  village               Village  @relation(fields: [villageId], references: [id], onDelete: Cascade)
-  year                  Int
-  anganwadi             Int
-  icdsCentre            Int
-  healthCentre          Int
-  subCentre             Int
+  anganwadi             Int      @default(0)
+  icdsCentre            Int      @default(0)
+  healthCentre          Int      @default(0)
+  subCentre             Int      @default(0)
   primaryHealthCenter   Int      @default(0)
   communityHealthCenter Int      @default(0)
   veterinaryHospital    Int      @default(0)
@@ -1356,49 +1359,43 @@ model VillageInfrastructure {
   fairPriceShop         Int      @default(0)
   cooperativeSociety    Int      @default(0)
   selfHelpGroups        Int      @default(0)
+  isDraft               Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  @@unique([villageId, year])
-  @@map("village_infrastructure")
+  VillageInfo VillageInfo[]
 }
 
 model VillageEducation {
   id                       String   @id @default(auto()) @map("_id") @db.ObjectId
-  villageId                String   @db.ObjectId
-  village                  Village  @relation(fields: [villageId], references: [id], onDelete: Cascade)
-  year                     Int
-  totalStudents            Int
-  maleStudents             Int
-  femaleStudents           Int
-  scStudents               Int
-  stStudents               Int
-  obcStudents              Int
+  totalStudents            Int      @default(0)
+  maleStudents             Int      @default(0)
+  femaleStudents           Int      @default(0)
+  scStudents               Int      @default(0)
+  stStudents               Int      @default(0)
+  obcStudents              Int      @default(0)
   dropoutRate              Float    @default(0)
   maleDropoutRate          Float    @default(0)
   femaleDropoutRate        Float    @default(0)
-  teacherCount             Int
-  maleTeachers             Int
-  femaleTeachers           Int
-  trainedTeachers          Int
+  teacherCount             Int      @default(0)
+  maleTeachers             Int      @default(0)
+  femaleTeachers           Int      @default(0)
+  trainedTeachers          Int      @default(0)
   midDayMealBeneficiaries  Int      @default(0)
   scholarshipBeneficiaries Int      @default(0)
   digitalClassrooms        Int      @default(0)
   playgroundAvailable      Boolean  @default(false)
   libraryAvailable         Boolean  @default(false)
   computerLabAvailable     Boolean  @default(false)
+  isDraft                  Boolean  @default(true)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
-  @@unique([villageId, year])
-  @@map("village_education")
+  VillageInfo VillageInfo[]
 }
 
 model HealthData {
   id                      String   @id @default(auto()) @map("_id") @db.ObjectId
-  villageId               String   @db.ObjectId
-  village                 Village  @relation(fields: [villageId], references: [id], onDelete: Cascade)
-  year                    Int
   birthRate               Float    @default(0)
   deathRate               Float    @default(0)
   infantMortalityRate     Float    @default(0)
@@ -1416,21 +1413,18 @@ model HealthData {
   familyPlanningAdopters  Int      @default(0)
   healthInsuranceCoverage Int      @default(0)
   ayushTreatmentSeekers   Int      @default(0)
+  isDraft                 Boolean  @default(true)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
-  @@unique([villageId, year])
-  @@map("health_data")
+  VillageInfo VillageInfo[]
 }
 
 model SanitationData {
   id                        String   @id @default(auto()) @map("_id") @db.ObjectId
-  villageId                 String   @db.ObjectId
-  village                   Village  @relation(fields: [villageId], references: [id], onDelete: Cascade)
-  year                      Int
-  householdsWithToilets     Int
-  householdsUsingToilets    Int
-  publicToiletFacilities    Int
+  householdsWithToilets     Int      @default(0)
+  householdsUsingToilets    Int      @default(0)
+  publicToiletFacilities    Int      @default(0)
   communityToilets          Int      @default(0)
   schoolToilets             Int      @default(0)
   anganwadiToilets          Int      @default(0)
@@ -1442,27 +1436,24 @@ model SanitationData {
   drainageSystem            Boolean  @default(false)
   openDefecationFree        Boolean  @default(false)
   swachhBharatMissionStatus String? // "Achieved", "In Progress", "Not Started"
+  isDraft                   Boolean  @default(true)
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 
-  @@unique([villageId, year])
-  @@map("sanitation_data")
+  VillageInfo VillageInfo[]
 }
 
 model WaterSupplyData {
   id                          String   @id @default(auto()) @map("_id") @db.ObjectId
-  villageId                   String   @db.ObjectId
-  village                     Village  @relation(fields: [villageId], references: [id], onDelete: Cascade)
-  year                        Int
-  pipedWaterConnections       Int
+  pipedWaterConnections       Int      @default(0)
   handPumps                   Int      @default(0)
   tubewells                   Int      @default(0)
   openWells                   Int      @default(0)
   borewells                   Int      @default(0)
   waterTankers                Int      @default(0)
-  waterSourcesTested          Int
-  safeWaterSources            Int
-  unsafeWaterSources          Int
+  waterSourcesTested          Int      @default(0)
+  safeWaterSources            Int      @default(0)
+  unsafeWaterSources          Int      @default(0)
   waterQualityTested          Boolean  @default(false)
   fluorideContamination       Boolean  @default(false)
   arsenicContamination        Boolean  @default(false)
@@ -1471,26 +1462,23 @@ model WaterSupplyData {
   rainwaterHarvesting         Int      @default(0)
   waterConservationStructures Int      @default(0)
   jjmCoverage                 Float    @default(0) // Jal Jeevan Mission coverage percentage
+  isDraft                     Boolean  @default(true)
   createdAt                   DateTime @default(now())
   updatedAt                   DateTime @updatedAt
 
-  @@unique([villageId, year])
-  @@map("water_supply_data")
+  VillageInfo VillageInfo[]
 }
 
 model EconomicData {
   id                       String   @id @default(auto()) @map("_id") @db.ObjectId
-  villageId                String   @db.ObjectId
-  village                  Village  @relation(fields: [villageId], references: [id], onDelete: Cascade)
-  year                     Int
-  totalWorkers             Int
-  mainWorkers              Int
-  marginalWorkers          Int
-  nonWorkers               Int
-  cultivators              Int
-  agriculturalLabourers    Int
-  householdIndustryWorkers Int
-  otherWorkers             Int
+  totalWorkers             Int      @default(0)
+  mainWorkers              Int      @default(0)
+  marginalWorkers          Int      @default(0)
+  nonWorkers               Int      @default(0)
+  cultivators              Int      @default(0)
+  agriculturalLabourers    Int      @default(0)
+  householdIndustryWorkers Int      @default(0)
+  otherWorkers             Int      @default(0)
   unemploymentRate         Float    @default(0)
   femaleWorkParticipation  Float    @default(0)
   averageIncome            Float    @default(0)
@@ -1502,36 +1490,434 @@ model EconomicData {
   mgnregaWorkDays          Int      @default(0)
   skillDevelopmentTrainees Int      @default(0)
   entrepreneurshipPrograms Int      @default(0)
+  isDraft                  Boolean  @default(true)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
-  @@unique([villageId, year])
-  @@map("economic_data")
+  VillageInfo VillageInfo[]
 }
 
-model MenuItem {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  text         String
-  link         String?
-  icon         String?
-  color        String?
-  order        Int
-  parentId     String?  @db.ObjectId
-  parent       MenuItem? @relation("MenuItemParent", fields: [parentId], references: [id])
-  children     MenuItem[] @relation("MenuItemParent")
-  allowedRoles UserRole[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  menuConfigurations MenuConfiguration[]
+model ElectorInformation {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  year              Int      @default(2023)
+  totalVoters       Int      @default(0)
+  maleVoters        Int      @default(0)
+  femaleVoters      Int      @default(0)
+  thirdGenderVoters Int      @default(0)
+  pollingStations   Int      @default(0)
+  isDraft           Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  @@index([parentId])
-  @@index([order])
+  VillageInfo VillageInfo[]
 }
 
-model MenuConfiguration {
+model PublicPlace {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  communityHalls  Int      @default(0)
+  parks           Int      @default(0)
+  playgrounds     Int      @default(0)
+  publicLibraries Int      @default(0)
+  culturalCenters Int      @default(0)
+  crematoriums    Int      @default(0)
+  burialGrounds   Int      @default(0)
+  isDraft         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  VillageInfo VillageInfo[]
+}
+
+model IndustryInfo {
+  id                   String   @id @default(auto()) @map("_id") @db.ObjectId
+  smallScaleIndustries Int      @default(0)
+  cottageIndustries    Int      @default(0)
+  agroBasedUnits       Int      @default(0)
+  handloomUnits        Int      @default(0)
+  others               String?
+  isDraft              Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  VillageInfo VillageInfo[]
+}
+
+model Ashaworker {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  mobileNumber   String
+  homeAddress    String
+  workingVillage String
+  recordDate     DateTime // Specific date of data collection or entry
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Angwariworker {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  mobileNumber   String
+  homeAddress    String
+  workingVillage String
+  recordDate     DateTime // This is the specific date you're referring to
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SHGGroup {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  groupName        String
+  formationDate    DateTime
+  village          String
+  totalMembers     Int
+  groupLeaderName  String
+  groupLeaderPhone String
+  address          String // Full address of the group meeting place or office
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Quotation {
+  id                  String          @id @default(auto()) @map("_id") @db.ObjectId
+  nitNo               String          @unique
+  nitDate             DateTime
+  quotationType       QuotationType
+  workName            String
+  description         String?
+  estimatedAmount     Float
+  submissionDate      DateTime
+  submissionTime      String
+  openingDate         DateTime
+  openingTime         String
+  quantity            String?
+  unit                String?
+  specifications      String?
+  itemCondition       String?
+  workLocation        String?
+  eligibilityCriteria String?
+  status              QuotationStatus @default(DRAFT)
+  publishedAt         DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  // Relations
+  createdById          String                @db.ObjectId
+  createdBy            User                  @relation(fields: [createdById], references: [id])
+  bids                 Bid[]
+  comparativeStatement ComparativeStatement?
+  order                Order?
+  documents            Document[]
+  auditLogs            AuditLog[]
+
+  @@map("quotations")
+}
+
+model Bid {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  amount      Float
+  submittedAt DateTime @default(now())
+  rank        Int?
+  isSelected  Boolean  @default(false)
+  remarks     String?
+
+  // Relations
+  quotationId     String        @db.ObjectId
+  quotation       Quotation     @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  agencyDetailsId String        @db.ObjectId
+  agencyDetails   AgencyDetails @relation(fields: [agencyDetailsId], references: [id])
+
+  @@map("bids")
+}
+
+model ComparativeStatement {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  role      UserRole     @unique
-  menuItems MenuItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  remarks   String?
+
+  // Relations
+  quotationId String    @unique @db.ObjectId
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@map("comparative_statements")
+}
+
+model Order {
+  id                   String        @id @default(auto()) @map("_id") @db.ObjectId
+  orderNo              String        @unique
+  orderDate            DateTime
+  deliveryDate         DateTime
+  orderAmount          Float
+  estimatedAmount      Float
+  savings              Float
+  deliveryAddress      String
+  paymentTerms         String?
+  specialInstructions  String?
+  status               OrderStatus   @default(PENDING)
+  paymentStatus        PaymentStatus @default(PENDING)
+  completionPercentage Int           @default(0)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  // Relations
+  quotationId     String          @unique @db.ObjectId
+  quotation       Quotation       @relation(fields: [quotationId], references: [id])
+  agencyDetailsId String          @db.ObjectId
+  agencyDetails   AgencyDetails   @relation(fields: [agencyDetailsId], references: [id])
+  createdById     String          @db.ObjectId
+  createdBy       User            @relation(fields: [createdById], references: [id])
+  items           OrderItem[]
+  timeline        OrderTimeline[]
+  documents       Document[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  specifications String?
+  quantity       Int
+  unit           String
+  rate           Float
+  amount         Float
+
+  // Relations
+  orderId String @db.ObjectId
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model OrderTimeline {
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  date      DateTime
+  event     String
+  status    TimelineStatus
+  remarks   String?
+  createdAt DateTime       @default(now())
+
+  // Relations
+  orderId String @db.ObjectId
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_timeline")
+}
+
+// Enums
+enum QuotationType {
+  WORK
+  SUPPLY
+  SALE
+}
+
+enum QuotationStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  CANCELLED
+}
+
+enum BidderStatus {
+  ACTIVE
+  INACTIVE
+  BLACKLISTED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  ADVANCE_PAID
+  PROCESSING
+  PAID
+  OVERDUE
+}
+
+enum TimelineStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+// Simplified Prisma schema for Warish Application with basic modification system
+
+// Simple Modification Request Model
+model WarishModificationRequest {
+  id                    String                    @id @default(auto()) @map("_id") @db.ObjectId
+  warishApplicationId   String?                   @db.ObjectId // Now optional
+  warishDetailId        String?                   @db.ObjectId // Optional
+  targetType            String // 'application' or 'detail'
+  warishApplication     WarishApplication?        @relation(fields: [warishApplicationId], references: [id], onDelete: Cascade)
+  fieldToModify         String // Field name to be modified
+  currentValue          String // Current value in the application or detail
+  proposedValue         String // Proposed new value
+  reasonForModification String // Reason for the change
+  requestedBy           String // Name of person requesting
+  requestedDate         DateTime                  @default(now())
+  status                ModificationRequestStatus @default(pending)
+  reviewedBy            String? // Name of person who reviewed
+  reviewedDate          DateTime? // Date of review
+  reviewComments        String? // Comments from reviewer
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  @@index([warishApplicationId])
+  @@index([warishDetailId])
+  @@index([status])
+  @@index([requestedDate])
+  @@index([targetType])
+  @@index([warishApplicationId, warishDetailId])
+  // At least one of warishApplicationId or warishDetailId must be non-null (enforced in application logic)
+  // targetType should be 'application' if warishApplicationId is set, 'detail' if warishDetailId is set
+  @@map("warish_modification_requests")
+}
+
+// Enums
+
+enum ApplicationStatus {
+  pending
+  approved
+  rejected
+  under_review
+}
+
+enum ModificationRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+enum MeetingType {
+  UPASAMITY
+  GENERAL
+  ARTHO
+  SPECIAL_GRAM_SABHA
+  REGULAR_GRAM_SABHA
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  POSTPONED
+}
+
+enum UpasamitySubtype {
+  SIPLA_PARIKATHAMA
+  SIKHA_O_JANASANTHA
+  NARI_O_SHISHU
+  KRISHA_O_PANI_SAMPAD
+}
+
+model Meeting {
+  id               String            @id @default(auto()) @map("_id") @db.ObjectId
+  title            String
+  meetingType      MeetingType
+  meetingDate      DateTime
+  startTime        String
+  endTime          String
+  venue            String
+  agenda           String
+  description      String?
+  status           MeetingStatus     @default(SCHEDULED)
+  financialYear    String
+  month            String
+  attendance       Int?
+  quorumAchieved   Boolean           @default(false)
+  isPublished      Boolean           @default(false)
+  publishedAt      DateTime?
+  upasamitySubtype UpasamitySubtype? // Only for UPASAMITY meetings
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // Relations
+  createdBy     String            @db.ObjectId
+  createdByUser User              @relation("MeetingCreatedBy", fields: [createdBy], references: [id])
+  attendees     MeetingAttendee[]
+  resolutions   Resolution[]
+  minutes       MeetingMinutes?
+  documents     MeetingDocument[]
+}
+
+model MeetingAttendee {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  meetingId String  @db.ObjectId
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  name          String
+  designation   String?
+  village       String?
+  phone         String?
+  email         String?
+  isPresent     Boolean   @default(false)
+  arrivalTime   DateTime?
+  departureTime DateTime?
+  remarks       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Resolution {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  meetingId String  @db.ObjectId
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  resolutionNumber       String
+  subject                String
+  description            String
+  decision               String
+  budgetAmount           Float?
+  implementationTimeline String?
+  responsiblePerson      String?
+  status                 String  @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  votingResults          Json? // Store voting details as JSON
+  remarks                String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MeetingMinutes {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  meetingId String  @unique @db.ObjectId
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  keyDiscussions      String
+  decisions           String
+  actionItems         String
+  nextMeetingDate     DateTime?
+  nextMeetingAgenda   String?
+  attendanceSummary   String?
+  specialObservations String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MeetingDocument {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  meetingId String  @db.ObjectId
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  documentType   String // AGENDA, MINUTES, RESOLUTION, ATTENDANCE, OTHER
+  title          String
+  fileName       String
+  fileUrl        String
+  fileKey        String
+  fileSize       Int?
+  uploadedBy     String @db.ObjectId
+  uploadedByUser User   @relation("MeetingDocumentUploadedBy", fields: [uploadedBy], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
