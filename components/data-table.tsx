@@ -59,65 +59,70 @@ export function DataTable<TData, TValue>({ columns, data, containerClass }: Data
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.json_to_sheet(data)
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1")
-    XLSX.writeFile(wb, "data_export.xlsx")
+    XLSX.writeFile(wb, "work_orders.xlsx")
   }
 
   const handleResetSearch = () => setGlobalFilter("")
 
   return (
-    <div className={`space-y-6 bg-background p-6 rounded-2xl shadow-sm border ${containerClass}`}>
+    <div className={`space-y-6 bg-card p-5 rounded-2xl border ${containerClass}`}>
       {/* Toolbar Section */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search (Ctrl+F)..."
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            className="pl-11 pr-10 h-11 rounded-xl bg-background focus-visible:ring-2 focus-visible:ring-primary/50 border-muted"
+            className="pl-10 pr-9 h-10 rounded-xl bg-background focus-visible:ring-2 focus-visible:ring-primary/50 border"
           />
           {globalFilter && (
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-muted/50"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full hover:bg-muted/50"
               onClick={handleResetSearch}
             >
-              <X className="h-5 w-5 text-muted-foreground" />
+              <X className="h-4 w-4 text-muted-foreground" />
             </Button>
           )}
         </div>
 
-        <Button
-          variant="outline"
-          onClick={handleExcelExport}
-          className="rounded-xl gap-2 border bg-background hover:bg-muted/50 shadow-none hover:shadow-sm transition-all border-muted"
-        >
-          <FileDown className="h-5 w-5 text-primary" />
-          <span className="hidden sm:inline font-medium text-foreground">Export Excel</span>
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-muted-foreground hidden sm:block">
+            {table.getFilteredRowModel().rows.length} records
+          </div>
+          <Button
+            variant="secondary"
+            onClick={handleExcelExport}
+            className="rounded-xl gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all"
+          >
+            <FileDown className="h-4 w-4" />
+            <span className="font-medium">Export</span>
+          </Button>
+        </div>
       </div>
 
       {/* Table Section */}
-      <div className="rounded-xl border overflow-hidden border-muted">
-        <Table>
+      <div className="rounded-xl border overflow-hidden">
+        <Table className="border-collapse">
           <TableHeader className="bg-muted/30">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent">
+              <TableRow key={headerGroup.id} className="hover:bg-muted/20">
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className="px-6 py-4 text-foreground font-medium hover:bg-muted/50 transition-colors cursor-pointer group"
+                    className="px-5 py-3.5 text-foreground font-medium hover:bg-muted/50 transition-colors cursor-pointer group"
                     onClick={header.column.getToggleSortingHandler()}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {header.column.getCanSort() && (
-                        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground">
+                        <span className="text-muted-foreground">
                           {{
-                            asc: <ChevronUp className="h-5 w-5 text-primary" />,
-                            desc: <ChevronDown className="h-5 w-5 text-primary" />,
-                          }[header.column.getIsSorted() as string] ?? <ChevronsUpDown className="h-5 w-5" />}
+                            asc: <ChevronUp className="h-4 w-4 text-primary" />,
+                            desc: <ChevronDown className="h-4 w-4 text-primary" />,
+                          }[header.column.getIsSorted() as string] ?? <ChevronsUpDown className="h-4 w-4" />}
                         </span>
                       )}
                     </div>
@@ -129,11 +134,14 @@ export function DataTable<TData, TValue>({ columns, data, containerClass }: Data
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="hover:bg-muted/20 data-[state=selected]:bg-muted/50 border-muted">
+                <TableRow 
+                  key={row.id} 
+                  className="hover:bg-muted/10 border-b border-muted/30 last:border-0"
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className="px-6 py-4 font-medium text-foreground/90 group-hover:text-foreground transition-colors"
+                      className="px-5 py-4 font-medium text-foreground/90 group-hover:text-foreground"
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
@@ -142,10 +150,27 @@ export function DataTable<TData, TValue>({ columns, data, containerClass }: Data
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-32 text-center">
+                <TableCell colSpan={columns.length} className="h-48 text-center">
                   <div className="flex flex-col items-center gap-3 py-8 text-muted-foreground">
-                    <Search className="h-10 w-10 text-muted-foreground/30" />
-                    <span className="text-lg">No matching records found</span>
+                    <div className="bg-muted/30 p-4 rounded-full">
+                      <Search className="h-8 w-8 text-muted-foreground/40" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-lg font-medium text-foreground">No records found</p>
+                      <p className="text-sm max-w-md text-muted-foreground">
+                        Try adjusting your search or filter to find what you&apos;re looking for
+                      </p>
+                    </div>
+                    {globalFilter && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="text-primary"
+                        onClick={handleResetSearch}
+                      >
+                        Clear search
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -156,26 +181,30 @@ export function DataTable<TData, TValue>({ columns, data, containerClass }: Data
 
       {/* Pagination Section */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="text-sm text-muted-foreground sm:hidden">
+          {table.getFilteredRowModel().rows.length} records
+        </div>
+        
         <div className="flex items-center gap-1.5">
           <Button
             variant="outline"
             size="sm"
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
-            className="h-10 w-10 p-0 rounded-xl border border-muted bg-background hover:bg-muted/20"
+            className="h-9 w-9 p-0 rounded-lg border bg-background hover:bg-muted/20"
           >
-            <ChevronsLeft className="h-5 w-5 text-foreground" />
+            <ChevronsLeft className="h-4 w-4 text-foreground" />
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="h-10 w-10 p-0 rounded-xl border border-muted bg-background hover:bg-muted/20"
+            className="h-9 w-9 p-0 rounded-lg border bg-background hover:bg-muted/20"
           >
-            <ChevronLeft className="h-5 w-5 text-foreground" />
+            <ChevronLeft className="h-4 w-4 text-foreground" />
           </Button>
-          <div className="flex items-center gap-2 px-5 text-sm font-medium text-muted-foreground">
+          <div className="flex items-center gap-2 px-4 text-sm font-medium text-muted-foreground">
             Page{" "}
             <span className="text-foreground">
               {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
@@ -186,18 +215,18 @@ export function DataTable<TData, TValue>({ columns, data, containerClass }: Data
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="h-10 w-10 p-0 rounded-xl border border-muted bg-background hover:bg-muted/20"
+            className="h-9 w-9 p-0 rounded-lg border bg-background hover:bg-muted/20"
           >
-            <ChevronRight className="h-5 w-5 text-foreground" />
+            <ChevronRight className="h-4 w-4 text-foreground" />
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
-            className="h-10 w-10 p-0 rounded-xl border border-muted bg-background hover:bg-muted/20"
+            className="h-9 w-9 p-0 rounded-lg border bg-background hover:bg-muted/20"
           >
-            <ChevronsRight className="h-5 w-5 text-foreground" />
+            <ChevronsRight className="h-4 w-4 text-foreground" />
           </Button>
         </div>
 
@@ -206,7 +235,7 @@ export function DataTable<TData, TValue>({ columns, data, containerClass }: Data
           <select
             value={table.getState().pagination.pageSize}
             onChange={(e) => table.setPageSize(Number(e.target.value))}
-            className="h-10 rounded-xl border border-muted px-3 focus:ring-2 focus:ring-primary/50 bg-background"
+            className="h-9 rounded-lg border px-3 focus:ring-2 focus:ring-primary/50 bg-background"
           >
             {[10, 20, 30, 40, 50].map((pageSize) => (
               <option key={pageSize} value={pageSize}>
@@ -214,7 +243,7 @@ export function DataTable<TData, TValue>({ columns, data, containerClass }: Data
               </option>
             ))}
           </select>
-          <span>entries per page</span>
+          <span>entries</span>
         </div>
       </div>
     </div>

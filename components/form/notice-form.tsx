@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -36,7 +37,9 @@ const departments = [
   "Education Department",
   "Other",
 ];
+
 const noticeType = ["Tender", "Notice", "Circular", "Other"];
+
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
@@ -64,6 +67,7 @@ interface NoticeFormProps {
 
 export default function NoticeForm({ initialData, noticeId }: NoticeFormProps) {
   const [files, setFiles] = useState<File[]>([]);
+  const [removedFiles, setRemovedFiles] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
 
@@ -88,26 +92,13 @@ export default function NoticeForm({ initialData, noticeId }: NoticeFormProps) {
     setFiles(files.filter((_, i) => i !== index));
   };
 
+  const removeExistingFile = (publicId: string) => {
+    setRemovedFiles([...removedFiles, publicId]);
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsUploading(true);
-
-      // Convert files to base64
-      const filesData = await Promise.all(
-        files.map(async (file) => {
-          const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = (error) => reject(error);
-          });
-          return {
-            name: file.name,
-            type: file.type,
-            data: base64,
-          };
-        })
-      );
 
       const formData = new FormData();
       formData.append("title", values.title);
@@ -115,9 +106,16 @@ export default function NoticeForm({ initialData, noticeId }: NoticeFormProps) {
       formData.append("department", values.department);
       formData.append("type", values.type);
       formData.append("reference", values.reference);
-      filesData.forEach((file, index) => {
-        formData.append(`files[${index}]`, JSON.stringify(file));
+      
+      // Append files directly
+      files.forEach(file => {
+        formData.append("files", file);
       });
+
+      // Append removed files for updates
+      if (noticeId && removedFiles.length > 0) {
+        formData.append("removedFiles", JSON.stringify(removedFiles));
+      }
 
       let result;
       if (noticeId) {
@@ -128,9 +126,7 @@ export default function NoticeForm({ initialData, noticeId }: NoticeFormProps) {
 
       if (result.success) {
         toast.success(
-          noticeId
-            ? "Notice updated successfully"
-            : "Notice created successfully"
+          noticeId ? "Notice updated successfully" : "Notice created successfully"
         );
         router.push("/admindashboard/notice/view");
         router.refresh();
@@ -141,6 +137,7 @@ export default function NoticeForm({ initialData, noticeId }: NoticeFormProps) {
       }
     } catch (error) {
       toast.error("Something went wrong");
+      console.error("Submission error:", error);
     } finally {
       setIsUploading(false);
     }
@@ -189,9 +186,11 @@ export default function NoticeForm({ initialData, noticeId }: NoticeFormProps) {
               <FormItem>
                 <FormLabel>Department</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                  </FormControl>
                   <SelectContent>
                     {departments.map((dept) => (
                       <SelectItem key={dept} value={dept}>
@@ -212,9 +211,11 @@ export default function NoticeForm({ initialData, noticeId }: NoticeFormProps) {
               <FormItem>
                 <FormLabel>Type</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                  </FormControl>
                   <SelectContent>
                     {noticeType.map((type) => (
                       <SelectItem key={type} value={type}>
@@ -249,7 +250,7 @@ export default function NoticeForm({ initialData, noticeId }: NoticeFormProps) {
               Files
             </label>
             <div className="flex items-center gap-2">
-              <Input
+              <input
                 type="file"
                 multiple
                 onChange={handleFileChange}
@@ -263,6 +264,9 @@ export default function NoticeForm({ initialData, noticeId }: NoticeFormProps) {
                 <Upload className="h-4 w-4" />
                 Upload Files
               </label>
+              <span className="text-sm text-gray-500">
+                {files.length > 0 ? `${files.length} file(s) selected` : "No files selected"}
+              </span>
             </div>
           </div>
 
@@ -272,14 +276,24 @@ export default function NoticeForm({ initialData, noticeId }: NoticeFormProps) {
                 Existing Files:
               </h4>
               <div className="flex flex-wrap gap-2">
-                {initialData.files.map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 p-2 bg-gray-50 rounded-md"
-                  >
-                    <span className="text-sm">{file.name}</span>
-                  </div>
-                ))}
+                {initialData.files
+                  .filter(file => !removedFiles.includes(file.public_id))
+                  .map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-md"
+                    >
+                      <span className="text-sm">{file.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeExistingFile(file.public_id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
               </div>
             </div>
           )}
@@ -309,15 +323,17 @@ export default function NoticeForm({ initialData, noticeId }: NoticeFormProps) {
           )}
         </div>
 
-        <Button type="submit" disabled={isUploading}>
-          {isUploading
-            ? noticeId
-              ? "Updating..."
-              : "Creating..."
-            : noticeId
-            ? "Update Notice"
-            : "Create Notice"}
-        </Button>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isUploading}>
+            {isUploading
+              ? noticeId
+                ? "Updating..."
+                : "Creating..."
+              : noticeId
+              ? "Update Notice"
+              : "Create Notice"}
+          </Button>
+        </div>
       </form>
     </Form>
   );

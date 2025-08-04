@@ -8,22 +8,32 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useState, useTransition, useEffect } from "react"
-import { Loader2, FileText, Building, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Loader2, FileText, Building, AlertCircle, CheckCircle2, Percent, ArrowDown, ArrowUp } from "lucide-react"
 import type { workdetailfinanicalProps } from "@/types"
 import { addFinancialDetails } from "@/action/bookNitNuber"
 import { FaRupeeSign } from "react-icons/fa"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Progress } from "@/components/ui/progress"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const bidSchema = z.object({
   bids: z.array(
     z.object({
       agencyId: z.string(),
       lessPercentage: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0 && Number(val) <= 100, {
-        message: "Less percentage must be between 0 and 100",
+        message: "Must be between 0-100",
       }),
       bidAmount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-        message: "Bid amount must be a positive number",
+        message: "Must be positive",
       }),
     }),
   ),
@@ -37,6 +47,8 @@ export default function FinancialBidDetails({ work }: { work: workdetailfinanica
   const [success, setSuccess] = useState<string | undefined>("")
   const [isPending, startTransition] = useTransition()
   const [localWork, setLocalWork] = useState(work)
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [submissionData, setSubmissionData] = useState<BidFormValues | null>(null)
 
   useEffect(() => {
     setLocalWork(work)
@@ -54,10 +66,19 @@ export default function FinancialBidDetails({ work }: { work: workdetailfinanica
   })
 
   const onSubmit = async (data: BidFormValues) => {
+    setSubmissionData(data)
+    setShowConfirmation(true)
+  }
+
+  const confirmSubmission = async () => {
+    if (!submissionData) return
+    
     setError(undefined)
     setSuccess(undefined)
+    setShowConfirmation(false)
+    
     startTransition(() => {
-      Promise.all(data.bids.map((bid) => addFinancialDetails(bid.agencyId, bid.bidAmount, localWork.id)))
+      Promise.all(submissionData.bids.map((bid) => addFinancialDetails(bid.agencyId, bid.bidAmount, localWork.id)))
         .then((results) => {
           const errors = results.filter((r) => r?.error).map((r) => r?.error)
           if (errors.length) {
@@ -66,7 +87,7 @@ export default function FinancialBidDetails({ work }: { work: workdetailfinanica
             setLocalWork(prev => ({
               ...prev,
               biddingAgencies: prev.biddingAgencies.map(agency => {
-                const submittedBid = data.bids.find(bid => bid.agencyId === agency.id)
+                const submittedBid = submissionData.bids.find(bid => bid.agencyId === agency.id)
                 if (submittedBid) {
                   return { ...agency, biddingAmount: Number(submittedBid.bidAmount) }
                 }
@@ -91,9 +112,8 @@ export default function FinancialBidDetails({ work }: { work: workdetailfinanica
   const allBidsEntered = !localWork.biddingAgencies.some((bit) => bit.biddingAmount == null)
 
   const calculateLowestBid = () => {
-    const validBids = form
-      .getValues()
-      .bids.filter((bid) => !isNaN(Number.parseFloat(bid.bidAmount)) && Number.parseFloat(bid.bidAmount) > 0)
+    const bids = submissionData?.bids || form.getValues().bids
+    const validBids = bids.filter((bid) => !isNaN(Number.parseFloat(bid.bidAmount)) && Number.parseFloat(bid.bidAmount) > 0)
     if (validBids.length === 0) return null
 
     const lowestBid = validBids.reduce((lowest, current) => {
@@ -104,15 +124,28 @@ export default function FinancialBidDetails({ work }: { work: workdetailfinanica
     return {
       agencyName: lowestBidAgency?.agencydetails.name || "Unknown",
       amount: Number.parseFloat(lowestBid.bidAmount),
+      percentage: ((Number.parseFloat(lowestBid.bidAmount) / localWork.finalEstimateAmount - 1) * -100).toFixed(2)
     }
   }
+
+  const calculateBidCompletion = () => {
+    const completedBids = form.getValues().bids.filter(bid => 
+      !isNaN(Number.parseFloat(bid.bidAmount)) && Number.parseFloat(bid.bidAmount) > 0
+    ).length
+    return (completedBids / localWork.biddingAgencies.length) * 100
+  }
+
+  const lowestBid = calculateLowestBid()
 
   if (!localWork) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md shadow-lg">
           <CardHeader>
-            <CardTitle className="text-center">Work Not Found</CardTitle>
+            <CardTitle className="text-center flex items-center justify-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Work Not Found
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-center text-muted-foreground">The requested work details could not be found.</p>
@@ -123,167 +156,332 @@ export default function FinancialBidDetails({ work }: { work: workdetailfinanica
   }
 
   return (
-    <div className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      {success && (
-        <Alert variant="default" className="mb-6 bg-green-50 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertTitle className="text-green-800">Success</AlertTitle>
-          <AlertDescription className="text-green-700">{success}</AlertDescription>
-        </Alert>
-      )}
+    <div className="container mx-auto py-4 px-3 sm:px-6 lg:px-8 max-w-6xl">
+      <div className="mb-4 space-y-3">
+        {error && (
+          <Alert variant="destructive" className="animate-fade-in">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Submission Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {success && (
+          <Alert variant="default" className="animate-fade-in">
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertTitle>Success</AlertTitle>
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
+      </div>
 
-      <Card className="w-full shadow-lg border-0">
-        <CardHeader className="bg-gradient-to-r from-primary/90 to-primary/80 text-white rounded-t-lg">
-          <div className="flex flex-col space-y-2">
-            <CardTitle className="text-2xl md:text-3xl font-bold">Financial Bid Details</CardTitle>
-            <CardDescription className="text-primary-foreground/90">
+      <Card className="w-full shadow-xl border-0 overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 sm:p-6">
+          <div className="flex flex-col space-y-1">
+            <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center">
+              <FileText className="mr-2 h-6 w-6 sm:h-8 sm:w-8" />
+              Financial Bid Details
+            </CardTitle>
+            <CardDescription className="text-blue-100/90 text-base sm:text-lg">
               {localWork.ApprovedActionPlanDetails.activityDescription}
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="pt-8">
-          <div className="mb-8 bg-muted/20 p-6 rounded-lg border border-muted">
-            <h3 className="text-lg font-semibold flex items-center mb-4">
-              <FileText className="mr-2 h-5 w-5 text-primary" /> Tender Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Memo Number</p>
-                <p className="font-medium text-foreground">{localWork.nitDetails.memoNumber}/DGP/2024</p>
+        
+        <CardContent className="pt-4 sm:pt-6">
+          <div className="mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 p-4 sm:p-6 rounded-xl shadow-sm">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground flex items-center">
+                  <FileText className="mr-2 h-4 w-4" /> Memo Number
+                </p>
+                <p className="font-semibold text-lg text-foreground">
+                  {localWork.nitDetails.memoNumber}/DGP/2024
+                </p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Estimate Value</p>
-                <p className="font-medium text-foreground">
-                  {localWork.finalEstimateAmount.toLocaleString("en-IN", { style: "currency", currency: "INR" })}
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground flex items-center">
+                  <FaRupeeSign className="mr-2 h-4 w-4" /> Estimate Value
+                </p>
+                <p className="font-semibold text-lg text-foreground">
+                  ₹{localWork.finalEstimateAmount.toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground flex items-center">
+                  <Building className="mr-2 h-4 w-4" /> Agencies
+                </p>
+                <p className="font-semibold text-lg text-foreground">
+                  {localWork.biddingAgencies.length} Participating
                 </p>
               </div>
             </div>
           </div>
 
           {allBidsEntered ? (
-            <div className="text-center py-10 space-y-4">
-              <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
-              <h3 className="text-xl font-semibold text-green-700">All Bids Entered</h3>
-              <p className="text-muted-foreground">Bids have already been submitted for all agencies.</p>
+            <div className="text-center py-8 sm:py-10 space-y-4 sm:space-y-6 bg-green-50 rounded-xl border border-green-200">
+              <CheckCircle2 className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-green-500" />
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-green-800">All Bids Submitted</h3>
+                <p className="text-muted-foreground mt-2 max-w-md mx-auto text-sm sm:text-base">
+                  Financial bids have been successfully recorded for all participating agencies.
+                </p>
+              </div>
+              <Button 
+                onClick={() => router.push("/admindashboard/manage-tender/addfinanicaldetails")}
+                className="mt-2 sm:mt-4 bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+              >
+                Return to Dashboard
+              </Button>
             </div>
           ) : (
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <Table>
-                <TableHeader className="bg-muted/50">
-                  <TableRow>
-                    <TableHead className="w-[30%]">Agency Name</TableHead>
-                    <TableHead className="w-[20%]">Less Percentage</TableHead>
-                    <TableHead className="w-[20%]">Bid Amount</TableHead>
-                    <TableHead className="w-[20%]">Less Value</TableHead>
-                    <TableHead className="w-[10%]">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {localWork.biddingAgencies.map((agency, index) => {
-                    const bidAmount = Number.parseFloat(form.watch(`bids.${index}.bidAmount`))
-                    const lessValue = localWork.finalEstimateAmount - (isNaN(bidAmount) ? 0 : bidAmount)
-                    const isBidValid = !isNaN(bidAmount) && bidAmount > 0
-
-                    return (
-                      <TableRow key={agency.id} className="hover:bg-muted/10">
-                        <TableCell className="font-medium">
-                          <div className="flex items-center space-x-3">
-                            <Building className="h-5 w-5 text-muted-foreground" />
-                            <span>{agency.agencydetails.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="text"
-                            placeholder="0.00%"
-                            {...form.register(`bids.${index}.lessPercentage`)}
-                            onChange={(e) => {
-                              form.setValue(`bids.${index}.lessPercentage`, e.target.value)
-                              calculateBidAmount(index, e.target.value)
-                            }}
-                            className="w-full"
-                          />
-                          {form.formState.errors.bids?.[index]?.lessPercentage && (
-                            <p className="text-sm text-destructive mt-1">
-                              {form.formState.errors.bids[index]?.lessPercentage?.message}
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="relative">
-                            <FaRupeeSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                              type="text"
-                              placeholder="0.00"
-                              className="pl-8"
-                              {...form.register(`bids.${index}.bidAmount`)}
-                            />
-                          </div>
-                          {form.formState.errors.bids?.[index]?.bidAmount && (
-                            <p className="text-sm text-destructive mt-1">
-                              {form.formState.errors.bids[index]?.bidAmount?.message}
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-medium">
-                            {lessValue.toLocaleString("en-IN", { style: "currency", currency: "INR" })}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {isBidValid ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <AlertCircle className="h-5 w-5 text-destructive" />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-
-              <div className="space-y-4">
-                {form
-                  .getValues()
-                  .bids.some(
-                    (bid) => !isNaN(Number.parseFloat(bid.bidAmount)) && Number.parseFloat(bid.bidAmount) > 0,
-                  ) && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 className="text-lg font-semibold text-green-800 mb-2">Lowest Bidder</h4>
-                    {(() => {
-                      const lowestBid = calculateLowestBid()
-                      return lowestBid ? (
-                        <p className="text-green-700">
-                          <span className="font-medium">{lowestBid.agencyName}</span> with a bid of{" "}
-                          <span className="font-medium">
-                            {lowestBid.amount.toLocaleString("en-IN", { style: "currency", currency: "INR" })}
-                          </span>
-                        </p>
-                      ) : (
-                        <p className="text-yellow-700">No valid bids to compare.</p>
-                      )
-                    })()}
-                  </div>
-                )}
-                <div className="flex justify-end">
-                  <Button type="submit" size="lg" disabled={isPending} className="w-full sm:w-auto">
-                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isPending ? "Saving Bids..." : "Save All Bids"}
-                  </Button>
+            <>
+              <div className="mb-4 sm:mb-6">
+                <div className="flex justify-between items-center mb-1 sm:mb-2">
+                  <h3 className="font-medium text-foreground text-sm sm:text-base">Bid Completion</h3>
+                  <span className="text-sm font-medium text-primary">
+                    {Math.round(calculateBidCompletion())}%
+                  </span>
                 </div>
+                <Progress value={calculateBidCompletion()} className="h-2 sm:h-3" />
               </div>
-            </form>
+              
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="rounded-lg border shadow-sm overflow-x-auto">
+                  <Table className="min-w-[700px] sm:min-w-full">
+                    <TableHeader className="bg-gray-50">
+                      <TableRow>
+                        <TableHead className="w-[150px] sm:w-[30%] font-semibold text-gray-700">Agency</TableHead>
+                        <TableHead className="w-[100px] sm:w-[20%] font-semibold text-gray-700">Discount %</TableHead>
+                        <TableHead className="w-[120px] sm:w-[20%] font-semibold text-gray-700">Bid Amount</TableHead>
+                        <TableHead className="w-[100px] sm:w-[20%] font-semibold text-gray-700">Savings</TableHead>
+                        <TableHead className="w-[60px] sm:w-[10%] font-semibold text-gray-700 text-center">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {localWork.biddingAgencies.map((agency, index) => {
+                        const bidAmount = Number.parseFloat(form.watch(`bids.${index}.bidAmount`))
+                        const lessValue = localWork.finalEstimateAmount - (isNaN(bidAmount) ? 0 : bidAmount)
+                        const isBidValid = !isNaN(bidAmount) && bidAmount > 0
+                        const isLowest = lowestBid && lowestBid.agencyName === agency.agencydetails.name
+
+                        return (
+                          <TableRow key={agency.id} className={isLowest ? "bg-blue-50 hover:bg-blue-100" : "hover:bg-muted/10"}>
+                            <TableCell className="font-medium py-2 sm:py-4">
+                              <div className="flex items-center space-x-2 sm:space-x-3">
+                                <Building className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+                                <span className="text-sm sm:text-base line-clamp-1">
+                                  {agency.agencydetails.name}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-2 sm:py-4">
+                              <div className="relative">
+                                <Percent className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                  type="text"
+                                  placeholder="0.00"
+                                  {...form.register(`bids.${index}.lessPercentage`)}
+                                  onChange={(e) => {
+                                    form.setValue(`bids.${index}.lessPercentage`, e.target.value)
+                                    calculateBidAmount(index, e.target.value)
+                                  }}
+                                  className="pl-7 h-9 sm:h-10 text-sm"
+                                />
+                              </div>
+                              {form.formState.errors.bids?.[index]?.lessPercentage && (
+                                <p className="text-xs text-destructive mt-1">
+                                  {form.formState.errors.bids[index]?.lessPercentage?.message}
+                                </p>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-2 sm:py-4">
+                              <div className="relative">
+                                <FaRupeeSign className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                  type="text"
+                                  placeholder="0.00"
+                                  className="pl-6 h-9 sm:h-10 text-sm"
+                                  {...form.register(`bids.${index}.bidAmount`)}
+                                />
+                              </div>
+                              {form.formState.errors.bids?.[index]?.bidAmount && (
+                                <p className="text-xs text-destructive mt-1">
+                                  {form.formState.errors.bids[index]?.bidAmount?.message}
+                                </p>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-2 sm:py-4">
+                              <div className="flex items-center">
+                                {lessValue > 0 ? (
+                                  <ArrowDown className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 mr-1" />
+                                ) : (
+                                  <ArrowUp className="h-3 w-3 sm:h-4 sm:w-4 text-red-600 mr-1" />
+                                )}
+                                <span className={`font-medium text-sm sm:text-base ${lessValue > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  ₹{Math.abs(lessValue).toLocaleString("en-IN")}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-2 sm:py-4 text-center">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    {isBidValid ? (
+                                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mx-auto" />
+                                    ) : (
+                                      <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 mx-auto" />
+                                    )}
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {isBidValid ? "Valid bid" : "Pending bid"}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="space-y-4">
+                  {lowestBid && (
+                    <Card className="border-blue-200 bg-blue-50 p-3">
+                      <CardContent className="p-0 flex items-center">
+                        <div className="bg-blue-100 p-2 rounded-full mr-3">
+                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-700" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-blue-800 text-sm sm:text-base">
+                            Current Lowest Bidder
+                          </h4>
+                          <p className="text-blue-700 text-xs sm:text-sm truncate">
+                            <span className="font-semibold">{lowestBid.agencyName}</span>
+                            <span className="block sm:inline">
+                              {" "}₹{lowestBid.amount.toLocaleString("en-IN")}
+                              <span className="ml-1 bg-blue-200 px-1.5 py-0.5 rounded-full text-xs">
+                                {lowestBid.percentage}% discount
+                              </span>
+                            </span>
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      size="lg"
+                      disabled={
+                        isPending || 
+                        form.getValues().bids.some(
+                          (bid) => 
+                            isNaN(Number.parseFloat(bid.bidAmount)) || 
+                            Number.parseFloat(bid.bidAmount) <= 0
+                        )
+                      }
+                      className="w-full sm:w-auto shadow-md text-sm sm:text-base"
+                    >
+                      {isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving Bids...
+                        </>
+                      ) : (
+                        "Submit All Bids"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            </>
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent className="w-[95%] max-w-md rounded-lg sm:rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Confirm Bid Submission
+            </DialogTitle>
+            <DialogDescription className="pt-3 sm:pt-4 text-sm sm:text-base">
+              You are about to submit financial bids for all agencies. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-3 sm:py-4">
+            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+              <h4 className="font-semibold text-blue-800 mb-2 text-sm sm:text-base">Lowest Bidder:</h4>
+              {lowestBid ? (
+                <div className="flex items-center">
+                  <div className="bg-blue-100 p-2 rounded-full mr-2 sm:mr-3">
+                    <Building className="h-4 w-4 sm:h-5 sm:w-5 text-blue-700" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm sm:text-lg truncate">{lowestBid.agencyName}</p>
+                    <p className="flex items-center flex-wrap gap-1">
+                      <FaRupeeSign className="mr-1 text-green-600 text-sm sm:text-base" />
+                      <span className="font-semibold text-green-700 text-sm sm:text-lg">
+                        {lowestBid.amount.toLocaleString("en-IN")}
+                      </span>
+                      <span className="ml-1 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs sm:text-sm">
+                        {lowestBid.percentage}% below estimate
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm sm:text-base">No valid bids to determine lowest bidder</p>
+              )}
+            </div>
+
+            <div className="mt-3 sm:mt-4 bg-amber-50 rounded-lg p-3 border border-amber-200">
+              <h4 className="font-semibold text-amber-800 mb-2 text-sm sm:text-base">Important:</h4>
+              <ul className="space-y-1 sm:space-y-2 text-amber-700 text-xs sm:text-sm">
+                <li className="flex items-start">
+                  <span className="inline-block mr-1">•</span>
+                  <span>Verify all bid amounts before submission</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="inline-block mr-1">•</span>
+                  <span>This action will finalize the financial bids</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="inline-block mr-1">•</span>
+                  <span>Changes cannot be made after submission</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowConfirmation(false)}
+              disabled={isPending}
+              className="w-full sm:w-auto"
+            >
+              Review Again
+            </Button>
+            <Button 
+              onClick={confirmSubmission}
+              disabled={isPending}
+              className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : "Confirm Submission"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

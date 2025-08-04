@@ -857,6 +857,17 @@ export default function AddWorkDetailsForm({
                     />
                   </div>
                 </div>
+                {selectedWork &&
+                  form.watch("final_Estimate_Amount") &&
+                  Number(form.watch("final_Estimate_Amount")) !==
+                    Number(selectedWork.estimatedCost) && (
+                    <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 p-2 rounded-lg mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      Warning: Final Estimate Amount does not match the
+                      Estimated Cost from the selected work (₹
+                      {Number(selectedWork.estimatedCost).toLocaleString()}).
+                    </div>
+                  )}
               </>
             )}
 

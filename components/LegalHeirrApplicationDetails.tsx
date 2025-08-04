@@ -31,59 +31,59 @@ const renderWarishDetails = (
   details: WarishDetailProps[],
   depth = 0,
   parentIndex = ""
-): React.ReactNode => {
-  return details.map((detail, index) => {
+): React.ReactNode[] => {
+  return details.flatMap((detail, index) => {
     const currentIndex = parentIndex
       ? `${parentIndex}.${getSerialNumber(depth, index)}`
       : getSerialNumber(depth, index);
 
-    return (
-      <React.Fragment key={detail.id}>
-        <TableRow
-          className={cn(
-            "transition-colors duration-200",
-            depth % 2 === 0 ? "bg-muted/30" : "bg-background",
-            depth > 0 && "text-sm"
-          )}
-        >
-          <TableCell className="font-mono text-right w-[10%] text-muted-foreground">
-            {currentIndex}
-          </TableCell>
-          <TableCell>
-            <div className="flex items-center gap-2">
-              {detail.livingStatus === "alive" ? (
-                <UserCheck className="h-4 w-4 text-green-500" />
-              ) : (
-                <UserX className="h-4 w-4 text-red-500" />
-              )}
-              <span className="font-medium">{formatText(detail.name)}</span>
-            </div>
-          </TableCell>
-          <TableCell>
-            <Badge variant={detail.gender === "male" ? "default" : "secondary"}>
-              {capitalizeFirstLetter(detail.gender)}
-            </Badge>
-          </TableCell>
-          <TableCell className="text-muted-foreground">
-            {formatText(detail.relation)}
-          </TableCell>
-          <TableCell>
-            <Badge
-              variant={
-                detail.livingStatus === "alive" ? "success" : "destructive"
-              }
-            >
-              {capitalizeFirstLetter(detail.livingStatus)}
-            </Badge>
-          </TableCell>
-          <TableCell className="text-muted-foreground">
-            {detail.hasbandName ? formatText(detail.hasbandName) : "—"}
-          </TableCell>
-        </TableRow>
-        {detail.children?.length > 0 &&
-          renderWarishDetails(detail.children, depth + 1, currentIndex)}
-      </React.Fragment>
-    );
+    return [
+      <TableRow
+        key={detail.id}
+        className={cn(
+          "transition-colors duration-200",
+          depth % 2 === 0 ? "bg-muted/30" : "bg-background",
+          depth > 0 && "text-sm"
+        )}
+      >
+        <TableCell className="font-mono text-right w-[10%] text-muted-foreground">
+          {currentIndex}
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            {detail.livingStatus === "alive" ? (
+              <UserCheck className="h-4 w-4 text-green-500" />
+            ) : (
+              <UserX className="h-4 w-4 text-red-500" />
+            )}
+            <span className="font-medium">{formatText(detail.name)}</span>
+          </div>
+        </TableCell>
+        <TableCell>
+          <Badge variant={detail.gender === "male" ? "default" : "secondary"}>
+            {capitalizeFirstLetter(detail.gender)}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-muted-foreground">
+          {formatText(detail.relation)}
+        </TableCell>
+        <TableCell>
+          <Badge
+            variant={
+              detail.livingStatus === "alive" ? "success" : "destructive"
+            }
+          >
+            {capitalizeFirstLetter(detail.livingStatus)}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-muted-foreground">
+          {detail.hasbandName ? formatText(detail.hasbandName) : "—"}
+        </TableCell>
+      </TableRow>,
+      ...(detail.children.length > 0
+        ? renderWarishDetails(detail.children, depth + 1, currentIndex)
+        : []),
+    ];
   });
 };
 
@@ -120,7 +120,9 @@ export default function LegalHeirrApplicationDetails({
                 <TableHead>Spouse Name</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>{renderWarishDetails(rootWarishDetails)}</TableBody>
+            <TableBody>
+              {renderWarishDetails(rootWarishDetails)}
+            </TableBody>
           </Table>
         </ScrollArea>
       </CardContent>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -78,7 +79,7 @@ const Header = () => {
           </Link>
 
           {/* Public Navbar */}
-          <nav aria-label="Main navigation" className="hidden md:block">
+          <nav aria-label="Main navigation" className="md:block">
             <PublicNavbar />
           </nav>
         </div>

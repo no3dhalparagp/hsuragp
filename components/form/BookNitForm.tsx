@@ -1,3 +1,4 @@
+
 "use client";
 import { useRef, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
@@ -17,8 +18,6 @@ import {
   Clock,
 } from "lucide-react";
 import { NitBookValidationSchema } from "@/schema";
-
-// Validation Schema
 
 type FormValues = z.infer<typeof NitBookValidationSchema>;
 
@@ -74,7 +73,7 @@ export default function BookNitForm() {
   };
 
   return (
-    <div className=" mx-auto bg-gradient-to-b from-white to-gray-50 shadow-2xl rounded-3xl overflow-hidden border border-gray-100 my-12">
+    <div className=" mx-auto bg-gradient-to-b from-white to-gray-50 shadow-2xl rounded-3xl overflow-hidden border border-gray-100 my-1">
       {/* Error and Success Messages */}
       <div className="space-y-4 p-2">
         {error && (
@@ -97,9 +96,8 @@ export default function BookNitForm() {
           className="p-8 space-y-12"
           ref={formRef}
         >
-          {/* Section styling improvements */}
+          {/* Tender Details Section */}
           <div className="space-y-10">
-            {/* Section Headers */}
             <div className="relative">
               <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
                 <div className="bg-blue-100 p-3.5 rounded-2xl shadow-sm">
@@ -116,7 +114,6 @@ export default function BookNitForm() {
               </div>
             </div>
 
-            {/* Form Fields Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
               <CustomFormField
                 fieldType={FormFieldType.INPUT}
@@ -124,20 +121,32 @@ export default function BookNitForm() {
                 name="tendermemonumber"
                 label="Tender Reference Number"
                 placeholder="NIT Memo Number"
-                containerClass="space-y-2"
-                labelClass="text-sm font-semibold text-gray-700"
-                inputClass="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                
               />
               <CustomFormField
                 fieldType={FormFieldType.DATE_PICKER}
                 control={form.control}
                 name="tendermemodate"
                 label="Tender Booking Date"
-                dateFormat="dd/MM/yyyy HH:mm"
-                showTimeSelect
-                containerClass="space-y-2"
-                labelClass="text-sm font-semibold text-gray-700"
+                dateFormat="dd/MM/yyyy"
+                
               />
+              
+              {/* Added nitCount field */}
+              <div className="md:col-span-2">
+                <CustomFormField
+                  fieldType={FormFieldType.SELECT}
+                  control={form.control}
+                  name="nitCount"
+                  label="NIT Count"
+                  options={[
+                    { value: "1st call", label: "1st call" },
+                    { value: "2nd call", label: "2nd call" },
+                    { value: "3rd call", label: "3rd call" },
+                  ]}
+                  
+                />
+              </div>
             </div>
           </div>
 
@@ -182,8 +191,7 @@ export default function BookNitForm() {
                   label={field.label}
                   dateFormat="dd/MM/yyyy HH:mm"
                   showTimeSelect
-                  containerClass="space-y-2"
-                  labelClass="text-sm font-semibold text-gray-700"
+                  
                 />
               ))}
             </div>
@@ -212,9 +220,7 @@ export default function BookNitForm() {
                 name="tender_place_opening_bids"
                 label="Place for Opening Bids"
                 placeholder="Enter location"
-                containerClass="space-y-2"
-                labelClass="text-sm font-semibold text-gray-700"
-                inputClass="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                
               />
               <CustomFormField
                 fieldType={FormFieldType.INPUT}
@@ -222,9 +228,7 @@ export default function BookNitForm() {
                 name="tender_vilidity_bids"
                 label="Validity of Bids"
                 placeholder="Enter validity period"
-                containerClass="space-y-2"
-                labelClass="text-sm font-semibold text-gray-700"
-                inputClass="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                 
               />
               <div className="flex items-center gap-2 pt-2">
                 <CustomFormField
@@ -232,8 +236,7 @@ export default function BookNitForm() {
                   control={form.control}
                   name="supplynit"
                   label="For Supply NIT"
-                  containerClass="flex items-center gap-2"
-                  labelClass="text-sm font-semibold text-gray-700"
+                  
                 />
               </div>
               {form.watch("supplynit") && (
@@ -243,15 +246,13 @@ export default function BookNitForm() {
                   name="supplyitemname"
                   label="Supply Item Name"
                   placeholder="Enter supply item name"
-                  containerClass="space-y-2"
-                  labelClass="text-sm font-semibold text-gray-700"
-                  inputClass="w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                  
                 />
               )}
             </div>
           </div>
 
-          {/* Submit Button with improved styling */}
+          {/* Submit Button */}
           <div className="pt-10">
             <Button
               className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 
@@ -279,4 +280,3 @@ export default function BookNitForm() {
     </div>
   );
 }
-

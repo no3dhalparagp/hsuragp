@@ -1,15 +1,14 @@
 
 "use client"
 
-import { useEffect, useCallback, useRef, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useEffect, useState } from "react"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import {
   Loader2,
@@ -28,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { toast } from "sonner"
 import { addPaymentDetails } from "@/action/payment-details"
+import { cn } from "@/lib/utils"
 
 export function AddPaymentDetailsForm({ 
   workId, 
@@ -39,7 +39,6 @@ export function AddPaymentDetailsForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [securityDepositPercentage, setSecurityDepositPercentage] = useState<number>(10)
-  const isCalculating = useRef(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -62,100 +61,38 @@ export function AddPaymentDetailsForm({
     },
   })
 
-  // Calculate net amount
-  const calculateNetAmount = (
-    grossAmount: number,
-    incomeTax: number,
-    labourCess: number,
-    tdsCgst: number,
-    tdsSgst: number,
-    securityDeposit: number
-  ) => {
-    return (
-      grossAmount -
-      incomeTax -
-      labourCess -
-      tdsCgst -
-      tdsSgst -
-      securityDeposit
-    )
-  }
-
-  const updateCalculatedFields = useCallback(() => {
-    if (isCalculating.current) return
-    isCalculating.current = true
-
-    let values = form.getValues()
-
-    // Round deduction values
-    const deductions = ["lessIncomeTax", "lessLabourWelfareCess", "lessTdsCgst", "lessTdsSgst"] as const
-    deductions.forEach((field) => {
-      const currentValue = values[field]
-      const roundedValue = Math.round(currentValue)
-      if (currentValue !== roundedValue) {
-        form.setValue(field, roundedValue, { shouldValidate: true })
-      }
-    })
-
-    // Recalculate security deposit and net amount
-    values = form.getValues()
-    const grossAmount = values.grossBillAmount
-    const incomeTax = values.lessIncomeTax
-    const labourCess = values.lessLabourWelfareCess
-    const tdsCgst = values.lessTdsCgst
-    const tdsSgst = values.lessTdsSgst
-
-    const securityDeposit = Math.round((grossAmount * securityDepositPercentage) / 100)
-    const netAmount = Math.round(
-      calculateNetAmount(grossAmount, incomeTax, labourCess, tdsCgst, tdsSgst, securityDeposit),
-    )
-
-    form.setValue("securityDeposit", securityDeposit, { shouldValidate: true })
-    form.setValue("netAmount", netAmount, { shouldValidate: true })
-
-    isCalculating.current = false
-  }, [form, securityDepositPercentage])
-
-  // Calculate total deductions
-  const totalDeduction = form.watch(() => {
-    const values = form.getValues()
-    return (
-      values.lessIncomeTax +
-      values.lessLabourWelfareCess +
-      values.lessTdsCgst +
-      values.lessTdsSgst +
-      values.securityDeposit
-    )
+  // Watch relevant fields for calculations
+  const [grossAmount, incomeTax, labourCess, tdsCgst, tdsSgst] = useWatch({
+    control: form.control,
+    name: [
+      'grossBillAmount', 
+      'lessIncomeTax', 
+      'lessLabourWelfareCess', 
+      'lessTdsCgst', 
+      'lessTdsSgst'
+    ]
   })
 
-  // Watch form values and update calculated fields
-  useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      // Update calculated fields when relevant values change
-      if (
-        name &&
-        ["grossBillAmount", "lessIncomeTax", "lessLabourWelfareCess", "lessTdsCgst", "lessTdsSgst"].includes(name)
-      ) {
-        updateCalculatedFields()
-      }
+  // Calculate derived values
+  const securityDeposit = Math.round((grossAmount * securityDepositPercentage) / 100)
+  const netAmount = Math.round(
+    grossAmount - incomeTax - labourCess - tdsCgst - tdsSgst - securityDeposit
+  )
+  const totalDeduction = incomeTax + labourCess + tdsCgst + tdsSgst + securityDeposit
 
-      // Sync voucher dates with bill payment date changes
-      if (name === "billPaymentDate" && value.billPaymentDate) {
-        form.setValue("eGramVoucherDate", value.billPaymentDate)
-        form.setValue("gpmsVoucherDate", value.billPaymentDate)
-      }
-    })
-    return () => subscription.unsubscribe()
-  }, [form, updateCalculatedFields])
+  // Update form values when calculations change
+  useEffect(() => {
+    form.setValue('securityDeposit', securityDeposit, { shouldValidate: true })
+    form.setValue('netAmount', netAmount, { shouldValidate: true })
+  }, [securityDeposit, netAmount, form])
 
   // Handle percentage-based deduction changes
   const handlePercentageChange = (
     fieldName: keyof Pick<FormValues, "lessIncomeTax" | "lessLabourWelfareCess" | "lessTdsCgst" | "lessTdsSgst">,
     percentageValue: string,
   ) => {
-    const grossAmount = form.getValues("grossBillAmount")
     const percentage = Number.parseFloat(percentageValue)
-    if (!isNaN(percentage) && !isNaN(grossAmount)) {
+    if (!isNaN(percentage)) {
       const calculatedValue = Math.round((grossAmount * percentage) / 100)
       form.setValue(fieldName, calculatedValue, { shouldValidate: true })
     }
@@ -182,7 +119,6 @@ export function AddPaymentDetailsForm({
         description: `Reference: ${values.mbrefno} - Amount: ₹${values.netAmount.toLocaleString()}`,
       })
       
-      // Close dialog after successful submission
       onSuccess()
     } catch (err) {
       setError("Failed to submit payment details. Please try again.")
@@ -224,7 +160,9 @@ export function AddPaymentDetailsForm({
                   name="grossBillAmount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-medium text-gray-700">Gross Bill Amount</FormLabel>
+                      <FormLabel className="text-xs font-medium text-gray-700">
+                        Gross Bill Amount
+                      </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
@@ -249,7 +187,9 @@ export function AddPaymentDetailsForm({
                   name="billType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-medium text-gray-700">Bill Type</FormLabel>
+                      <FormLabel className="text-xs font-medium text-gray-700">
+                        Bill Type
+                      </FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="h-10">
@@ -274,19 +214,24 @@ export function AddPaymentDetailsForm({
                   name="billPaymentDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-xs font-medium text-gray-700">Bill Payment Date</FormLabel>
+                      <FormLabel className="text-xs font-medium text-gray-700">
+                        Bill Payment Date
+                      </FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
                               variant="outline"
-                              className="h-10 justify-start text-left font-normal"
+                              className={cn(
+                                "h-10 justify-start text-left font-normal",
+                                !field.value && "text-gray-500"
+                              )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
                               {field.value ? (
                                 formatDate(field.value)
                               ) : (
-                                <span className="text-gray-500">Pick a date</span>
+                                <span>Pick a date</span>
                               )}
                             </Button>
                           </FormControl>
@@ -295,7 +240,11 @@ export function AddPaymentDetailsForm({
                           <CalendarComponent
                             mode="single"
                             selected={field.value}
-                            onSelect={field.onChange}
+                            onSelect={(date) => {
+                              field.onChange(date)
+                              form.setValue("eGramVoucherDate", date || new Date())
+                              form.setValue("gpmsVoucherDate", date || new Date())
+                            }}
                             disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                             initialFocus
                           />
@@ -311,19 +260,24 @@ export function AddPaymentDetailsForm({
                   name="workcompletaitiondate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-xs font-medium text-gray-700">Work Completion Date</FormLabel>
+                      <FormLabel className="text-xs font-medium text-gray-700">
+                        Work Completion Date
+                      </FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
                               variant="outline"
-                              className="h-10 justify-start text-left font-normal"
+                              className={cn(
+                                "h-10 justify-start text-left font-normal",
+                                !field.value && "text-gray-500"
+                              )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
                               {field.value ? (
                                 formatDate(field.value)
                               ) : (
-                                <span className="text-gray-500">Pick a date</span>
+                                <span>Pick a date</span>
                               )}
                             </Button>
                           </FormControl>
@@ -348,7 +302,9 @@ export function AddPaymentDetailsForm({
                   name="mbrefno"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel className="text-xs font-medium text-gray-700">MB Reference No</FormLabel>
+                      <FormLabel className="text-xs font-medium text-gray-700">
+                        MB Reference No
+                      </FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter MB reference number"
@@ -385,10 +341,10 @@ export function AddPaymentDetailsForm({
                   { field: "lessTdsSgst", label: "TDS SGST", icon: "🏢" },
                 ].map(({ field, label, icon }) => (
                   <div key={field} className="space-y-2">
-                    <Label className="text-xs font-medium text-gray-700 flex items-center gap-2">
+                    <label className="text-xs font-medium text-gray-700 flex items-center gap-2">
                       <span>{icon}</span>
                       {label}
-                    </Label>
+                    </label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
@@ -436,7 +392,9 @@ export function AddPaymentDetailsForm({
                   name="eGramVoucher"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-medium text-gray-700">eGram Voucher</FormLabel>
+                      <FormLabel className="text-xs font-medium text-gray-700">
+                        eGram Voucher
+                      </FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter voucher number"
@@ -454,19 +412,24 @@ export function AddPaymentDetailsForm({
                   name="eGramVoucherDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-xs font-medium text-gray-700">eGram Voucher Date</FormLabel>
+                      <FormLabel className="text-xs font-medium text-gray-700">
+                        eGram Voucher Date
+                      </FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
                               variant="outline"
-                              className="h-10 justify-start text-left font-normal"
+                              className={cn(
+                                "h-10 justify-start text-left font-normal",
+                                !field.value && "text-gray-500"
+                              )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
                               {field.value ? (
                                 formatDate(field.value)
                               ) : (
-                                <span className="text-gray-500">Pick a date</span>
+                                <span>Pick a date</span>
                               )}
                             </Button>
                           </FormControl>
@@ -491,7 +454,9 @@ export function AddPaymentDetailsForm({
                   name="gpmsVoucherNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-medium text-gray-700">GPMS Voucher Number</FormLabel>
+                      <FormLabel className="text-xs font-medium text-gray-700">
+                        GPMS Voucher Number
+                      </FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter voucher number"
@@ -509,19 +474,24 @@ export function AddPaymentDetailsForm({
                   name="gpmsVoucherDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-xs font-medium text-gray-700">GPMS Voucher Date</FormLabel>
+                      <FormLabel className="text-xs font-medium text-gray-700">
+                        GPMS Voucher Date
+                      </FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
                               variant="outline"
-                              className="h-10 justify-start text-left font-normal"
+                              className={cn(
+                                "h-10 justify-start text-left font-normal",
+                                !field.value && "text-gray-500"
+                              )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
                               {field.value ? (
                                 formatDate(field.value)
                               ) : (
-                                <span className="text-gray-500">Pick a date</span>
+                                <span>Pick a date</span>
                               )}
                             </Button>
                           </FormControl>
@@ -564,30 +534,12 @@ export function AddPaymentDetailsForm({
                     type="button"
                     variant={securityDepositPercentage === percentage ? "default" : "outline"}
                     size="sm"
-                    onClick={() => {
-                      setSecurityDepositPercentage(percentage)
-                      const grossAmount = form.getValues("grossBillAmount")
-                      const newSecurityDeposit = Math.round((grossAmount * percentage) / 100)
-                      form.setValue("securityDeposit", newSecurityDeposit, { shouldValidate: true })
-
-                      const values = form.getValues()
-                      const netAmount = Math.round(
-                        calculateNetAmount(
-                          values.grossBillAmount,
-                          values.lessIncomeTax,
-                          values.lessLabourWelfareCess,
-                          values.lessTdsCgst,
-                          values.lessTdsSgst,
-                          newSecurityDeposit,
-                        ),
-                      )
-                      form.setValue("netAmount", netAmount, { shouldValidate: true })
-                    }}
-                    className={`px-4 py-2 ${
-                      securityDepositPercentage === percentage
-                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
-                        : ""
-                    }`}
+                    onClick={() => setSecurityDepositPercentage(percentage)}
+                    className={cn(
+                      "px-4 py-2",
+                      securityDepositPercentage === percentage && 
+                        "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                    )}
                   >
                     {percentage}%
                   </Button>
@@ -612,7 +564,7 @@ export function AddPaymentDetailsForm({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-red-50 p-4 rounded-lg border border-red-100">
                   <div className="flex items-center justify-between mb-1">
-                    <Label className="text-xs font-medium text-red-600">Total Deductions</Label>
+                    <span className="text-xs font-medium text-red-600">Total Deductions</span>
                     <TrendingDown className="w-4 h-4 text-red-500" />
                   </div>
                   <div className="text-lg font-bold text-red-700">₹{totalDeduction.toLocaleString()}</div>
@@ -620,21 +572,21 @@ export function AddPaymentDetailsForm({
 
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                   <div className="flex items-center justify-between mb-1">
-                    <Label className="text-xs font-medium text-blue-600">Security Deposit</Label>
+                    <span className="text-xs font-medium text-blue-600">Security Deposit</span>
                     <Shield className="w-4 h-4 text-blue-500" />
                   </div>
                   <div className="text-lg font-bold text-blue-700">
-                    ₹{form.getValues("securityDeposit").toLocaleString()}
+                    ₹{securityDeposit.toLocaleString()}
                   </div>
                 </div>
 
                 <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 ring-1 ring-emerald-100">
                   <div className="flex items-center justify-between mb-1">
-                    <Label className="text-xs font-medium text-emerald-600">Net Amount</Label>
+                    <span className="text-xs font-medium text-emerald-600">Net Amount</span>
                     <CheckCircle className="w-4 h-4 text-emerald-500" />
                   </div>
                   <div className="text-lg font-bold text-emerald-700">
-                    ₹{form.getValues("netAmount").toLocaleString()}
+                    ₹{netAmount.toLocaleString()}
                   </div>
                 </div>
               </div>

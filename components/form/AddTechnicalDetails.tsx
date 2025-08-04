@@ -24,9 +24,15 @@ import { AddTechnicalDetailsSchema, type AddTechnicalDetailsSchemaType } from "@
 
 interface AddTechnicalDetailsProps {
   agencyid: string
+  isDialogMode?: boolean
+  afterSubmit?: () => void
 }
 
-export default function AddTechnicalDetails({ agencyid = "default-agency-id" }: AddTechnicalDetailsProps) {
+export default function AddTechnicalDetails({ 
+  agencyid,
+  isDialogMode = false,
+  afterSubmit
+}: AddTechnicalDetailsProps) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -70,22 +76,36 @@ export default function AddTechnicalDetails({ agencyid = "default-agency-id" }: 
             setError(result.error)
           } else if (result.success) {
             setSuccess(result.success)
-            form.reset()
-            // Give user time to see success message before navigating back
-            setTimeout(() => router.back(), 1500)
+            
+            // For dialog mode: call the afterSubmit callback
+            if (isDialogMode && afterSubmit) {
+              afterSubmit()
+            } 
+            // For standalone mode: reset and redirect
+            else {
+              form.reset()
+              setTimeout(() => router.back(), 1500)
+            }
           }
         } catch (error) {
           setError(error instanceof Error ? error.message : "An unexpected error occurred.")
         }
       })
     },
-    [agencyid, router, form],
+    [agencyid, router, form, isDialogMode, afterSubmit],
   )
 
   const handleSubmitClick = async () => {
     const isValid = await form.trigger()
     if (isValid) {
-      setIsDialogOpen(true)
+      // In dialog mode, submit directly without confirmation
+      if (isDialogMode) {
+        onSubmit(form.getValues())
+      } 
+      // In standalone mode, show confirmation dialog
+      else {
+        setIsDialogOpen(true)
+      }
     }
   }
 
@@ -95,35 +115,33 @@ export default function AddTechnicalDetails({ agencyid = "default-agency-id" }: 
     setSuccess(null)
   }
 
-  const toggleAllCheckboxes = (field: keyof AddTechnicalDetailsSchemaType) => {
+  const toggleAllCheckboxes = (field: "credencial" | "validityofdocument") => {
     const currentValues = form.getValues(field)
-    if (typeof currentValues !== "object" || !currentValues) return
-
     const allChecked = Object.values(currentValues).every(Boolean)
-
-    Object.keys(currentValues).forEach((key) => {
-      form.setValue(`${field}.${key}` as any, !allChecked)
-    })
+    const newValues = Object.keys(currentValues).reduce((acc, key) => {
+      return { ...acc, [key]: !allChecked }
+    }, {} as typeof currentValues)
+    form.setValue(field, newValues)
   }
 
   const qualify = form.watch("qualify")
 
-  // Tooltips for form fields
+  // Improved tooltips with better labels
   const tooltips = {
     credencial: {
       sixtyperamtput: "60% of the payment amount put forward",
-      workorder: "Official document authorizing work to begin",
-      paymentcertificate: "Certificate confirming payment has been made",
+      workorder: "Official work order documentation",
+      paymentcertificate: "Certificate confirming payment",
       comcertificat: "Completion certificate for previous projects",
     },
     validityofdocument: {
       itreturn: "Income Tax Return documents",
       gst: "Goods and Services Tax registration",
       ptax: "Professional Tax registration",
-      tradelicence: "Valid trade license from local authority",
+      tradelicence: "Valid trade license",
     },
     byelow: "Organization's bye-laws and regulations",
-    pfregistrationupdatechalan: "Provident Fund registration and updated chalans",
+    pfregistrationupdatechalan: "Provident Fund registration documents",
     declaration: "Signed declaration of compliance",
     machinary: "List of machinery and equipment owned",
     qualify: "Agency qualifies based on technical criteria",
@@ -135,13 +153,21 @@ export default function AddTechnicalDetails({ agencyid = "default-agency-id" }: 
         <CardHeader className="bg-muted/50">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-primary">Add Technical Details</h2>
-            <Button variant="outline" size="sm" onClick={() => router.back()}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
-            </Button>
+            {!isDialogMode && (
+              <Button variant="outline" size="sm" onClick={() => router.back()}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          <form onSubmit={form.handleSubmit(handleSubmitClick)} className="space-y-8">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmitClick();
+            }} 
+            className="space-y-8"
+          >
             {error && (
               <div
                 className="bg-destructive/15 text-destructive p-4 rounded-md flex items-center space-x-2 border border-destructive/30"
@@ -166,7 +192,10 @@ export default function AddTechnicalDetails({ agencyid = "default-agency-id" }: 
                 <legend className="text-lg font-semibold px-2">Credentials</legend>
 
                 <div className="flex items-center space-x-2 mb-4">
-                  <Checkbox id="selectCredencialDocuments" onClick={() => toggleAllCheckboxes("credencial")} />
+                  <Checkbox
+                    id="selectCredencialDocuments"
+                    onClick={() => toggleAllCheckboxes("credencial")}
+                  />
                   <label
                     htmlFor="selectCredencialDocuments"
                     className="text-sm font-medium leading-none cursor-pointer"
@@ -181,7 +210,9 @@ export default function AddTechnicalDetails({ agencyid = "default-agency-id" }: 
                       fieldType={FormFieldType.CHECKBOX}
                       control={form.control}
                       name={`credencial.${key}`}
-                      label={key}
+                      label={key
+                        .replace(/([a-z])([A-Z])/g, '$1 $2')
+                        .replace(/^./, str => str.toUpperCase())}
                       tooltip={tooltips.credencial[key as keyof typeof tooltips.credencial]}
                     />
                   ))}
@@ -193,7 +224,10 @@ export default function AddTechnicalDetails({ agencyid = "default-agency-id" }: 
               <fieldset className="p-4 border rounded-md bg-muted/10">
                 <legend className="text-lg font-semibold px-2">Validity of Documents</legend>
                 <div className="flex items-center space-x-2 mb-4">
-                  <Checkbox id="selectValidityDocuments" onClick={() => toggleAllCheckboxes("validityofdocument")} />
+                  <Checkbox
+                    id="selectValidityDocuments"
+                    onClick={() => toggleAllCheckboxes("validityofdocument")}
+                  />
                   <label htmlFor="selectValidityDocuments" className="text-sm font-medium leading-none cursor-pointer">
                     Select All Validity Documents
                   </label>
@@ -205,7 +239,9 @@ export default function AddTechnicalDetails({ agencyid = "default-agency-id" }: 
                       fieldType={FormFieldType.CHECKBOX}
                       control={form.control}
                       name={`validityofdocument.${key}`}
-                      label={key}
+                      label={key
+                        .replace(/([a-z])([A-Z])/g, '$1 $2')
+                        .replace(/^./, str => str.toUpperCase())}
                       tooltip={tooltips.validityofdocument[key as keyof typeof tooltips.validityofdocument]}
                     />
                   ))}
@@ -221,35 +257,35 @@ export default function AddTechnicalDetails({ agencyid = "default-agency-id" }: 
                     fieldType={FormFieldType.CHECKBOX}
                     control={form.control}
                     name="byelow"
-                    label="byelow"
+                    label="Bye-laws"
                     tooltip={tooltips.byelow}
                   />
                   <CustomFormField
                     fieldType={FormFieldType.CHECKBOX}
                     control={form.control}
                     name="pfregistrationupdatechalan"
-                    label="pfregistrationupdatechalan"
+                    label="PF Registration"
                     tooltip={tooltips.pfregistrationupdatechalan}
                   />
                   <CustomFormField
                     fieldType={FormFieldType.CHECKBOX}
                     control={form.control}
                     name="declaration"
-                    label="declaration"
+                    label="Declaration"
                     tooltip={tooltips.declaration}
                   />
                   <CustomFormField
                     fieldType={FormFieldType.CHECKBOX}
                     control={form.control}
                     name="machinary"
-                    label="machinary"
+                    label="Machinery"
                     tooltip={tooltips.machinary}
                   />
                   <CustomFormField
                     fieldType={FormFieldType.CHECKBOX}
                     control={form.control}
                     name="qualify"
-                    label="qualify"
+                    label="Qualifies"
                     tooltip={tooltips.qualify}
                   />
                 </div>
@@ -261,20 +297,16 @@ export default function AddTechnicalDetails({ agencyid = "default-agency-id" }: 
                   control={form.control}
                   name="remarks"
                   label="Remarks"
-
-
-
-                  
                   placeholder="Enter your remarks here..."
                 />
               )}
             </div>
 
             <CardFooter className="flex justify-between px-0 pt-4">
-              <Button type="button" variant="outline" onClick={resetForm}>
+              <Button type="button" variant="outline" onClick={resetForm} disabled={isPending}>
                 Reset Form
               </Button>
-              <Button type="submit" className="relative">
+              <Button type="submit" className="relative" disabled={isPending}>
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit"}
               </Button>
             </CardFooter>
@@ -282,23 +314,28 @@ export default function AddTechnicalDetails({ agencyid = "default-agency-id" }: 
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Submission</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to submit the technical details for this agency? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => form.handleSubmit(onSubmit)()}>Confirm</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Only show confirmation dialog in standalone mode */}
+      {!isDialogMode && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Submission</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to submit the technical details? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button onClick={() => onSubmit(form.getValues())} disabled={isPending}>
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Confirm
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Form>
   )
 }
-

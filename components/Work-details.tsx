@@ -17,128 +17,104 @@ export const ShowWorkDetails = async ({
   worksDetailId: string;
 }) => {
   const workdetails = await db.worksDetail.findUnique({
-    where: {
-      id: worksDetailId,
-    },
+    where: { id: worksDetailId },
     include: {
-      ApprovedActionPlanDetails: {
-        select: {
-          activityDescription: true,
-        },
-      },
+      ApprovedActionPlanDetails: { select: { activityDescription: true } },
       nitDetails: true,
     },
   });
 
   if (!workdetails) {
     return (
-      <Card className="w-full max-w-4xl mx-auto shadow-lg border-0">
-        <CardContent className="p-8">
-          <div className="flex flex-col items-center justify-center py-12">
-            <FileCheck className="h-12 w-12 text-gray-300 mb-4" />
-            <p className="text-lg text-gray-500">Work details not found</p>
-            <p className="text-sm text-gray-400 mt-2">
-              Please check the work ID and try again
-            </p>
-          </div>
+      <Card className="w-full mx-auto">
+        <CardContent className="p-4 flex flex-col items-center text-center">
+          <FileCheck className="h-8 w-8 text-gray-400 mb-2" />
+          <p className="text-sm text-gray-600">Work details not found</p>
         </CardContent>
       </Card>
     );
   }
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-IN", {
+  const formatDate = (date: Date) =>
+    new Intl.DateTimeFormat("en-IN", {
       year: "numeric",
       month: "short",
       day: "numeric",
     }).format(date);
-  };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto shadow-xl border border-gray-100">
-      <CardHeader className="bg-gradient-to-r from-blue-800 to-blue-900 rounded-t-lg p-6">
+    <Card className="w-full  mx-auto border shadow-sm">
+      <CardHeader className="bg-blue-800 p-3 rounded-t">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-3xl font-bold text-white flex items-center gap-3">
-              <Building2 className="h-8 w-8 text-blue-200" />
-              <span>Work Details</span>
-            </CardTitle>
-            <p className="text-blue-200/90 mt-1 font-medium">Comprehensive work overview</p>
-          </div>
-          <div className="p-3 bg-white/20 rounded-lg shadow-sm">
-            <FileCheck className="h-7 w-7 text-white" />
+          <CardTitle className="text-sm font-medium text-white flex items-center gap-1.5">
+            <Building2 className="h-4 w-4" />
+            <span>Work Details</span>
+          </CardTitle>
+          <div className="p-1 bg-white/20 rounded">
+            <FileCheck className="h-4 w-4 text-white" />
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6 space-y-6">
-        {/* NIT and Work Number Section */}
-        <div className="grid sm:grid-cols-2 gap-5">
-          <div className="border-l-4 border-blue-500 bg-white p-5 space-y-3 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileTextIcon className="h-5 w-5 text-blue-600" />
-              </div>
-              <h3 className="text-base font-semibold text-gray-700">NIT Details</h3>
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-xl font-semibold text-gray-900">
-                {workdetails.nitDetails.memoNumber}/DGP/
-                {workdetails.nitDetails.memoDate.getFullYear()}
-              </p>
-              <div className="flex items-center gap-2 text-gray-500">
-                <CalendarIcon className="h-4 w-4 text-gray-400" />
-                <p className="text-sm">
-                  {formatDate(workdetails.nitDetails.memoDate)}
-                </p>
-              </div>
-            </div>
-          </div>
 
-          <div className="border-l-4 border-green-500 bg-white p-5 space-y-3 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <HashIcon className="h-5 w-5 text-green-600" />
-              </div>
-              <h3 className="text-base font-semibold text-gray-700">Work Serial</h3>
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-xl font-semibold text-gray-900">
-                {workdetails.workslno}
-              </p>
-              <div className="flex items-center gap-2 text-gray-500">
-                <Clock className="h-4 w-4 text-gray-400" />
-                <p className="text-sm">Status: {workdetails.tenderStatus}</p>
-              </div>
+      <CardContent className="p-3 space-y-3">
+        {/* NIT Details */}
+        <div className="flex items-start gap-2">
+          <div className="p-1.5 bg-blue-100 rounded mt-0.5">
+            <FileTextIcon className="h-3.5 w-3.5 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">NIT Number</p>
+            <p className="text-sm font-medium">
+              {workdetails.nitDetails.memoNumber}/DGP/
+              {workdetails.nitDetails.memoDate.getFullYear()}
+            </p>
+            <div className="flex items-center gap-1 text-gray-500 text-xs">
+              <CalendarIcon className="h-3 w-3" />
+              {formatDate(workdetails.nitDetails.memoDate)}
             </div>
           </div>
         </div>
 
-        {/* Work Description Section */}
-        <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <BriefcaseIcon className="h-5 w-5 text-purple-600" />
+        {/* Work Serial */}
+        <div className="flex items-start gap-2">
+          <div className="p-1.5 bg-green-100 rounded mt-0.5">
+            <HashIcon className="h-3.5 w-3.5 text-green-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Work Serial</p>
+            <p className="text-sm font-medium">{workdetails.workslno}</p>
+            <div className="flex items-center gap-1 text-gray-500 text-xs">
+              <Clock className="h-3 w-3" />
+              Status: {workdetails.tenderStatus}
             </div>
-            <h3 className="text-base font-semibold text-gray-700">Description</h3>
           </div>
-          <div className="bg-gray-50 rounded-md p-4 border border-gray-100">
-            <p className="text-gray-700 leading-relaxed">
-              {workdetails.ApprovedActionPlanDetails.activityDescription ||
-                "No description available"}
-            </p>
+        </div>
+
+        {/* Description */}
+        <div className="pt-1">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-1.5 bg-purple-100 rounded">
+              <BriefcaseIcon className="h-3.5 w-3.5 text-purple-600" />
+            </div>
+            <p className="text-xs text-gray-500">Description</p>
           </div>
+          <p className="text-xs bg-gray-50 rounded p-2 border border-gray-100">
+            {workdetails.ApprovedActionPlanDetails.activityDescription ||
+              "No description available"}
+          </p>
         </div>
 
         {/* Status Badge */}
-        <div className="flex justify-end">
+        <div className="flex justify-center pt-1">
           <Badge
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold ${
+            variant="outline"
+            className={`text-xs px-2 py-0.5 ${
               workdetails.tenderStatus === "AOC"
-                ? "bg-green-100 text-green-800 hover:bg-green-100"
-                : "bg-orange-100 text-orange-800 hover:bg-orange-100"
+                ? "bg-green-50 text-green-700 border-green-200"
+                : "bg-orange-50 text-orange-700 border-orange-200"
             }`}
           >
-            {workdetails.tenderStatus}
+            Status: {workdetails.tenderStatus}
           </Badge>
         </div>
       </CardContent>

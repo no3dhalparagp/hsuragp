@@ -108,75 +108,116 @@ export default function ApprovalFormClient({
   );
 
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-lg">
-      <CardHeader className="bg-primary/5 border-b">
-        <CardTitle className="text-2xl font-bold text-primary">
+    <Card className="w-full max-w-2xl mx-auto shadow-xl rounded-2xl overflow-hidden border-0">
+      <CardHeader className="bg-gradient-to-r from-primary to-primary/90 text-white p-6">
+        <CardTitle className="text-2xl font-bold flex items-center gap-2">
+          <div className="bg-white/20 p-2 rounded-full">
+            <CheckCircle className="h-6 w-6" />
+          </div>
           Application Review
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-primary-foreground/90">
           Update application status with memo details or rejection remarks
         </p>
       </CardHeader>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-6 pt-6">
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base">Decision</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="grid grid-cols-2 gap-4"
-                    >
-                      <div>
-                        <RadioGroupItem
-                          value="approved"
-                          id="status-approved"
-                          className="peer sr-only"
-                        />
-                        <Label
-                          htmlFor="status-approved"
-                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-colors"
-                        >
-                          <CheckCircle className="h-6 w-6 text-green-500 mb-2" />
-                          <span className="font-medium">Approve</span>
-                        </Label>
-                      </div>
-                      <div>
-                        <RadioGroupItem
-                          value="rejected"
-                          id="status-rejected"
-                          className="peer sr-only"
-                        />
-                        <Label
-                          htmlFor="status-rejected"
-                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-destructive [&:has([data-state=checked])]:border-destructive cursor-pointer transition-colors"
-                        >
-                          <XCircle className="h-6 w-6 text-red-500 mb-2" />
-                          <span className="font-medium">Reject</span>
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <CardContent className="space-y-6 p-6">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-foreground mb-3">
+                Decision
+              </h3>
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="grid grid-cols-2 gap-4"
+                      >
+                        <div>
+                          <RadioGroupItem
+                            value="approved"
+                            id="status-approved"
+                            className="peer sr-only"
+                          />
+                          <Label
+                            htmlFor="status-approved"
+                            className={cn(
+                              "flex flex-col items-center justify-between rounded-xl border-2 p-5 hover:bg-green-50 transition-colors cursor-pointer",
+                              field.value === "approved"
+                                ? "border-green-500 bg-green-50"
+                                : "border-muted bg-popover"
+                            )}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="bg-green-100 p-2 rounded-full">
+                                <CheckCircle className="h-6 w-6 text-green-600" />
+                              </div>
+                              <span className="font-medium text-base">
+                                Approve
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground text-center">
+                              Create memo for approval
+                            </p>
+                          </Label>
+                        </div>
+                        <div>
+                          <RadioGroupItem
+                            value="rejected"
+                            id="status-rejected"
+                            className="peer sr-only"
+                          />
+                          <Label
+                            htmlFor="status-rejected"
+                            className={cn(
+                              "flex flex-col items-center justify-between rounded-xl border-2 p-5 hover:bg-red-50 transition-colors cursor-pointer",
+                              field.value === "rejected"
+                                ? "border-red-500 bg-red-50"
+                                : "border-muted bg-popover"
+                            )}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="bg-red-100 p-2 rounded-full">
+                                <XCircle className="h-6 w-6 text-red-600" />
+                              </div>
+                              <span className="font-medium text-base">
+                                Reject
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground text-center">
+                              Provide rejection reason
+                            </p>
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage className="mt-2" />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {watchStatus === "approved" && (
-              <div className="space-y-4 bg-green-50/50 p-4 rounded-lg border border-green-100">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4 bg-green-50/30 p-5 rounded-xl border border-green-200">
+                <h3 className="text-lg font-semibold text-green-800 flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5" />
+                  Approval Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <FormField
                     control={form.control}
                     name="memonumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Memo Number</FormLabel>
+                        <FormLabel className="text-foreground">
+                          Memo Number
+                        </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -185,7 +226,8 @@ export default function ApprovalFormClient({
                               setMemoNumber(e.target.value);
                               field.onChange(e);
                             }}
-                            className="bg-background"
+                            className="bg-background shadow-sm"
+                            placeholder="Enter memo number"
                           />
                         </FormControl>
                         <FormMessage />
@@ -198,20 +240,22 @@ export default function ApprovalFormClient({
                     name="memodate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Memo Date</FormLabel>
+                        <FormLabel className="text-foreground">
+                          Memo Date
+                        </FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
                                 variant="outline"
                                 className={cn(
-                                  "text-left font-normal",
+                                  "text-left font-normal h-11 shadow-sm",
                                   !field.value && "text-muted-foreground"
                                 )}
-                                disabled={watchStatus === "approved"} // Disable when approved
+                                disabled={watchStatus === "approved"}
                               >
                                 {field.value ? (
-                                  formatDate(field.value) // Format as dd-MM-yyyy
+                                  formatDate(field.value)
                                 ) : (
                                   <span>Select date</span>
                                 )}
@@ -225,7 +269,6 @@ export default function ApprovalFormClient({
                               selected={field.value}
                               onSelect={field.onChange}
                               disabled={(date) =>
-                                // Disable all dates except today when approved
                                 watchStatus === "approved"
                                   ? date.getTime() !==
                                     new Date().setHours(0, 0, 0, 0)
@@ -241,58 +284,72 @@ export default function ApprovalFormClient({
                     )}
                   />
                 </div>
+                <p className="text-sm text-green-700 bg-green-100/50 p-3 rounded-lg">
+                  Memo date is automatically set to today for approvals
+                </p>
               </div>
             )}
 
-            <FormField
-              control={form.control}
-              name="remarks"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Remarks{" "}
-                    <span className="text-muted-foreground font-normal">
-                      ({watchStatus === "approved" ? "optional" : "required"})
-                    </span>
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder={
-                        watchStatus === "approved"
-                          ? "Add any additional comments..."
-                          : "Please provide reason for rejection"
-                      }
-                      className="min-h-[100px]"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="mt-6">
+              <FormField
+                control={form.control}
+                name="remarks"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <span>Remarks</span>
+                      {watchStatus === "rejected" && (
+                        <span className="text-destructive">*</span>
+                      )}
+                      <span className="text-sm text-muted-foreground font-normal ml-2">
+                        {watchStatus === "approved"
+                          ? "(optional)"
+                          : "(required)"}
+                      </span>
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder={
+                          watchStatus === "approved"
+                            ? "Add any additional comments..."
+                            : "Please provide reason for rejection"
+                        }
+                        className="min-h-[120px] shadow-sm"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </CardContent>
 
-          <CardFooter className="border-t pt-6">
+          <CardFooter className="bg-muted/50 px-6 py-5 border-t">
             <Button
               type="submit"
-              className="w-full gap-2"
-              variant={watchStatus === "rejected" ? "destructive" : "default"}
+              className={cn(
+                "w-full gap-2 h-12 text-base font-semibold transition-all",
+                watchStatus === "rejected"
+                  ? "bg-destructive hover:bg-destructive/90"
+                  : "bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+              )}
               size="lg"
-              disabled={isPending}
+              disabled={isPending || !watchStatus}
             >
               {isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   Processing...
                 </>
               ) : watchStatus === "approved" ? (
                 <>
-                  <CheckCircle className="h-4 w-4" />
+                  <CheckCircle className="h-5 w-5" />
                   Confirm Approval
                 </>
               ) : watchStatus === "rejected" ? (
                 <>
-                  <XCircle className="h-4 w-4" />
+                  <XCircle className="h-5 w-5" />
                   Confirm Rejection
                 </>
               ) : (

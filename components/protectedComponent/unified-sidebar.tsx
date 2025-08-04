@@ -9,45 +9,59 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  publicUserMenuItems,
+  adminMenuItems,
+  employeeMenuItems,
+  superAdminMenuItems,
+  type MenuItemProps,
+  isRestrictedForRole,
+} from "@/constants/protected-menu";
 import { RootState } from "@/redux/store";
 import { toggleMenu } from "@/redux/slices/menuSlice";
 import ImprovedFooter from "../improved-footer";
-import { useQuery } from "@tanstack/react-query";
-import { getIconComponent } from "@/utils/menu-icons";
-import { UserRole } from "@prisma/client";
 
 // Types
-type MenuItemData = {
-  id: string;
-  text: string;
-  link?: string;
-  icon?: string;
-  color?: string;
-  children: MenuItemData[];
-  allowedRoles: UserRole[];
-};
+type Role = "user" | "admin" | "staff" | "superadmin";
 
-async function fetchMenu(role: UserRole): Promise<MenuItemData[]> {
-  const res = await fetch('/api/menu');
-  if (!res.ok) throw new Error('Failed to fetch menu');
-  return res.json();
+interface DashboardConfig {
+  title: string;
+  items: MenuItemProps[];
 }
 
-// Menu Item Component
+// Configuration
+const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
+  user: {
+    title: "User Dashboard",
+    items: publicUserMenuItems,
+  },
+  admin: {
+    title: "Admin Portal",
+    items: adminMenuItems,
+  },
+  staff: {
+    title: "Staff Portal",
+    items: employeeMenuItems,
+  },
+  superadmin: {
+    title: "Super Admin Portal",
+    items: superAdminMenuItems
+  },
+};
+
+// Components
 function MenuItem({ 
   item, 
   currentRole 
 }: { 
-  item: MenuItemData; 
-  currentRole: UserRole; 
+  item: MenuItemProps; 
+  currentRole: Role; 
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const isRestricted = !item.allowedRoles.includes(currentRole);
-  const hasChildren = item.children && item.children.length > 0;
-  const IconComponent = item.icon ? getIconComponent(item.icon) : null;
+  const isRestricted = isRestrictedForRole(item, currentRole);
 
   const toggleSubMenu = () => {
-    if (!isRestricted && hasChildren) {
+    if (!isRestricted) {
       setIsOpen(!isOpen);
     }
   };
@@ -56,35 +70,35 @@ function MenuItem({
     <div className="mb-1 relative group">
       <Button
         variant="ghost"
-        className={`w-full justify-start px-4 py-3 rounded-lg transition-all duration-300 group 
-                   hover:pl-6 active:scale-[0.98] shadow-sm ${
+        className={`w-full justify-start px-4 py-3 rounded-xl transition-all duration-300 group 
+                   hover:pl-6 active:scale-[0.98] ${
                      isRestricted 
                        ? "opacity-50 cursor-not-allowed hover:bg-transparent" 
-                       : "hover:bg-accent/30"
+                       : "hover:bg-primary/10"
                    }`}
-        onClick={toggleSubMenu}
+        onClick={item.submenu ? toggleSubMenu : undefined}
         disabled={isRestricted}
       >
         <Link
-          href={isRestricted ? "#" : item.link || "#"}
+          href={isRestricted ? "#" : item.menuItemLink || "#"}
           className="flex items-center gap-3 w-full"
           onClick={(e) => {
-            if (isRestricted || hasChildren) {
+            if (item.submenu || isRestricted) {
               e.preventDefault();
             }
           }}
         >
-          {IconComponent && (
+          {item.Icon && (
             <div
-              className={`p-1.5 rounded-md shadow-md ${
+              className={`p-2 rounded-xl ${
                 isRestricted
                   ? "bg-muted"
-                  : "bg-gradient-to-br from-background to-accent/10 group-hover:from-accent/20 group-hover:to-accent/30"
+                  : "bg-gradient-to-br from-background to-primary/10 group-hover:from-primary/20 group-hover:to-primary/30"
               }`}
             >
-              <IconComponent
+              <item.Icon
                 className={`w-5 h-5 transition-colors ${
-                  isRestricted ? "text-muted-foreground" : item.color || "text-blue-500"
+                  isRestricted ? "text-muted-foreground" : item.color
                 }`}
               />
             </div>
@@ -96,14 +110,14 @@ function MenuItem({
                 : "group-hover:text-primary"
             }`}
           >
-            {item.text}
+            {item.menuItemText}
           </span>
           
           <div className="ml-auto flex items-center">
             {isRestricted && (
-              <Lock className="w-4 h-4 text-red-500 mr-2" />
+              <Lock className="w-4 h-4 text-red-500/80 mr-2" />
             )}
-            {hasChildren && !isRestricted && (
+            {item.submenu && !isRestricted && (
               <span className="transform transition-transform duration-300">
                 {isOpen ? (
                   <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -116,17 +130,17 @@ function MenuItem({
         </Link>
       </Button>
 
-      {hasChildren && !isRestricted && (
+      {item.submenu && !isRestricted && (
         <div
-          className={`ml-6 space-y-1 overflow-hidden transition-all duration-500 
+          className={`ml-8 pl-2 border-l-2 border-primary/20 space-y-1 overflow-hidden transition-all duration-500 
                      ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                       isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+                       isOpen ? "max-h-screen opacity-100 mt-2" : "max-h-0 opacity-0"
                      }`}
         >
-          {item.children.map((child) => (
+          {item.subMenuItems.map((subItem) => (
             <MenuItem 
-              key={child.id} 
-              item={child} 
+              key={subItem.menuItemText} 
+              item={subItem} 
               currentRole={currentRole} 
             />
           ))}
@@ -136,55 +150,32 @@ function MenuItem({
   );
 }
 
-function SidebarContent({ role }: { role: UserRole }) {
-  const { data: menuItems, isLoading, isError } = useQuery<MenuItemData[]>({
-    queryKey: ['menu', role],
-    queryFn: () => fetchMenu(role),
-    staleTime: 60 * 60 * 1000 // 1 hour cache
-  });
-
-  const getTitle = () => {
-    switch (role) {
-      case UserRole.user: return "User Dashboard";
-      case UserRole.admin: return "Admin Portal";
-      case UserRole.staff: return "Staff Portal";
-      case UserRole.superadmin: return "Super Admin Portal";
-      default: return "Dashboard";
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="flex items-center justify-center h-full text-red-500 p-4 text-center">
-        Error loading menu. Please try again later.
-      </div>
-    );
-  }
+function SidebarContent({ role }: { role: Role }) {
+  const config = DASHBOARD_CONFIG[role];
 
   return (
     <div
-      className="w-74 flex-shrink-0 border-r bg-gradient-to-br from-background 
-                    to-accent/10 backdrop-blur-lg h-full flex flex-col shadow-xl"
+      className="w-74 flex-shrink-0 border-r border-primary/10 bg-background/70 backdrop-blur-xl 
+                h-full flex flex-col shadow-lg"
     >
       <header
-        className="h-16 border-b p-4 flex items-center justify-between 
-                       bg-gradient-to-r from-primary/10 to-primary/30 relative overflow-hidden shadow-md"
+        className="h-20 border-b border-primary/10 p-4 flex items-center justify-between 
+                  bg-gradient-to-r from-primary/5 to-primary/15 relative overflow-hidden"
       >
-        <div className="absolute inset-0 bg-noise opacity-10 pointer-events-none" />
-        <h1 className="text-lg font-semibold tracking-tight text-primary relative">
-          {getTitle()}
-        </h1>
+        <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none" />
+        <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-br from-primary to-secondary p-1.5 rounded-xl">
+            <div className="bg-background p-1 rounded-lg">
+              <User className="w-5 h-5 text-primary" />
+            </div>
+          </div>
+          <h1 className="text-lg font-semibold tracking-tight text-primary">
+            {config.title}
+          </h1>
+        </div>
         <Avatar
-          className="w-8 h-8 border-2 border-primary/20 shadow-sm 
-                         hover:border-primary/40 transition-colors"
+          className="w-9 h-9 border border-primary/20 shadow-sm 
+                    hover:border-primary/40 transition-colors"
         >
           <AvatarImage src="/placeholder-avatar.jpg" alt="User" />
           <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground">
@@ -193,10 +184,14 @@ function SidebarContent({ role }: { role: UserRole }) {
         </Avatar>
       </header>
 
-      <ScrollArea className="flex-grow p-3">
-        <nav className="space-y-1" aria-label={`${role} navigation`}>
-          {menuItems?.map((item) => (
-            <MenuItem key={item.id} item={item} currentRole={role} />
+      <ScrollArea className="flex-grow p-4">
+        <nav className="space-y-2" aria-label={`${role} navigation`}>
+          {config.items.map((item) => (
+            <MenuItem 
+              key={item.menuItemText} 
+              item={item} 
+              currentRole={role} 
+            />
           ))}
         </nav>
       </ScrollArea>
@@ -206,7 +201,7 @@ function SidebarContent({ role }: { role: UserRole }) {
   );
 }
 
-export default function UnifiedSidebar({ role = UserRole.user }: { role?: UserRole }) {
+export default function UnifiedSidebar({ role = "user" }: { role?: Role }) {
   const isMenuOpen = useSelector((state: RootState) => state.menu.isOpen);
   const dispatch = useDispatch();
   const [isMounted, setIsMounted] = useState(false);
@@ -233,15 +228,18 @@ export default function UnifiedSidebar({ role = UserRole.user }: { role?: UserRo
               variant="outline"
               size="icon"
               className="fixed top-4 left-4 z-50 bg-background/80 backdrop-blur shadow-lg 
-                        rounded-full w-10 h-10 hover:bg-primary/20 hover:scale-110 
-                        transition-transform"
+                        rounded-xl w-10 h-10 hover:bg-primary/10 hover:scale-110 
+                        transition-transform border-primary/20"
               onClick={handleToggleMenu}
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-5 h-5 text-primary" />
               <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-74 shadow-xl border-0">
+          <SheetContent 
+            side="left" 
+            className="p-0 w-74 shadow-xl border-0 bg-background/80 backdrop-blur-lg"
+          >
             <SidebarContent role={role} />
           </SheetContent>
         </Sheet>

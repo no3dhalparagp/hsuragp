@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useTransition } from "react";
@@ -23,9 +24,26 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, Loader2, User, FileText, MapPin } from "lucide-react";
+import { 
+  AlertCircle, 
+  CheckCircle2, 
+  Loader2, 
+  User, 
+  FileText, 
+  MapPin,
+  Store,
+  User2,
+  
+} from "lucide-react";
 import { vendorSchema } from "@/schema/venderschema";
 import { vendorSchemaAction } from "@/action/uploadwork";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const submitVendorDetails = async (values: z.infer<typeof vendorSchema>) => {
   await vendorSchemaAction(values);
@@ -50,8 +68,12 @@ export default function VendorRegistrationForm() {
       tin: "",
       gst: "",
       postalAddress: "",
+      agencyType: "INDIVIDUAL",
+      proprietorName: "",
     },
   });
+
+  const agencyType = form.watch("agencyType");
 
   async function onSubmit(values: z.infer<typeof vendorSchema>) {
     setError(undefined);
@@ -98,6 +120,44 @@ export default function VendorRegistrationForm() {
                     Primary contact details for the vendor
                   </p>
                 </div>
+                
+                {/* Agency Type Field */}
+                <div className="grid grid-cols-1 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="agencyType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 flex items-center gap-1">
+                          Agency Type <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="border-gray-300 h-12">
+                              <SelectValue placeholder="Select agency type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="INDIVIDUAL">
+                              <div className="flex items-center gap-2">
+                                <User2 className="h-4 w-4 text-blue-600" />
+                                <span>Individual</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="FARM">
+                              <div className="flex items-center gap-2">
+                                
+                                <span>Farm</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
@@ -105,11 +165,12 @@ export default function VendorRegistrationForm() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-gray-700 flex items-center gap-1">
-                          Full Name <span className="text-red-500">*</span>
+                          {agencyType === "FARM" ? "Farm Name" : "Full Name"} 
+                          <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="John Doe"
+                            placeholder={agencyType === "FARM" ? "Green Acres Farm" : "John Doe"}
                             {...field}
                             className="focus:ring-2 focus:ring-blue-500 border-gray-300 h-12"
                           />
@@ -118,6 +179,30 @@ export default function VendorRegistrationForm() {
                       </FormItem>
                     )}
                   />
+                  
+                  {/* Proprietor Name - Conditionally shown for farms */}
+                  {agencyType === "FARM" && (
+                    <FormField
+                      control={form.control}
+                      name="proprietorName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-gray-700 flex items-center gap-1">
+                            Proprietor Name <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Proprietor's Full Name"
+                              {...field}
+                              className="focus:ring-2 focus:ring-blue-500 border-gray-300 h-12"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  
                   <FormField
                     control={form.control}
                     name="mobileNumber"
@@ -137,6 +222,7 @@ export default function VendorRegistrationForm() {
                       </FormItem>
                     )}
                   />
+                  
                   <FormField
                     control={form.control}
                     name="email"

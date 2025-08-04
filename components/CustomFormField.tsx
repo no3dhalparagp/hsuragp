@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from "react"
@@ -24,8 +23,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import "react-datepicker/dist/react-datepicker.css"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import "react-datepicker/dist/react-datepicker.css";
 
 export enum FormFieldType {
   INPUT = "input",
@@ -98,7 +97,7 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
               placeholder={props.placeholder}
               {...field}
               {...props.inputProps}
-              className={`pl-10 pr-4 h-11 rounded-lg border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 ${
+              className={`pl-10 pr-4 h-11 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 ${
                 props.inputClass
               } ${props.icon || props.iconSrc ? 'pl-10' : ''}`}
             />
@@ -118,7 +117,7 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
             type="number"
             placeholder={props.placeholder}
             {...field}
-            className={`h-11 rounded-lg border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 ${
+            className={`h-11 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 ${
               props.inputClass
             }`}
             disabled={props.disabled}
@@ -132,7 +131,7 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
           <Textarea
             placeholder={props.placeholder}
             {...field}
-            className={`rounded-lg border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[100px] ${
+            className={`rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 min-h-[100px] ${
               props.inputClass
             }`}
             disabled={props.disabled}
@@ -143,15 +142,26 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
     case FormFieldType.PHONE_INPUT:
       return (
         <FormControl>
-          <PhoneInput
-            defaultCountry="US"
-            placeholder={props.placeholder}
-            international
-            withCountryCallingCode
-            value={field.value as E164Number | undefined}
-            onChange={field.onChange}
-            className={`phone-input h-11 rounded-lg border-gray-300 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 ${props.inputClass}`}
-          />
+          <div className="relative">
+            <PhoneInput
+              defaultCountry="US"
+              placeholder={props.placeholder}
+              international
+              withCountryCallingCode
+              value={field.value as E164Number | undefined}
+              onChange={field.onChange}
+              className={`phone-input h-11 rounded-lg border border-gray-300 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-200 ${props.inputClass}`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Image
+                src="/icons/phone.svg"
+                width={20}
+                height={20}
+                alt="Phone"
+                className="text-gray-400"
+              />
+            </div>
+          </div>
         </FormControl>
       )
 
@@ -163,9 +173,12 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
               id={props.name}
               checked={field.value}
               onCheckedChange={field.onChange}
-              className="h-5 w-5 rounded-md border-2 border-gray-300 data-[state=checked]:border-primary data-[state=checked]:bg-primary transition-colors"
+              className="h-5 w-5 rounded-md border-2 border-gray-300 data-[state=checked]:border-primary data-[state=checked]:bg-primary transition-colors focus:ring-2 focus:ring-primary/20"
             />
-            <label htmlFor={props.name} className="text-sm font-medium text-gray-700">
+            <label 
+              htmlFor={props.name} 
+              className="text-sm font-medium text-gray-700 cursor-pointer"
+            >
               {props.label}
             </label>
           </div>
@@ -192,7 +205,7 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
               timeInputLabel="Time:"
               dateFormat={props.dateFormat ?? "MM/dd/yyyy - h:mm aa"}
               wrapperClassName="w-full"
-              className={`w-full pl-10 pr-4 h-11 rounded-lg border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 ${props.inputClass}`}
+              className={`w-full pl-10 pr-4 h-11 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 ${props.inputClass}`}
             />
           </FormControl>
         </div>
@@ -204,17 +217,17 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
           <Select onValueChange={field.onChange} defaultValue={field.value}>
             <FormControl>
               <SelectTrigger
-                className={`h-11 rounded-lg border-gray-300 focus:ring-2 focus:ring-primary/20 ${props.inputClass}`}
+                className={`h-11 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 transition-all duration-200 ${props.inputClass}`}
               >
                 <SelectValue placeholder={props.placeholder} />
               </SelectTrigger>
             </FormControl>
-            <SelectContent className="rounded-lg border-gray-200 shadow-lg py-2 mt-1">
+            <SelectContent className="rounded-lg border border-gray-200 shadow-lg py-2 mt-1 bg-white z-[1000]">
               {props.options?.map((option) => (
                 <SelectItem
                   key={option.value}
                   value={option.value}
-                  className="hover:bg-gray-50 focus:bg-gray-50"
+                  className="hover:bg-gray-50 focus:bg-gray-50 px-4 py-2 transition-colors duration-150"
                 >
                   {option.label}
                 </SelectItem>
@@ -234,7 +247,7 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
                 {slots.map((slot, index) => (
                   <React.Fragment key={index}>
                     <InputOTPSlot
-                      className="w-12 h-12 rounded-lg border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      className="w-12 h-12 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                       {...slot}
                       index={index}
                     />
@@ -260,13 +273,13 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
                   {...field}
                   value={option.value}
                   checked={field.value === option.value}
-                  className="sr-only"
+                  className="sr-only peer"
                 />
                 <label
                   htmlFor={`${props.name}-${option.value}`}
                   className="flex items-center gap-3 cursor-pointer group"
                 >
-                  <div className="h-5 w-5 rounded-full border-2 border-gray-300 group-hover:border-primary flex items-center justify-center transition-colors">
+                  <div className="h-5 w-5 rounded-full border-2 border-gray-300 group-hover:border-primary flex items-center justify-center transition-colors peer-focus:ring-2 peer-focus:ring-primary/20">
                     {field.value === option.value && (
                       <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                     )}
@@ -295,34 +308,39 @@ const CustomFormField = (props: CustomProps) => {
       control={props.control}
       name={props.name}
       render={({ field }) => (
-        <FormItem className={`space-y-2 ${props.containerClass}`}>
+        <FormItem className={`space-y-3 ${props.containerClass}`}>
           {props.fieldType !== FormFieldType.CHECKBOX && (
-            <FormLabel className={`flex items-center text-sm font-medium text-gray-700 ${props.labelClass}`}>
+            <FormLabel className={`flex items-center text-sm font-medium text-gray-700 mb-1 ${props.labelClass}`}>
               {props.label || formatLabel(props.name)}
               {props.tooltip && (
-                <TooltipProvider>
+                <TooltipProvider delayDuration={100}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" className="ml-2">
+                      <button 
+                        type="button" 
+                        className="ml-2 focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-full"
+                      >
                         <Image
                           src="/icons/info.svg"
                           width={16}
                           height={16}
                           alt="Info"
-                          className="inline-block"
+                          className="inline-block opacity-70 hover:opacity-100 transition-opacity"
                         />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-sm text-gray-500">{props.tooltip}</p>
+                    <TooltipContent className="max-w-xs bg-gray-800 text-white border-0 px-3 py-2 rounded-lg shadow-lg">
+                      <p className="text-sm">{props.tooltip}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               )}
             </FormLabel>
           )}
-          <RenderInput field={field} props={props} />
-          <FormMessage className="text-red-600 text-sm mt-1" />
+          <div className="relative">
+            <RenderInput field={field} props={props} />
+          </div>
+          <FormMessage className="text-red-600 text-sm mt-1 font-medium" />
         </FormItem>
       )}
     />
