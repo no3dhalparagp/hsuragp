@@ -64,10 +64,10 @@ const NitDetailsPage = async () => {
           <Table className="divide-y divide-gray-200">
             <TableHeader className="bg-gray-50">
               <TableRow>
-                <TableHead className="py-4 text-gray-600 font-semibold">
+                <TableHead className="py-4 text-gray-600 font-semibold min-w-[200px]">
                   NIT Details
                 </TableHead>
-                <TableHead className="py-4 text-gray-600 font-semibold">
+                <TableHead className="py-4 text-gray-600 font-semibold min-w-[300px]">
                   Work Information
                 </TableHead>
                 <TableHead className="py-4 text-gray-600 font-semibold">
@@ -76,7 +76,7 @@ const NitDetailsPage = async () => {
                 <TableHead className="py-4 text-gray-600 font-semibold text-center">
                   Status
                 </TableHead>
-                <TableHead className="py-4 text-gray-600 font-semibold text-right">
+                <TableHead className="py-4 text-gray-600 font-semibold text-right min-w-[150px]">
                   Actions
                 </TableHead>
               </TableRow>
@@ -97,18 +97,36 @@ const NitDetailsPage = async () => {
                         />
                       </TableCell>
                       <TableCell className="py-4 max-w-[300px]">
-                        <p className="font-medium text-gray-900 truncate">
-                          {worklist.ApprovedActionPlanDetails
-                            ?.activityDescription || "N/A"}
-                        </p>
+                        <div className="relative group inline-block w-full">
+                          <p className="font-medium text-gray-900 truncate">
+                            {worklist.ApprovedActionPlanDetails
+                              ?.activityDescription || "N/A"}
+                          </p>
+                          <div className="absolute hidden group-hover:block left-0 bottom-full mb-2 z-20 w-full max-w-md">
+                            <div className="bg-gray-900 text-white text-sm rounded-md p-3 shadow-lg">
+                              <div className="font-medium mb-1">Work Description:</div>
+                              <div className="whitespace-normal">
+                                {worklist.ApprovedActionPlanDetails
+                                  ?.activityDescription || "N/A"}
+                              </div>
+                              <div className="absolute top-full left-5 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                            </div>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="py-4">
-                        <div>
+                        <div className="flex flex-col">
                           <span className="text-sm text-gray-500">
                             Bid Opening:{" "}
                             {item.technicalBidOpeningDate
                               ? formatDateTime(item.technicalBidOpeningDate)
                                   .dateOnly
+                              : "N/A"}
+                          </span>
+                          <span className="text-sm text-gray-500 mt-1">
+                            Created:{" "}
+                            {item.createdAt
+                              ? formatDateTime(item.createdAt).dateOnly
                               : "N/A"}
                           </span>
                         </div>
@@ -157,6 +175,12 @@ const NitDetailsPage = async () => {
                       <p className="text-sm text-gray-500">
                         Create a new NIT or check back later
                       </p>
+                      <Link href="/admindashboard/manage-tender/create-nit">
+                        <Button className="mt-4 gap-2">
+                          <Plus className="h-4 w-4" />
+                          Create New NIT
+                        </Button>
+                      </Link>
                     </div>
                   </TableCell>
                 </TableRow>

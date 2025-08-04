@@ -261,7 +261,7 @@ function WorkDetailsList({ workDetails }: WorkDetailsListProps) {
       });
       setShowEditModal(true);
     },
-    []
+    [setEditWork, setEditFields, setShowEditModal, workDetails]
   );
 
   const handleEditSubmit = useCallback(
@@ -307,7 +307,7 @@ function WorkDetailsList({ workDetails }: WorkDetailsListProps) {
   const closeEditModal = useCallback(() => {
     setShowEditModal(false);
     setEditWork(null);
-  }, []);
+  }, [setShowEditModal, setEditWork]);
 
   if (workDetails.WorksDetail.length === 0) {
     return (

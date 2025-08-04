@@ -30,8 +30,13 @@ export default async function AddFinancialDetails() {
     },
     include: {
       ApprovedActionPlanDetails: true,
-      nitDetails: true,
-    },
+    nitDetails: true,
+    biddingAgencies: {
+      include: {
+        agencydetails: true,
+      }
+    }
+  }
   });
 
   return (

@@ -1,3 +1,4 @@
+
 import { notFound } from "next/navigation";
 import NitEditForm from "@/components/form/nit-edit-form";
 import { db } from "@/lib/db";
@@ -23,24 +24,18 @@ export default async function EditNitPage({ params }: EditNitPageProps) {
   const initialData = {
     id: String(nit.id),
     tendermemonumber: String(nit.memoNumber || ""),
-    tendermemodate: nit.memoDate ? nit.memoDate.toString() : "",
-    tender_pulishing_Date: nit.publishingDate
-      ? nit.publishingDate.toString()
-      : "",
-    tender_document_Download_from: nit.documentDownloadFrom
-      ? nit.documentDownloadFrom.toString()
-      : "",
-    tender_start_time_from: nit.startTime ? nit.startTime.toString() : "",
-    tender_end_date_time_from: nit.endTime ? nit.endTime.toString() : "",
-    tender_techinical_bid_opening_date: nit.technicalBidOpeningDate
-      ? nit.technicalBidOpeningDate.toString()
-      : "",
-    tender_financial_bid_opening_date: nit.financialBidOpeningDate
-      ? nit.financialBidOpeningDate.toString()
-      : "",
+    // Pass dates as Date objects
+    tendermemodate: nit.memoDate ? new Date(nit.memoDate) : new Date(),
+    tender_pulishing_Date: nit.publishingDate ? new Date(nit.publishingDate) : new Date(),
+    tender_document_Download_from: nit.documentDownloadFrom ? new Date(nit.documentDownloadFrom) : new Date(),
+    tender_start_time_from: nit.startTime ? new Date(nit.startTime) : new Date(),
+    tender_end_date_time_from: nit.endTime ? new Date(nit.endTime) : new Date(),
+    tender_techinical_bid_opening_date: nit.technicalBidOpeningDate ? new Date(nit.technicalBidOpeningDate) : new Date(),
+    tender_financial_bid_opening_date: nit.financialBidOpeningDate ? new Date(nit.financialBidOpeningDate) : undefined,
     tender_place_opening_bids: String(nit.placeOfOpeningBids || ""),
     tender_vilidity_bids: String(nit.bidValidity || ""),
     supplynit: Boolean(nit.isSupply),
+    isPublished: Boolean(nit.isPublished),
   };
 
   return (

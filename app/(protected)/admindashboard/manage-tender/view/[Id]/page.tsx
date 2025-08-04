@@ -7,10 +7,12 @@ import { Badge } from "@/components/ui/badge";
 export default async function NITDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+
   const nit = await db.nitDetails.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       WorksDetail: {
         include: {
@@ -39,7 +41,7 @@ export default async function NITDetailsPage({
           <CardTitle className="text-2xl font-bold flex items-center justify-between">
             <span>NIT Details: {nit.memoNumber}</span>
             <div className="flex space-x-2">
-              <Badge variant={nit.isPublished ? "success" : "secondary"}>
+              <Badge variant={nit.isPublished ? "default" : "secondary"}>
                 {nit.isPublished ? "Published" : "Draft"}
               </Badge>
               <Badge variant={nit.isSupply ? "default" : "outline"}>
@@ -110,6 +112,7 @@ export default async function NITDetailsPage({
           </div>
         </CardContent>
       </Card>
+
       {/* WorksDetail Section */}
       {nit.WorksDetail && nit.WorksDetail.length > 0 && (
         <div className="mt-10">

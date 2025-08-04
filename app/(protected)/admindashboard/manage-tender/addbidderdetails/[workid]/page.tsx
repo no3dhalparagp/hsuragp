@@ -2,7 +2,7 @@ import { sentforTechnicalevelution } from "@/action/bookNitNuber";
 import { BidderDetails } from "@/components/bidder-details";
 import AddBidderTechnicalDetails from "@/components/form/AddBidder";
 import AddBidder from "@/components/form/AddBidder";
-
+import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
 import { ShowWorkDetails } from "@/components/Work-details";
 import { db } from "@/lib/db";
@@ -55,12 +55,11 @@ export default async function Page({ params }: PageProps) {
           workdetails.biddingAgencies.length >= 3 && (
             <form action={sentforTechnicalevelution}>
               <input type="hidden" name="workid" value={workdetails.id} />
-              <Button
-                type="submit"
+              <SubmitButton
                 className="bg-sky-400 hover:bg-sky-500 text-white"
               >
                 Send For Technical Evaluation
-              </Button>
+              </SubmitButton>
             </form>
           )}
       </div>
