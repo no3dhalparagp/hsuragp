@@ -7,6 +7,21 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model GPProfile {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  gpname       String   @default("NO 4 HARSURA GRAM PANCHAYAT")
+  gpaddress    String   @default("Vill-Suhari, PO-Rampur, PS-Tapan")
+  nameinprodhan String  @default("No 4 Harsura Gram Panchayat")
+  gpcode       String   @default("HGP")
+  gpnameinshort String  @default("Harsura")
+  blockname    String   @default("Tapan Dev.")
+  gpshortname  String   @default("Harsura")
+  createdAt    DateTime @default(now()) @db.DateTime
+  updatedAt    DateTime @updatedAt @db.DateTime
+
+  @@map("gp_profiles")
+}
+
 model Visitor {
   id            String @id @default(auto()) @map("_id") @db.ObjectId
   totalVisitors Int
