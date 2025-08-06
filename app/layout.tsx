@@ -63,7 +63,7 @@ export default async function RootLayout({ children }: Props) {
 
                 
                   <main>
-                    <IndianClock />
+                    
                     {children}
                   </main>
               
