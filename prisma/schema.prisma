@@ -16,9 +16,8 @@ model GPProfile {
   gpnameinshort String  @default("Harsura")
   blockname    String   @default("Tapan Dev.")
   gpshortname  String   @default("Harsura")
-  createdAt    DateTime @default(now()) @db.DateTime
-  updatedAt    DateTime @updatedAt @db.DateTime
-
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
   @@map("gp_profiles")
 }
 
