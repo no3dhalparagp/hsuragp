@@ -78,7 +78,7 @@ export const tenderForwardedTo = [
   "The DIO, NIC Balurghat, Dakshin Dinajpur",
   "The Librarian, Local rural library",
   "Sahaj Tathya Mitra Kendra, Local",
-  `Opposition Leader, No-3  ${gpnameinshort} G.P.`,
+  `Opposition Leader, No-4 ${gpnameinshort} G.P.`,
   "Office Notice Board",
   "Office Copy"
 ];
