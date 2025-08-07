@@ -21,6 +21,15 @@ model GPProfile {
   @@map("gp_profiles")
 }
 
+model TenderTerm {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  eligible       String[]
+  qualidyceteria String[]
+  termcondition  String[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
 model Visitor {
   id            String @id @default(auto()) @map("_id") @db.ObjectId
   totalVisitors Int
