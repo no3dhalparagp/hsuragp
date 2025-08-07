@@ -144,7 +144,8 @@ export const adminMenuItems: MenuItemProps[] = [
     createMenuItem("FY Completion Reports", ["admin"], `${BASE_URLS.admin}/generate/completation-certificate2`, FaChevronCircleRight, COLORS.red),
     createMenuItem("Bulk Work Orders", ["admin"], `${BASE_URLS.admin}/generate/bulk-work-order`, FaChevronCircleRight, COLORS.red),
     createMenuItem("Document Covers", ["admin"], `${BASE_URLS.admin}/generate/cover-page`, FaChevronCircleRight, COLORS.red),
-    createMenuItem("generateAOC" , ["admin"], `${BASE_URLS.admin}/generate/generateAOC`, FaChevronCircleRight, COLORS.orange)
+    createMenuItem("generateAOC" , ["admin"], `${BASE_URLS.admin}/generate/generateAOC`, FaChevronCircleRight, COLORS.orange),
+    createMenuItem("Bulk Scrutinee Sheet", ["admin"], `${BASE_URLS.admin}/generate/bulk-scrutee-sheet`, FaChevronCircleRight, COLORS.red)
   ]),
 
   
