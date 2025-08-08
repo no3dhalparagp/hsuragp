@@ -148,21 +148,6 @@ export default function LoginForm() {
       <DialogContent className="sm:max-w-md p-0 overflow-hidden">
         <Card className="w-full border-0 shadow-none">
           <CardHeader className="space-y-1 px-4 pt-4 pb-1">
-            <div className="flex justify-center mb-2">
-              <Link
-                href="/"
-                className="flex-shrink-0 hover:opacity-90 transition-opacity"
-              >
-                <Image
-                  src="/images/logo.png"
-                  width={100}
-                  height={35}
-                  alt="Dhalpara Gram Panchayat Logo"
-                  className="object-contain"
-                  priority
-                />
-              </Link>
-            </div>
             <CardTitle className="text-xl font-semibold text-gray-800 text-center">
               {showTwoFactor ? "Two-Factor Verification" : "Welcome Back"}
             </CardTitle>
