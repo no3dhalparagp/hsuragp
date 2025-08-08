@@ -521,98 +521,7 @@ export const addFinancialDetails = async (
   }
 };
 
-export const addAoCdetails = async (data: FormData) => {
-  try {
-    const workodermenonumber = data.get("memono") as string;
-    const workordeermemodate = new Date(data.get("memodate") as string);
-    const worksDetailId = data.get("workId") as string;
-    const bidagencyId = data.get("acceptbidderId") as string | null;
 
-    // Ensure necessary fields are provided
-    if (!workodermenonumber || !worksDetailId) {
-      throw new Error("Missing required fields: memono or workId");
-    }
-
-    if (!bidagencyId) {
-      throw new Error("Missing required field: bidagencyId");
-    }
-
-    // type CreateAgreementInput = {
-    //   aggrementno: string;
-    //   aggrementdate: string;
-    //   approvedActionPlanDetailsId: string;
-    //   bidagencyId: string;
-    // };
-    // Create the AOC record
-    const aoc = await db.awardofContract.create({
-      data: {
-        workodermenonumber,
-        workordeermemodate,
-      },
-    });
-
-    // Create the workorderdetails record and link it to the AOC and Bidagency
-    const workorderDetails = await db.workorderdetails.create({
-      data: {
-        awardofContractId: aoc.id, // Link to the AOC
-        bidagencyId, // Use bidagencyId directly
-      },
-    });
-
-    // Update WorksDetail to associate with the newly created AOC and update tenderStatus
-    const work = await db.worksDetail.update({
-      where: {
-        id: worksDetailId,
-      },
-      data: {
-        workStatus: "workorder",
-        tenderStatus: "AOC", // Updating the tender status to AOC
-        AwardofContract: {
-          connect: { id: aoc.id }, // Connect the AOC to WorksDetail
-        },
-      },
-    });
-
-    const inputdata: CreateAgreementInput = {
-      aggrementno: `AGR-${aoc.workordeermemodate.getFullYear()}-${String(
-        aoc.workodermenonumber
-      ).padStart(4, "0")}/${work.workslno}`,
-      aggrementdate: aoc.workordeermemodate.toISOString(),
-      approvedActionPlanDetailsId: work.approvedActionPlanDetailsId,
-      bidagencyId: bidagencyId,
-    };
-
-    const fetchnitdetais = await db.nitDetails.findUnique({
-      where: {
-        id: work.nitDetailsId,
-      },
-    });
-    const agrement = await createAgreement(inputdata);
-    await register(bidagencyId, work.earnestMoneyFee);
-    const bidder = await bidagencybyid(bidagencyId);
-    if (!bidder) {
-      return;
-    }
-    if (bidder.agencydetails.email) {
-      await sentAwardedNotification(
-        bidder.agencydetails.email,
-        fetchnitdetais?.memoNumber || 0,
-        fetchnitdetais?.memoDate || new Date(),
-        work.workslno,
-        bidder.agencydetails.name
-      );
-    }
-    redirect("/admindashboard/manage-tender/workorderdetails");
-  } catch (error) {
-    console.log(error);
-    if (isRedirectError(error)) {
-      throw error;
-    }
-    return { error: "Failed to create work order. Please try again later." };
-  } finally {
-    await db.$disconnect();
-  }
-};
 
 export async function deleteBidder(formData: FormData) {
   const agencyId = formData.get("agencyId");
@@ -685,6 +594,12 @@ export async function fetchworkdetailsbynitno(nitNO: number) {
           include: {
             agencydetails: true,
             workorderdetails: true,
+            technicalEvelution: {
+              include: {
+                credencial: true,
+                validityofdocument: true,
+              },
+            },
           },
         },
         AwardofContract: {
