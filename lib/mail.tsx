@@ -93,7 +93,7 @@ export const sendVerificationEmail = async (email: string, token: string) => {
   const confirmLinkAddress = `${ROOT_URL}/auth/new-verify?token=${token}`;
 
   await resend.emails.send({
-    from: "dhalparagp <noreply@dhalparagp.in>",
+    from: "harsura <onboarding@resend.dev>",
     to: email,
     subject: "Confirm your email address",
     react: VerificationEmail({ confirmLink: confirmLinkAddress }),
@@ -112,7 +112,7 @@ export const sendResetPasswordEmail = async (email: string, token: string) => {
     const expirationTime = "1 hour";
 
     const emailData = {
-      from: "dhalparagp<noreply@dhalparagp.in>",
+      from: "harsura<onboarding@resend.dev>",
       to: email,
       subject: "Password Reset Request",
       html: `
@@ -139,7 +139,7 @@ export const sendResetPasswordEmail = async (email: string, token: string) => {
 
 export const sendTwoFactorTokenEmail = async (email: string, token: string) => {
   await resend.emails.send({
-    from: "dhalparagp<noreply@dhalparagp.in>",
+    from: "harsura<onboarding@resend.dev>",
     to: email,
     subject: "2FA Code",
     react: <AuthenticatedTemp validationCode={token} />,
@@ -154,7 +154,7 @@ export const sentAwardedNotification = async (
   biddername: string
 ) => {
   await resend.emails.send({
-    from: "dhalparagp<noreply@dhalparagp.in>",
+    from: "harsura<onboarding@resend.dev>",
     to: email,
     subject: "Work order Issued Confirmation",
     react: (
@@ -179,7 +179,7 @@ export const sentWorkOrderConfirmation = async (
   completionPeriod: string
 ) => {
   await resend.emails.send({
-    from: "dhalparagp<noreply@dhalparagp.in>",
+    from: "harsura<onboarding@resend.dev>",
     to: email,
     subject: "Work order Issued Confirmation",
     react: (
