@@ -37,6 +37,7 @@ import { generatePDF } from "@/components/pdfgenerator";
 import { workdetailsforprint } from "@/types";
 import { fetchworkdetailsbynitno, fetchNitNo } from "@/action/bookNitNuber";
 import { formatDate } from "@/utils/utils";
+ import { blockname, gpcode, gpname } from "@/constants/gpinfor";
 
 const TEMPLATE_PATH = "/templates/scrutnisheettemplete.json";
 
@@ -150,6 +151,7 @@ export default function BulkScrutinySheetPage() {
 
       // Generate combined inputs for all selected works
       const combinedInputs = selectedWorkDetails.map((workdetails) => ({
+        gpheading: `${gpname}, ${blockname.toUpperCase()} BLOCK, DAKSHIN DINAJPUR`,
         field2: `Scrutiny Report of Tender Papers for NIT No. ${
           workdetails.nitDetails.memoNumber
         }/DGP/${new Date(
