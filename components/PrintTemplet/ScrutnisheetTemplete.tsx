@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-
 import { Loader2, Printer } from "lucide-react";
 import { generatePDF } from "../pdfgenerator";
 import { workdetailsforprint } from "@/types";
@@ -10,6 +9,13 @@ import { blockname, gpcode, gpname } from "@/constants/gpinfor";
 
 const templatePath = "/templates/scrutnisheettemplete.json";
 
+// Helper function to convert text to title case
+
+const toTitleCase = (str: string) => {
+  return str.replace(/\w\S*/g, (word) => {
+    return word.charAt(0).toUpperCase() + word.substring(1).toLowerCase();
+  });
+};
 type PDFGeneratorProps = {
   workdetails: workdetailsforprint;
 };
@@ -39,8 +45,10 @@ export default function PDFGeneratorComponent({
               ? new Date(workdetails.nitDetails.memoDate).toLocaleDateString()
               : "N/A"
           } Sl No. ${workdetails.workslno}`,
-          field4:
-            workdetails.ApprovedActionPlanDetails.activityDescription || "N/A",
+          // Apply title case to work description
+          field4: workdetails.ApprovedActionPlanDetails.activityDescription
+            ? toTitleCase(workdetails.ApprovedActionPlanDetails.activityDescription)
+            : "N/A",
           field32: workdetails.nitDetails.endTime
             ? new Date(workdetails.nitDetails.endTime).toLocaleString()
             : "N/A",
