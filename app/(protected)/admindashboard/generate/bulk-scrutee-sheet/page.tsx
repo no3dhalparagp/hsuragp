@@ -39,6 +39,13 @@ import { fetchworkdetailsbynitno, fetchNitNo } from "@/action/bookNitNuber";
 import { formatDate } from "@/utils/utils";
  import { blockname, gpcode, gpname } from "@/constants/gpinfor";
 
+const toTitleCase = (str: string) => {
+  return str.replace(/\w\S*/g, (word) => {
+    return word.charAt(0).toUpperCase() + word.substring(1).toLowerCase();
+  });
+};
+
+
 const TEMPLATE_PATH = "/templates/scrutnisheettemplete.json";
 
 export default function BulkScrutinySheetPage() {
@@ -160,7 +167,7 @@ export default function BulkScrutinySheetPage() {
           workdetails.nitDetails.memoDate
         )} Sl No. ${workdetails.workslno}`,
         field4:
-          workdetails.ApprovedActionPlanDetails.activityDescription || "N/A",
+          workdetails.ApprovedActionPlanDetails.activityDescription ?toTitleCase(workdetails.ApprovedActionPlanDetails.activityDescription):"N/A",
         field32: formatDateTime(workdetails.nitDetails.endTime),
         field33: formatDateTime(workdetails.nitDetails.technicalBidOpeningDate),
         field35: workdetails.ApprovedActionPlanDetails.schemeName || "N/A",
