@@ -71,7 +71,7 @@ export const addAoCdetails = async (data: FormData) => {
         },
         include: {
           nitDetails: true,
-          approvedActionPlanDetails: true,
+          ApprovedActionPlanDetails: true,
         },
       });
 
