@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { isRedirectError } from "next/navigation";
 
 export const addFinancialDetails = async (
   agencyid: string,
@@ -53,12 +52,12 @@ export const addFinancialDetails = async (
   } catch (error) {
     console.error("Error updating financial details:", error);
     
-    if (isRedirectError(error)) {
-      throw error;
-    }
-    
     // Provide more specific error messages
     if (error instanceof Error) {
+      // Check for specific Prisma errors
+      if (error.message.includes("RecordNotFound")) {
+        return { error: "Agency or tender not found" };
+      }
       return { error: error.message };
     }
     
