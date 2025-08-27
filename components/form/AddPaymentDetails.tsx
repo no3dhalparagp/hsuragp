@@ -30,11 +30,11 @@ import { cn } from "@/lib/utils"
 
 export function AddPaymentDetailsForm({ 
   workId, 
-  
+  awardedCost,
   onSuccess 
 }: { 
   workId: string, 
-  
+  awardedCost: number,
   onSuccess: () => void 
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
