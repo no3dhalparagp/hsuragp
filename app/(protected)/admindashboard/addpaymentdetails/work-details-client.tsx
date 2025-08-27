@@ -231,12 +231,14 @@ export function WorkDetailsClient({ initialWorkDetails, schemeNames }: WorkDetai
                               </div>
                             </DialogHeader>
                             <div className="py-4">
-                              {selectedWorkId && (
-                                <AddPaymentDetailsForm 
-                                  workId={selectedWorkId} 
-                                  onSuccess={() => setOpenDialog(false)}
-                                />
-                              )}
+                              // In the dialog section of WorkDetailsClient:
+{selectedWorkId && (
+  <AddPaymentDetailsForm 
+    workId={selectedWorkId}
+    awardedCost={work.AwardofContract?.workorderdetails[0]?.Bidagency?.biddingAmount || 0}
+    onSuccess={() => setOpenDialog(false)}
+  />
+)}
                             </div>
                           </DialogContent>
                         </Dialog>
