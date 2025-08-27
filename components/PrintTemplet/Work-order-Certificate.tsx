@@ -91,7 +91,10 @@ const logoBase64 = await getBase64FromUrl("/images/logo.png");
           refno: `${
             workOrderDetails.awardofcontractdetails?.workodermenonumber || ""
           }/DGP/${workorderyear}`,
-          logo: logoBase64,
+         gpname: "",
+          gpaddress: "",
+          gpname2: "",
+          gpname3: "",
           refdate:
             formatDate(
               workOrderDetails.awardofcontractdetails?.workordeermemodate
