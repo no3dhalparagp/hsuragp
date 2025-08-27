@@ -12,7 +12,7 @@ import { formatDate } from "@/utils/utils";
 import { getworklenthbynitno } from "@/lib/auth";
 import { getBase64FromUrl } from "@/utils";
 const templatePath = "/templates/workordercertificate.json";
-import { blockname, gpcode, gpname } from "@/constants/gpinfor";
+import { blockname, gpcode, gpname, nameinprodhan } from "@/constants/gpinfor";
 const customFonts: Font = {
   serif: {
     data: "https://example.com/fonts/serif.ttf",
@@ -90,11 +90,11 @@ const logoBase64 = await getBase64FromUrl("/images/logo.png");
         {
           refno: `${
             workOrderDetails.awardofcontractdetails?.workodermenonumber || ""
-          }/DGP/${workorderyear}`,
-         gpname: "",
-          gpaddress: "",
-          gpname2: "",
-          gpname3: "",
+          }/${gpcode}/${workorderyear}`,
+         gpname: `${gpname},
+          gpaddress: `${gpaddress}`,
+          gpname2: `${nameinprodhan}`,
+          gpname3: `${nameinprodhan}`,
           refdate:
             formatDate(
               workOrderDetails.awardofcontractdetails?.workordeermemodate
@@ -112,7 +112,7 @@ const logoBase64 = await getBase64FromUrl("/images/logo.png");
           nitno: `${
             workOrderDetails.Bidagency?.WorksDetail?.nitDetails?.memoNumber ||
             ""
-          }/DGP/${getNitYear()} ${
+          }/${gpcode}/${getNitYear()} ${
             workOrderDetails.Bidagency?.WorksDetail?.nitDetails?.memoDate
               ? formatDate(
                   workOrderDetails.Bidagency?.WorksDetail?.nitDetails?.memoDate
