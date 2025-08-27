@@ -91,7 +91,7 @@ const logoBase64 = await getBase64FromUrl("/images/logo.png");
           refno: `${
             workOrderDetails.awardofcontractdetails?.workodermenonumber || ""
           }/${gpcode}/${workorderyear}`,
-         gpname: `${gpname},
+         gpname: `${gpname}`,
           gpaddress: `${gpaddress}`,
           gpname2: `${nameinprodhan}`,
           gpname3: `${nameinprodhan}`,
