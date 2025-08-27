@@ -12,7 +12,7 @@ import { formatDate } from "@/utils/utils";
 import { getworklenthbynitno } from "@/lib/auth";
 import { getBase64FromUrl } from "@/utils";
 const templatePath = "/templates/workordercertificate.json";
-
+import { blockname, gpcode, gpname } from "@/constants/gpinfor";
 const customFonts: Font = {
   serif: {
     data: "https://example.com/fonts/serif.ttf",
