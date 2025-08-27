@@ -99,7 +99,7 @@ export default function Component({
 
       const inputs = [
         {
-          refno: `${workOrderDetails.awardofcontractdetails?.workordeermemono || ""}/${gpcode}/${workorderyear}`,
+          refno: `${ workOrderDetails.awardofcontractdetails?.workodermenonumber || ""}/${gpcode}/${workorderyear}`,
           gpname: `${gpname}`,
           gpaddress: `${gpaddress} , Tapn Development Block, Dakshin Dinajpur`,
           gpname2: `${nameinprodhan}`,
