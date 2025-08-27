@@ -12,29 +12,17 @@ interface AgreementCertificatePageProps {
 }
 
 async function getAgreements(financialYear?: string): Promise<Agreement[]> {
-  let whereClause: any = {
-    acceptagency: {
-      some: {
-        WorksDetail: {
-          some: {},
-        },
-      },
-    },
-  };
+  let whereClause: any = {};
 
-  // Add financial year filter if provided
   if (financialYear) {
-    const { financialYearStart, financialYearEnd } =
-      getFinancialYearDateRange(financialYear);
-    whereClause.acceptagency = {
-      some: {
+    const { financialYearStart, financialYearEnd } = getFinancialYearDateRange(financialYear);
+    whereClause = {
+      acceptagency: {
         WorksDetail: {
-          some: {
-            nitDetails: {
-              memoDate: {
-                gte: financialYearStart,
-                lte: financialYearEnd,
-              },
+          nitDetails: {
+            memoDate: {
+              gte: financialYearStart,
+              lte: financialYearEnd,
             },
           },
         },
