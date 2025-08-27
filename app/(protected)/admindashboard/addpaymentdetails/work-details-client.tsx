@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {AddPaymentDetailsForm} from "@/components/form/AddPaymentDetails";
+
 interface WorkDetailsClientProps {
   initialWorkDetails: any[]
   schemeNames: string[]
@@ -231,14 +232,13 @@ export function WorkDetailsClient({ initialWorkDetails, schemeNames }: WorkDetai
                               </div>
                             </DialogHeader>
                             <div className="py-4">
-                              // In the dialog section of WorkDetailsClient:
-{selectedWorkId && (
-  <AddPaymentDetailsForm 
-    workId={selectedWorkId}
-    awardedCost={work.AwardofContract?.workorderdetails[0]?.Bidagency?.biddingAmount || 0}
-    onSuccess={() => setOpenDialog(false)}
-  />
-)}
+                              {selectedWorkId && (
+                                <AddPaymentDetailsForm 
+                                  workId={selectedWorkId}
+                                  awardedCost={work.AwardofContract?.workorderdetails[0]?.Bidagency?.biddingAmount || 0}
+                                  onSuccess={() => setOpenDialog(false)}
+                                />
+                              )}
                             </div>
                           </DialogContent>
                         </Dialog>
