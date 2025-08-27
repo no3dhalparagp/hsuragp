@@ -27,6 +27,12 @@ type WorkOrderCertificatePDFProps = {
   workOrderDetails: Workorderdetails;
 };
 
+const toTitleCase = (str: string) => {
+  return str.replace(/\w\S*/g, (word) => {
+    return word.charAt(0).toUpperCase() + word.substring(1).toLowerCase();
+  });
+};
+
 export default function Component({
   workOrderDetails,
 }: WorkOrderCertificatePDFProps) {
@@ -60,8 +66,12 @@ export default function Component({
   const createTableData = (): string[][] => {
     const data = [
       "1",
-      workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails
-        ?.activityDescription,
+     toTitleCase(
+            workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails
+              ?.activityDescription)}`-${
+            workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails
+              ?.activityCode || ""
+          ,
       `${workOrderDetails.Bidagency?.WorksDetail?.finalEstimateAmount}`,
       `${workOrderDetails.Bidagency?.biddingAmount}`,
       "As per Govt. Norms and latest guideline of Govt.",
@@ -119,10 +129,9 @@ const logoBase64 = await getBase64FromUrl("/images/logo.png");
                 )
               : ""
           }`,
-          workname: `${
+          workname: `${toTitleCase(
             workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails
-              ?.activityDescription || ""
-          }-${
+              ?.activityDescription)}`-${
             workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails
               ?.activityCode || ""
           }`,
