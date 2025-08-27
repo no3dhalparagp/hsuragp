@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -31,9 +30,11 @@ import { cn } from "@/lib/utils"
 
 export function AddPaymentDetailsForm({ 
   workId, 
+  
   onSuccess 
 }: { 
   workId: string, 
+  
   onSuccess: () => void 
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -60,6 +61,15 @@ export function AddPaymentDetailsForm({
       netAmount: 0,
     },
   })
+
+  // Format currency function
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
 
   // Watch relevant fields for calculations
   const [grossAmount, incomeTax, labourCess, tdsCgst, tdsSgst] = useWatch({
@@ -152,6 +162,19 @@ export function AddPaymentDetailsForm({
                   <h3 className="text-lg font-semibold text-gray-900">Bill Information</h3>
                   <p className="text-xs text-gray-500">Enter basic bill details</p>
                 </div>
+              </div>
+
+              {/* Awarded Cost Display */}
+              <div className="bg-gray-50 p-3 rounded-md mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">Awarded Contract Value:</span>
+                  <span className="text-lg font-bold text-green-700">
+                    {formatCurrency(awardedCost)}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  This is the total value of the awarded contract for reference
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -567,7 +590,7 @@ export function AddPaymentDetailsForm({
                     <span className="text-xs font-medium text-red-600">Total Deductions</span>
                     <TrendingDown className="w-4 h-4 text-red-500" />
                   </div>
-                  <div className="text-lg font-bold text-red-700">₹{totalDeduction.toLocaleString()}</div>
+                  <div className="text-lg font-bold text-red-700">{formatCurrency(totalDeduction)}</div>
                 </div>
 
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
@@ -576,7 +599,7 @@ export function AddPaymentDetailsForm({
                     <Shield className="w-4 h-4 text-blue-500" />
                   </div>
                   <div className="text-lg font-bold text-blue-700">
-                    ₹{securityDeposit.toLocaleString()}
+                    {formatCurrency(securityDeposit)}
                   </div>
                 </div>
 
@@ -586,7 +609,7 @@ export function AddPaymentDetailsForm({
                     <CheckCircle className="w-4 h-4 text-emerald-500" />
                   </div>
                   <div className="text-lg font-bold text-emerald-700">
-                    ₹{netAmount.toLocaleString()}
+                    {formatCurrency(netAmount)}
                   </div>
                 </div>
               </div>
