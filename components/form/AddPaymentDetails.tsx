@@ -18,6 +18,7 @@ import {
   FileText,
   TrendingDown,
   Shield,
+  AlertTriangle,
 } from "lucide-react"
 import { formatDate } from "@/utils/utils"
 import { formSchema, type FormValues } from "@/schema/formSchema"
@@ -40,6 +41,7 @@ export function AddPaymentDetailsForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [securityDepositPercentage, setSecurityDepositPercentage] = useState<number>(10)
+  const [grossAmountExceedsAwarded, setGrossAmountExceedsAwarded] = useState(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -83,6 +85,11 @@ export function AddPaymentDetailsForm({
     ]
   })
 
+  // Check if gross amount exceeds awarded cost
+  useEffect(() => {
+    setGrossAmountExceedsAwarded(grossAmount > awardedCost)
+  }, [grossAmount, awardedCost])
+
   // Calculate derived values
   const securityDeposit = Math.round((grossAmount * securityDepositPercentage) / 100)
   const netAmount = Math.round(
@@ -110,6 +117,12 @@ export function AddPaymentDetailsForm({
 
   // Form submission handler
   const onSubmit = async (values: FormValues) => {
+    // Double-check the validation before submitting
+    if (values.grossBillAmount > awardedCost) {
+      setError("Gross bill amount cannot exceed the awarded contract value.")
+      return
+    }
+    
     setError(null)
     setIsSubmitting(true)
     
@@ -340,6 +353,18 @@ export function AddPaymentDetailsForm({
                   )}
                 />
               </div>
+
+              {/* Warning message if gross amount exceeds awarded cost */}
+              {grossAmountExceedsAwarded && (
+                <Alert variant="destructive" className="border-yellow-200 bg-yellow-50">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <AlertTitle className="text-yellow-800">Warning</AlertTitle>
+                  <AlertDescription className="text-yellow-700">
+                    Gross bill amount ({formatCurrency(grossAmount)}) exceeds the awarded contract value ({formatCurrency(awardedCost)}).
+                    Please adjust the amount to proceed.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             <Separator className="my-4" />
@@ -551,7 +576,7 @@ export function AddPaymentDetailsForm({
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {[0, 5, 10].map((percentage) => (
+                {[0,3, 5, 10].map((percentage) => (
                   <Button
                     key={percentage}
                     type="button"
@@ -619,7 +644,7 @@ export function AddPaymentDetailsForm({
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
-                disabled={isSubmitting}
+                disabled={isSubmitting || grossAmountExceedsAwarded}
               >
                 {isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
