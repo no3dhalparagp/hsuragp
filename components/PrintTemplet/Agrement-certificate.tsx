@@ -23,7 +23,7 @@ export const AgrementCertificate = ({ agrement }: { agrement: Agreement }) => {
     }, Dated-${formatDate(agrement.aggrementdate)}`;
     const details = `This Contract made on ${formatDate(
       agrement.aggrementdate
-    )}, between the Pradhan,No 4 Harsura Gram Panchayat  , Trimohini,PS-Hili, Dist.-D/Dinajpur. of West Bengal,  hereinafter “The First Party” of the one part and  ${
+    )}, between the Pradhan,No 4 Harsura Gram Panchayat  , Vill-Suhari, PO-Rampur, PS-Tapan, Dist.-D/Dinajpur. of West Bengal,  hereinafter “The First Party” of the one part and  ${
       agrement.acceptagency.agencydetails.name
     }, ${
       agrement.acceptagency.agencydetails.contactDetails
