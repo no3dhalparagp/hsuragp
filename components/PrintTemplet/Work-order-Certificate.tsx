@@ -92,7 +92,7 @@ const logoBase64 = await getBase64FromUrl("/images/logo.png");
             workOrderDetails.awardofcontractdetails?.workodermenonumber || ""
           }/${gpcode}/${workorderyear}`,
          gpname: `${gpname}`,
-          gpaddress: `${gpaddress}`,
+          gpaddress: `${gpaddress} , Tapn Development Block, Dakshin Dinajpur`,
           gpname2: `${nameinprodhan}`,
           gpname3: `${nameinprodhan}`,
           refdate:
