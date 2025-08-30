@@ -177,7 +177,9 @@ export default function BulkScrutinySheetPage() {
         field31: workdetails.finalEstimateAmount.toFixed(2),
         agencytable: workdetails.biddingAgencies.map((agency, index) => [
           (index + 1).toString(),
-          agency.agencydetails.name,
+          agency?.agencydetails?.agencyType === "FARM" && agency?.agencydetails?.proprietorName
+            ? `${agency.agencydetails.name} (${agency.agencydetails.proprietorName})`
+            : agency.agencydetails.name,
           workdetails.participationFee.toFixed(2),
           workdetails.earnestMoneyFee.toFixed(2),
           agency.technicalEvelution?.credencial?.sixtyperamtput ? "Yes" : "No",
