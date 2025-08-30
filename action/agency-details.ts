@@ -26,7 +26,7 @@ export const updateAgencyDetails = async (
       return { error: "somthing went wrong" };
     }
 
-    const { name, gst, tin, postalAddress, mobileNumber, email, pan } =
+    const { name, gst, tin, postalAddress, mobileNumber, email, pan, agencyType, proprietorName } =
       validatedschema.data;
     await db.agencyDetails.update({
       where: {
@@ -40,6 +40,8 @@ export const updateAgencyDetails = async (
         email,
         pan,
         contactDetails: postalAddress,
+        agencyType,
+        proprietorName,
       },
     });
     return { success: "Vendor Update successfully" };

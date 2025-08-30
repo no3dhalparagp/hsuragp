@@ -17,6 +17,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Card,
   CardHeader,
   CardTitle,
@@ -46,6 +53,8 @@ export default function Editvendorform({
     resolver: zodResolver(vendorSchema),
     defaultValues: defaultValues,
   });
+
+  const agencyType = form.watch("agencyType");
 
   async function onSubmit(values: z.infer<typeof vendorSchema>) {
     setError(undefined);
@@ -93,6 +102,32 @@ export default function Editvendorform({
                   Update the vendor&apos;s contact details.
                 </p>
               </div>
+              {/* Agency Type Field */}
+              <div className="grid grid-cols-1 gap-6">
+                <FormField
+                  control={form.control}
+                  name="agencyType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-700 flex items-center gap-1">
+                        Agency Type <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="border-gray-300 h-12">
+                            <SelectValue placeholder="Select agency type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                          <SelectItem value="FARM">Farm</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -100,11 +135,11 @@ export default function Editvendorform({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-gray-700 flex items-center gap-1">
-                        Name <span className="text-red-500">*</span>
+                        {agencyType === "FARM" ? "Farm Name" : "Full Name"} <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Enter vendor name"
+                          placeholder={agencyType === "FARM" ? "Farm Name" : "Enter full name"}
                           {...field}
                           className="focus:ring-2 focus:ring-blue-500 border-gray-300 h-12"
                         />
@@ -113,6 +148,28 @@ export default function Editvendorform({
                     </FormItem>
                   )}
                 />
+                {/* Proprietor Name - shown for farm */}
+                {agencyType === "FARM" && (
+                  <FormField
+                    control={form.control}
+                    name="proprietorName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 flex items-center gap-1">
+                          Proprietor Name <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Proprietor's Full Name"
+                            {...field}
+                            className="focus:ring-2 focus:ring-blue-500 border-gray-300 h-12"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <FormField
                   control={form.control}
                   name="mobileNumber"
