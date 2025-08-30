@@ -14,6 +14,13 @@ export const AgrementCertificate = ({ agrement }: { agrement: Agreement }) => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const formatAgencyDisplayName = (agency: any): string => {
+    const baseName = agency?.name || "";
+    const isFarm = agency?.agencyType === "FARM";
+    const proprietor = agency?.proprietorName || "";
+    return isFarm && proprietor ? `${baseName} (${proprietor})` : baseName;
+  };
+
   const handleGeneratePDF = async () => {
     setIsGenerating(true);
     setError(null);
@@ -24,7 +31,7 @@ export const AgrementCertificate = ({ agrement }: { agrement: Agreement }) => {
     const details = `This Contract made on ${formatDate(
       agrement.aggrementdate
     )}, between the Pradhan,No 4 Harsura Gram Panchayat  , Vill-Suhari, PO-Rampur, PS-Tapan, Dist.-D/Dinajpur. of West Bengal,  hereinafter “The First Party” of the one part and  ${
-      agrement.acceptagency.agencydetails.name
+      formatAgencyDisplayName(agrement.acceptagency.agencydetails)
     }, ${
       agrement.acceptagency.agencydetails.contactDetails
     } hereinafter “The Second Party” or the “Contractor” of the other part:`;

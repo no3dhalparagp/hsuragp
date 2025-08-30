@@ -16,6 +16,8 @@ export type Agreement = {
     agencydetails: {
       name: string;
       contactDetails: string;
+      agencyType?: "FARM" | "INDIVIDUAL";
+      proprietorName?: string | null;
     };
   };
 };

@@ -17,6 +17,13 @@ export default function Completationcertificate({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const formatAgencyDisplayName = (agency: any): string => {
+    const baseName = agency?.name || "";
+    const isFarm = agency?.agencyType === "FARM";
+    const proprietor = agency?.proprietorName || "";
+    return isFarm && proprietor ? `${baseName} (${proprietor})` : baseName;
+  };
+
   const handleGeneratePDF = async () => {
     setIsGenerating(true);
     setError(null);
@@ -27,7 +34,7 @@ export default function Completationcertificate({
 
       const inputs = [
         {
-          agencydetails: `This is to certify that ${paymentdetails.AwardofContract?.workorderdetails?.[0]?.Bidagency?.agencydetails.name}, located at ${paymentdetails.AwardofContract?.workorderdetails?.[0]?.Bidagency?.agencydetails.contactDetails}, has successfully completed the following work:`,
+          agencydetails: `This is to certify that ${formatAgencyDisplayName(paymentdetails.AwardofContract?.workorderdetails?.[0]?.Bidagency?.agencydetails)}, located at ${paymentdetails.AwardofContract?.workorderdetails?.[0]?.Bidagency?.agencydetails.contactDetails}, has successfully completed the following work:`,
           workname:
             paymentdetails.ApprovedActionPlanDetails.activityDescription,
           nitdetails: `${
