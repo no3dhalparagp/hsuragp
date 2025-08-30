@@ -33,6 +33,8 @@ export default async function EditPage({ params }: PageProps) {
     tin: agency.tin ?? undefined,
     gst: agency.gst ?? undefined,
     postalAddress: agency.contactDetails,
+    agencyType: agency.agencyType,
+    proprietorName: agency.proprietorName ?? undefined,
   };
 
   return (
