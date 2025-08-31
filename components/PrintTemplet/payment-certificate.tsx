@@ -18,6 +18,13 @@ export default function PaymentCertificate({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const formatAgencyDisplayName = (agency: any): string => {
+    const baseName = agency?.name || "";
+    const isFarm = agency?.agencyType === "FARM";
+    const proprietor = agency?.proprietorName || "";
+    return isFarm && proprietor ? `${baseName.toUpperCase()} (${proprietor.toUpperCase()})` : baseName.toUpperCase();
+  };
+
   const handleGeneratePDF = async () => {
     setIsGenerating(true);
     setError(null);
@@ -49,7 +56,7 @@ export default function PaymentCertificate({
       const inputs = [
         {
           agencydetails: `PAYMENT CERTIFICATE ISSUED TO ${
-            agencyDetails?.name?.toUpperCase() || "N/A"
+            agencyDetails ? formatAgencyDisplayName(agencyDetails) : "N/A"
           }, ${
             agencyDetails?.contactDetails?.toUpperCase() || "N/A"
           } BY THE PRADHAN OF NO 3 DHALPARA GRAM PANCHAYAT`,
