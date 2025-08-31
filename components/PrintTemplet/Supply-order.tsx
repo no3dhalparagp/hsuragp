@@ -32,6 +32,13 @@ export default function SupplyOrder({
 }: WorkOrderCertificatePDFProps) {
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const formatAgencyDisplayName = (agency: any): string => {
+    const baseName = agency?.name || "";
+    const isFarm = agency?.agencyType === "FARM";
+    const proprietor = agency?.proprietorName || "";
+    return isFarm && proprietor ? `${baseName} (${proprietor})` : baseName;
+  };
+
   const getNitYear = (): number => {
     const memoDate =
       workOrderDetails.Bidagency?.WorksDetail?.nitDetails?.memoDate;
@@ -95,7 +102,7 @@ export default function SupplyOrder({
             formatDate(
               workOrderDetails.awardofcontractdetails?.workordeermemodate
             ) || "",
-          agencyname: workOrderDetails.Bidagency?.agencydetails?.name || "",
+          agencyname: formatAgencyDisplayName(workOrderDetails.Bidagency?.agencydetails),
           agencyadd: `${
             workOrderDetails.Bidagency?.agencydetails?.contactDetails || ""
           } - ${workOrderDetails.Bidagency?.agencydetails.mobileNumber || ""}`,
