@@ -106,11 +106,11 @@ export default function Component({
           gpname3: `${nameinprodhan}`,
           refdate: formattedWorkOrderDate,
 
-         agencyname:  agency?.agencydetails?.agencyType === "FARM" && agency?.agencydetails?.proprietorName
-              ? `${agency.agencydetails.name} (${agency.agencydetails.proprietorName})`
-              : agency.agencydetails.name,
+         agencyname: workOrderDetails.Bidagency?.agencydetails?.agencyType === "FARM" &&   workOrderDetails.Bidagency?.agencydetails?.proprietorName
+              ? `${  workOrderDetails.Bidagency?.agencydetails?.name }(${ proprietorName})`
+              : workOrderDetails.Bidagency?.agencydetails?.name,
           
-          workOrderDetails.Bidagency?.agencydetails?.name
+        
 
         
           agencyadd: `${workOrderDetails.Bidagency?.agencydetails?.contactDetails || ""} - ${workOrderDetails.Bidagency?.agencydetails?.mobileNumber || ""}`,
@@ -153,7 +153,7 @@ export default function Component({
       }
 
       toast({
-        title: "Error",
+      ,  title: "Error",
         description: errorMessage,
         variant: "destructive",
       });
