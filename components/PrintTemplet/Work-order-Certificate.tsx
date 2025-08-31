@@ -11,10 +11,8 @@ import { workorderforward } from "@/constants";
 import { formatDate } from "@/utils/utils";
 import { getworklenthbynitno } from "@/lib/auth";
 import { getBase64FromUrl } from "@/utils";
-import { blockname, gpcode, gpname, nameinprodhan, gpaddress } from "@/constants/gpinfor";
-
 const templatePath = "/templates/workordercertificate.json";
-
+import { blockname, gpcode, gpname, nameinprodhan, gpaddress } from "@/constants/gpinfor";
 const customFonts: Font = {
   serif: {
     data: "https://example.com/fonts/serif.ttf",
@@ -35,7 +33,9 @@ const toTitleCase = (str: string) => {
   });
 };
 
-export default function Component({ workOrderDetails }: WorkOrderCertificatePDFProps) {
+export default function Component({
+  workOrderDetails,
+}: WorkOrderCertificatePDFProps) {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const getNitYear = (): number => {
@@ -44,9 +44,7 @@ export default function Component({ workOrderDetails }: WorkOrderCertificatePDFP
   };
 
   const workOrderDate = workOrderDetails.awardofcontractdetails?.workordeermemodate;
-  const workorderyear = workOrderDate
-    ? new Date(workOrderDate).getFullYear()
-    : new Date().getFullYear();
+  const workorderyear = workOrderDate ? new Date(workOrderDate).getFullYear() : new Date().getFullYear();
 
   const calculateBidPercentage = (): string => {
     const estimateAmount = workOrderDetails.Bidagency?.WorksDetail?.finalEstimateAmount || 0;
@@ -60,14 +58,10 @@ export default function Component({ workOrderDetails }: WorkOrderCertificatePDFP
   };
 
   const createTableData = (): string[][] => {
-    const activityDescription =
-      workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.activityDescription || "";
-    const activityCode =
-      workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.activityCode || "";
-
-    const workName = `${toTitleCase(activityDescription)}${
-      activityCode ? `-${activityCode}` : ""
-    }`;
+    const activityDescription = workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.activityDescription || "";
+    const activityCode = workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.activityCode || "";
+    
+    const workName = `${toTitleCase(activityDescription)}${activityCode ? `-${activityCode}` : ''}`;
 
     const data = [
       "1",
@@ -86,62 +80,42 @@ export default function Component({ workOrderDetails }: WorkOrderCertificatePDFP
     const nitMemoNumber = workOrderDetails.Bidagency?.WorksDetail?.nitDetails?.memoNumber;
     const nitDetailsId = workOrderDetails.Bidagency?.WorksDetail?.nitDetailsId;
 
-    try {
-      const nitworkcount = await getworklenthbynitno(
-        nitMemoNumber || 0,
-        nitDetailsId || ""
-      );
+    const nitworkcount = await getworklenthbynitno(
+      nitMemoNumber || 0,
+      nitDetailsId || ""
+    );
 
+    try {
       const bidPercentage = calculateBidPercentage();
       const table = createTableData();
 
-      if (!table?.length || !table[0]?.length) {
-        console.error("Table data issue:", table);
-        throw new Error("Invalid table data for PDF.");
+      if (table.length === 0 || table[0].length === 0) {
+        throw new Error("Invalid table data");
       }
 
       const logoBase64 = await getBase64FromUrl("/images/logo.png");
       const workOrderMemoDate = workOrderDetails.awardofcontractdetails?.workordeermemodate;
       const formattedWorkOrderDate = workOrderMemoDate ? formatDate(workOrderMemoDate) : "";
 
-      const agencyDetails = workOrderDetails.Bidagency?.agencydetails;
-      const agencyname =
-        agencyDetails?.agencyType === "FARM" && agencyDetails?.proprietorName
-          ? `${agencyDetails.name?.trim()} (${agencyDetails.proprietorName?.trim()})`
-          : agencyDetails?.name?.trim() || "N/A";
-
       const inputs = [
         {
           refno: `${workOrderDetails.awardofcontractdetails?.workodermenonumber || ""}/${gpcode}/${workorderyear}`,
           gpname: `${gpname}`,
-          gpaddress: `${gpaddress} , ${blockname} Development Block, Dakshin Dinajpur`,
+          gpaddress: `${gpaddress} , Tapn Development Block, Dakshin Dinajpur`,
           gpname2: `${nameinprodhan}`,
           gpname3: `${nameinprodhan}`,
           refdate: formattedWorkOrderDate,
-          agencyname,
-          agencyadd: `${agencyDetails?.contactDetails || ""} - ${agencyDetails?.mobileNumber || ""}`,
+          agencyname: workOrderDetails.Bidagency?.agencydetails?.name || "",
+          agencyadd: `${workOrderDetails.Bidagency?.agencydetails?.contactDetails || ""} - ${workOrderDetails.Bidagency?.agencydetails?.mobileNumber || ""}`,
           fund: workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.schemeName || "",
           worksl: `${workOrderDetails.Bidagency?.WorksDetail?.workslno || ""} out of ${nitworkcount}`,
-          nitno: `${nitMemoNumber || ""}/${gpcode}/${getNitYear()} ${
-            workOrderDetails.Bidagency?.WorksDetail?.nitDetails?.memoDate
-              ? formatDate(workOrderDetails.Bidagency.WorksDetail.nitDetails.memoDate)
-              : ""
-          }`,
-          workname: `${toTitleCase(
-            workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.activityDescription || ""
-          )}${
-            workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.activityCode
-              ? `-${workOrderDetails.Bidagency.WorksDetail.ApprovedActionPlanDetails.activityCode}`
-              : ""
-          }`,
-          body1: `As the rate offered by you for execution of the above mentioned scheme under ${
-            workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.schemeName || ""
-          } fund, invited vide above NIT is found to be the 1st lowest, also in view of the agreement executed by you on ${formattedWorkOrderDate} for accomplishing the proposed consolidated work, following are the stipulated terms and conditions and the work order is hereby issued for execution of work at the accepted rate which is ${bidPercentage}% less than the NIT Tendered Amount.`,
-          body2:
-            "Entire work will have to be completed under the effective and technical guidance of Nirman Sahayak of Gram Panchayat. The said work shall have to be completed within 30(Thirty) days from the date of receiving the work order.",
+          nitno: `${nitMemoNumber || ""}/${gpcode}/${getNitYear()} ${workOrderDetails.Bidagency?.WorksDetail?.nitDetails?.memoDate ? formatDate(workOrderDetails.Bidagency.WorksDetail.nitDetails.memoDate) : ""}`,
+          workname: `${toTitleCase(workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.activityDescription || "")}${workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.activityCode ? `-${workOrderDetails.Bidagency.WorksDetail.ApprovedActionPlanDetails.activityCode}` : ''}`,
+          body1: `As the rate offered by you for execution of the above mentioned scheme under ${workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.schemeName || ""} fund, invited vide above NIT is found to be the 1st lowest, also in view of the agreement executed by you on ${formattedWorkOrderDate} for accomplishing the proposed consolidated work, following are the stipulated terms and conditions and the work order is hereby issued for execution of work at the accepted rate which is ${bidPercentage}% less than the NIT Tendered Amount.`,
+          body2: "Entire work will have to be completed under the effective and technical guidance of Nirman Sahayak of Gram Panchayat. The said work shall have to be completed within 30(Thirty) days from the date of receiving the work order.",
           table: table,
           forwardtable: workorderforward.map((term, i) => [`${i + 1}. ${term}`]),
-          logo: logoBase64,
+          logo: logoBase64 // Added logo to inputs
         },
       ];
 
