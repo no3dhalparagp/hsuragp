@@ -105,7 +105,14 @@ export default function Component({
           gpname2: `${nameinprodhan}`,
           gpname3: `${nameinprodhan}`,
           refdate: formattedWorkOrderDate,
-          agencyname: workOrderDetails.Bidagency?.agencydetails?.name || "",
+
+         agencyname:  agency?.agencydetails?.agencyType === "FARM" && agency?.agencydetails?.proprietorName
+              ? `${agency.agencydetails.name} (${agency.agencydetails.proprietorName})`
+              : agency.agencydetails.name,
+          
+          workOrderDetails.Bidagency?.agencydetails?.name
+
+        
           agencyadd: `${workOrderDetails.Bidagency?.agencydetails?.contactDetails || ""} - ${workOrderDetails.Bidagency?.agencydetails?.mobileNumber || ""}`,
           fund: workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.schemeName || "",
           worksl: `${workOrderDetails.Bidagency?.WorksDetail?.workslno || ""} out of ${nitworkcount}`,
