@@ -20,6 +20,13 @@ export default function CoverPagePrint({
 }: CoverPagePDFProps) {
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const formatAgencyDisplayName = (agency: any): string => {
+    const baseName = agency?.name || "";
+    const isFarm = agency?.agencyType === "FARM";
+    const proprietor = agency?.proprietorName || "";
+    return isFarm && proprietor ? `${baseName} (${proprietor})` : baseName;
+  };
+
   const fyear = workCoverPageType.completionDate
     ? getFinancialYear(workCoverPageType.completionDate)
     : "N/A";
@@ -62,7 +69,7 @@ export default function CoverPagePrint({
                 )
               : ""
           }`,
-          agencydetails: `${workCoverPageType.AwardofContract?.workorderdetails[0].Bidagency?.agencydetails.name} Address: ${workCoverPageType.AwardofContract?.workorderdetails[0].Bidagency?.agencydetails.contactDetails} Mobile No ${workCoverPageType.AwardofContract?.workorderdetails[0].Bidagency?.agencydetails.mobileNumber}`,
+          agencydetails: `${formatAgencyDisplayName(workCoverPageType.AwardofContract?.workorderdetails[0].Bidagency?.agencydetails)} Address: ${workCoverPageType.AwardofContract?.workorderdetails[0].Bidagency?.agencydetails.contactDetails} Mobile No ${workCoverPageType.AwardofContract?.workorderdetails[0].Bidagency?.agencydetails.mobileNumber}`,
 
           // [[\"₹123,564.00\",\"₹123,564.00\",\"₹123,564.00\"]]"
           fundetailstable: [
