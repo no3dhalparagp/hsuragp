@@ -33,13 +33,6 @@ const toTitleCase = (str: string) => {
   });
 };
 
-const formatAgencyDisplayName = (agency: any): string => {
-  const baseName = agency?.name || "";
-  const isFarm = agency?.agencyType === "FARM";
-  const proprietor = agency?.proprietorName || "";
-  return isFarm && proprietor ? `${baseName} (${proprietor})` : baseName;
-};
-
 export default function Component({
   workOrderDetails,
 }: WorkOrderCertificatePDFProps) {
@@ -112,7 +105,7 @@ export default function Component({
           gpname2: `${nameinprodhan}`,
           gpname3: `${nameinprodhan}`,
           refdate: formattedWorkOrderDate,
-          agencyname: formatAgencyDisplayName(workOrderDetails.Bidagency?.agencydetails),
+          agencyname: workOrderDetails.Bidagency?.agencydetails?.name || "",
           agencyadd: `${workOrderDetails.Bidagency?.agencydetails?.contactDetails || ""} - ${workOrderDetails.Bidagency?.agencydetails?.mobileNumber || ""}`,
           fund: workOrderDetails.Bidagency?.WorksDetail?.ApprovedActionPlanDetails?.schemeName || "",
           worksl: `${workOrderDetails.Bidagency?.WorksDetail?.workslno || ""} out of ${nitworkcount}`,
