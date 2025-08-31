@@ -107,7 +107,7 @@ export default function Component({
           refdate: formattedWorkOrderDate,
 
          agencyname: workOrderDetails.Bidagency?.agencydetails?.agencyType === "FARM" &&   workOrderDetails.Bidagency?.agencydetails?.proprietorName
-              ? `${  workOrderDetails.Bidagency?.agencydetails?.name }(${ proprietorName})`
+              ? `${  workOrderDetails.Bidagency?.agencydetails?.name }(${ workOrderDetails.Bidagency?.agencydetails?.proprietorName})`
               : workOrderDetails.Bidagency?.agencydetails?.name,
           
         
