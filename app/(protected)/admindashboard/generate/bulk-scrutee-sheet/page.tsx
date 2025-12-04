@@ -161,7 +161,7 @@ export default function BulkScrutinySheetPage() {
         gpheading: `${gpname}, ${blockname.toUpperCase()} BLOCK, DAKSHIN DINAJPUR`,
         field2: `Scrutiny Report of Tender Papers for NIT No. ${
           workdetails.nitDetails.memoNumber
-        }/DGP/${new Date(
+        }/${gpcode}/${new Date(
           workdetails.nitDetails.memoDate
         ).getFullYear()} Dated: ${formatDate(
           workdetails.nitDetails.memoDate
