@@ -15,12 +15,36 @@ export async function loadJSONTemplate(
     if (!validationResult.isValid) {
       throw new Error(`Invalid template structure: ${validationResult.error}`);
     }
+    // Normalize fonts to avoid runtime failures in @pdfme/generator when a custom
+    // font name is referenced in the template but not actually registered/available.
+    // Your templates frequently use "NotoSansJP-Regular" but no font files are shipped.
+    normalizeTemplateFontsInPlace(data);
     return data as Template;
   } catch (error) {
     console.error("Error loading JSON template:", error);
     throw new Error(
       "Failed to load the PDF template. Please check the template structure and try again."
     );
+  }
+}
+
+function normalizeTemplateFontsInPlace(template: any) {
+  // pdf-lib built-in font names (supported by pdfme generator via pdf-lib)
+  const allowed = new Set(["Helvetica", "Times-Roman", "Courier"]);
+  const fallback = "Helvetica";
+
+  if (!template || typeof template !== "object" || !Array.isArray(template.schemas)) {
+    return;
+  }
+
+  for (const pageSchemas of template.schemas) {
+    if (!Array.isArray(pageSchemas)) continue;
+    for (const schema of pageSchemas) {
+      if (!schema || typeof schema !== "object") continue;
+      if (typeof schema.fontName === "string" && !allowed.has(schema.fontName)) {
+        schema.fontName = fallback;
+      }
+    }
   }
 }
 
@@ -138,35 +162,40 @@ function validateLineSchema(schema: any, index: number) {
       error: `Invalid position for line schema at index ${index}`,
     };
   }
-  if (typeof schema.width !== "number" || schema.width <= 0) {
+  if (typeof schema.width !== "number" || schema.width < 0) {
     return {
       isValid: false,
-      error: `Invalid width for line schema at index ${index}. Width must be a positive number.`,
+      error: `Invalid width for line schema at index ${index}. Width must be a non-negative number.`,
     };
   }
-  if (typeof schema.height !== "number" || schema.height <= 0) {
+  if (typeof schema.height !== "number" || schema.height < 0) {
     return {
       isValid: false,
-      error: `Invalid height for line schema at index ${index}. Height must be a positive number.`,
+      error: `Invalid height for line schema at index ${index}. Height must be a non-negative number.`,
     };
   }
-  if (
-    typeof schema.opacity !== "number" ||
-    schema.opacity < 0 ||
-    schema.opacity > 1
-  ) {
-    return {
-      isValid: false,
-      error: `Opacity must be between 0 and 1 for line schema at index ${index}`,
-    };
+  if (schema.opacity !== undefined) {
+    if (
+      typeof schema.opacity !== "number" ||
+      schema.opacity < 0 ||
+      schema.opacity > 1
+    ) {
+      return {
+        isValid: false,
+        error: `Opacity must be between 0 and 1 for line schema at index ${index}`,
+      };
+    }
   }
-  if (
-    typeof schema.color !== "string" ||
-    !/^#[0-9A-F]{6}$/i.test(schema.color)
-  ) {
+  const colorCandidate =
+    typeof schema.color === "string"
+      ? schema.color
+      : typeof schema.borderColor === "string"
+      ? schema.borderColor
+      : undefined;
+  if (colorCandidate !== undefined && !/^#[0-9A-F]{6}$/i.test(colorCandidate)) {
     return {
       isValid: false,
-      error: `Invalid color format for line schema at index ${index}: ${schema.color}`,
+      error: `Invalid color format for line schema at index ${index}: ${colorCandidate}`,
     };
   }
   return { isValid: true };

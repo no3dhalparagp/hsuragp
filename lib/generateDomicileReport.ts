@@ -1,7 +1,6 @@
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import type { DomicileEnquiryReport } from "@/lib/actions"
-import { blockname, gpmail, gpname } from "@/constants/gpinfor"
 
 export function generateDomicileReport(data: DomicileEnquiryReport) {
   const doc = new jsPDF({ unit: "pt", format: "a4" })
@@ -20,17 +19,17 @@ export function generateDomicileReport(data: DomicileEnquiryReport) {
   // Add GP Letterhead
   doc.setFontSize(14)
   doc.setFont("helvetica", "bold")
-  const headerText = `${gpname}`
+  const headerText = "No 3 DHALPARA GRAM PANCHAYAT"
   cursorY = addWrappedText(headerText, pageWidth / 2, cursorY, { align: "center" })
   cursorY += 6 // Reduced spacing from 8 to 6
 
   doc.setFontSize(10)
   doc.setFont("helvetica", "normal")
-  const blockText = `Block: ${blockname}, District: Dakshin Dinajpur`
+  const blockText = "Block: Hill, District: Dakshin Dinajpur"
   cursorY = addWrappedText(blockText, pageWidth / 2, cursorY, { align: "center" })
   cursorY += 6 // Reduced spacing
 
-  const contactText = `Phone: 03521-XXXXXX | Email: ${gpmail}`
+  const contactText = "Phone: 03521-XXXXXX | Email: admin@dhalparagp.in"
   cursorY = addWrappedText(contactText, pageWidth / 2, cursorY, { align: "center" })
   cursorY += 15 // Reduced spacing from 30 to 15
 
