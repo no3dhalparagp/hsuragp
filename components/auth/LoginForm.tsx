@@ -1,19 +1,34 @@
-
-"use client"
-import { useState, useTransition, useEffect } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { useForm } from "react-hook-form"
-import { useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { RefreshCw, ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle2, Lock, Mail } from "lucide-react"
-import { Checkbox } from "@/components/ui/checkbox"
-import { login, resendTwoFactorCode } from "@/action/login"
-import Link from "next/link"
-import { DEFAULT_LOGIN_REDIRECT } from "@/routes"
+"use client";
+import { useState, useTransition, useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  RefreshCw,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle2,
+  Lock,
+  Mail,
+} from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { login, resendTwoFactorCode } from "@/action/login";
+import Link from "next/link";
+import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import {
   Dialog,
   DialogContent,
@@ -21,34 +36,36 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import Image from "next/image"
+} from "@/components/ui/dialog";
+import Image from "next/image";
 
 const LoginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  password: z
+    .string()
+    .min(6, { message: "Password must be at least 6 characters" }),
   captcha: z.string().length(6, { message: "CAPTCHA must be 6 characters" }),
   code: z.string().optional(),
-})
+});
 
 export default function LoginForm() {
-  const searchParams = useSearchParams()
-  const [error, setError] = useState<string | undefined>("")
-  const [success, setSuccess] = useState<string | undefined>("")
-  const [isPending, startTransition] = useTransition()
-  const [showTwoFactor, setShowTwoFactor] = useState(false)
-  const [captchaCode, setCaptchaCode] = useState("")
-  const [isRefreshingCaptcha, setIsRefreshingCaptcha] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [showVerificationDialog, setShowVerificationDialog] = useState(false)
-  const [verificationMessage, setVerificationMessage] = useState("")
-  const [isResending, setIsResending] = useState(false)
+  const searchParams = useSearchParams();
+  const [error, setError] = useState<string | undefined>("");
+  const [success, setSuccess] = useState<string | undefined>("");
+  const [isPending, startTransition] = useTransition();
+  const [showTwoFactor, setShowTwoFactor] = useState(false);
+  const [captchaCode, setCaptchaCode] = useState("");
+  const [isRefreshingCaptcha, setIsRefreshingCaptcha] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState("");
+  const [isResending, setIsResending] = useState(false);
 
   const urlError =
     searchParams.get("error") === "OAuthAccountNotLinked"
       ? "Another account already exists with the same email address"
-      : ""
+      : "";
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -58,113 +75,106 @@ export default function LoginForm() {
       captcha: "",
       code: "",
     },
-  })
+  });
 
   const generateCaptcha = () => {
-    setIsRefreshingCaptcha(true)
-    const characters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
-    let result = ""
+    setIsRefreshingCaptcha(true);
+    const characters =
+      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    let result = "";
     for (let i = 0; i < 6; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length))
+      result += characters.charAt(
+        Math.floor(Math.random() * characters.length),
+      );
     }
-    setCaptchaCode(result)
-    setIsRefreshingCaptcha(false)
-  }
+    setCaptchaCode(result);
+    setIsRefreshingCaptcha(false);
+  };
 
   useEffect(() => {
-    generateCaptcha()
-  }, [])
+    generateCaptcha();
+  }, []);
 
   const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
-    setError("")
-    setSuccess("")
-    setIsLoading(true)
+    setError("");
+    setSuccess("");
+    setIsLoading(true);
 
     if (values.captcha !== captchaCode) {
-      setError("Invalid CAPTCHA. Please try again.")
-      generateCaptcha()
-      form.setValue("captcha", "")
-      setIsLoading(false)
-      return
+      setError("Invalid CAPTCHA. Please try again.");
+      generateCaptcha();
+      form.setValue("captcha", "");
+      setIsLoading(false);
+      return;
     }
 
     startTransition(() => {
       login(values)
         .then((data) => {
           if (data?.error) {
-            form.setValue("password", "")
-            form.setValue("captcha", "")
-            form.setValue("code", "")
-            generateCaptcha()
-            setError(data.error)
+            form.setValue("password", "");
+            form.setValue("captcha", "");
+            form.setValue("code", "");
+            generateCaptcha();
+            setError(data.error);
           }
 
           if (data?.twoFactor) {
-            setShowTwoFactor(true)
+            setShowTwoFactor(true);
           } else if (data?.success) {
             if (data.success.includes("Confirmation email sent")) {
-              setVerificationMessage(data.success)
-              setShowVerificationDialog(true)
+              setVerificationMessage(data.success);
+              setShowVerificationDialog(true);
             } else {
-              setSuccess(data.success)
-              window.location.href = data.redirectUrl ?? DEFAULT_LOGIN_REDIRECT
+              setSuccess(data.success);
+              window.location.href = data.redirectUrl ?? DEFAULT_LOGIN_REDIRECT;
             }
           }
         })
         .catch(() => {
-          setError("Something went wrong. Please try again.")
-          form.setValue("password", "")
-          form.setValue("captcha", "")
-          form.setValue("code", "")
-          generateCaptcha()
+          setError("Something went wrong. Please try again.");
+          form.setValue("password", "");
+          form.setValue("captcha", "");
+          form.setValue("code", "");
+          generateCaptcha();
         })
-        .finally(() => setIsLoading(false))
-    })
-  }
+        .finally(() => setIsLoading(false));
+    });
+  };
 
   const handleResendCode = async () => {
-    const email = form.getValues("email")
+    const email = form.getValues("email");
     if (!email) {
-      setError("Email is required to resend code")
-      return
+      setError("Email is required to resend code");
+      return;
     }
 
-    setIsResending(true)
-    setError("")
-    setSuccess("")
+    setIsResending(true);
+    setError("");
+    setSuccess("");
 
     try {
-      await resendTwoFactorCode(email)
-      setSuccess("New verification code sent to your email")
+      await resendTwoFactorCode(email);
+      setSuccess("New verification code sent to your email");
     } catch (error) {
-      setError("Failed to resend code. Please try again.")
+      setError("Failed to resend code. Please try again.");
     } finally {
-      setIsResending(false)
+      setIsResending(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 p-4">
       <Card className="w-full max-w-md border-none shadow-2xl bg-white/80 backdrop-blur-sm">
         <CardHeader className="space-y-4 px-8 pt-10 pb-4 text-center">
-          <div className="flex justify-center">
-            <Link href="/" className="flex-shrink-0 hover:opacity-90 transition-opacity">
-              <Image
-                src="/images/logo.png"
-                width={100}
-                height={35}
-                alt="Dhalpara Gram Panchayat Logo"
-                className="object-contain"
-                priority
-              />
-            </Link>
-          </div>
           <div>
             <CardTitle className="text-2xl font-bold text-foreground">
               {showTwoFactor ? "Verify Your Identity" : "Welcome Back"}
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-2">
-              {showTwoFactor ? "Enter the code from your authenticator app" : "Sign in to access your account"}
+              {showTwoFactor
+                ? "Enter the code from your authenticator app"
+                : "Sign in to access your account"}
             </p>
           </div>
         </CardHeader>
@@ -176,8 +186,14 @@ export default function LoginForm() {
                 <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex gap-3 animate-in fade-in slide-in-from-top-2">
                   <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-destructive">{error}</p>
-                    {urlError && <p className="text-xs text-destructive/80 mt-1">{urlError}</p>}
+                    <p className="text-sm font-semibold text-destructive">
+                      {error}
+                    </p>
+                    {urlError && (
+                      <p className="text-xs text-destructive/80 mt-1">
+                        {urlError}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -185,7 +201,9 @@ export default function LoginForm() {
               {success && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex gap-3 animate-in fade-in slide-in-from-top-2">
                   <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm font-medium text-green-800">{success}</p>
+                  <p className="text-sm font-medium text-green-800">
+                    {success}
+                  </p>
                 </div>
               )}
 
@@ -196,7 +214,9 @@ export default function LoginForm() {
                     name="code"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Verification Code</FormLabel>
+                        <FormLabel className="text-sm font-semibold text-foreground">
+                          Verification Code
+                        </FormLabel>
                         <FormControl>
                           <Input
                             placeholder="000000"
@@ -235,7 +255,9 @@ export default function LoginForm() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Email Address</FormLabel>
+                        <FormLabel className="text-sm font-semibold text-foreground">
+                          Email Address
+                        </FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -260,7 +282,9 @@ export default function LoginForm() {
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center justify-between mb-1.5">
-                          <FormLabel className="text-sm font-semibold text-foreground">Password</FormLabel>
+                          <FormLabel className="text-sm font-semibold text-foreground">
+                            Password
+                          </FormLabel>
                           <Link
                             href="/auth/reset"
                             className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
@@ -283,9 +307,15 @@ export default function LoginForm() {
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
                               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-                              aria-label={showPassword ? "Hide password" : "Show password"}
+                              aria-label={
+                                showPassword ? "Hide password" : "Show password"
+                              }
                             >
-                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
                             </button>
                           </div>
                         </FormControl>
@@ -295,7 +325,9 @@ export default function LoginForm() {
                   />
 
                   <div className="space-y-2 pt-2 bg-muted/40 rounded-lg p-3.5 border border-border/50">
-                    <FormLabel className="text-sm font-semibold text-foreground block">Security Code</FormLabel>
+                    <FormLabel className="text-sm font-semibold text-foreground block">
+                      Security Code
+                    </FormLabel>
                     <div className="flex gap-2 items-end">
                       <div className="flex-1 bg-background border-2 border-border rounded-lg p-3 flex items-center justify-between">
                         <span className="text-lg font-bold text-foreground font-mono tracking-[0.25em] select-none">
@@ -309,7 +341,9 @@ export default function LoginForm() {
                           aria-label="Refresh security code"
                           title="Refresh"
                         >
-                          <RefreshCw className={`h-4 w-4 ${isRefreshingCaptcha ? "animate-spin" : ""}`} />
+                          <RefreshCw
+                            className={`h-4 w-4 ${isRefreshingCaptcha ? "animate-spin" : ""}`}
+                          />
                         </button>
                       </div>
                       <FormField
@@ -354,17 +388,22 @@ export default function LoginForm() {
               </Button>
             </form>
           </Form>
-
         </CardContent>
 
         <div className="px-6 py-3 border-t border-border/50 bg-muted/20">
           <p className="text-xs text-muted-foreground text-center">
             By continuing, you agree to our{" "}
-            <Link href="/terms" className="font-medium text-primary hover:text-primary/80 transition-colors">
+            <Link
+              href="/terms"
+              className="font-medium text-primary hover:text-primary/80 transition-colors"
+            >
               Terms
             </Link>{" "}
             and{" "}
-            <Link href="/privacy" className="font-medium text-primary hover:text-primary/80 transition-colors">
+            <Link
+              href="/privacy"
+              className="font-medium text-primary hover:text-primary/80 transition-colors"
+            >
               Privacy Policy
             </Link>
           </p>
@@ -372,28 +411,42 @@ export default function LoginForm() {
       </Card>
 
       {/* Email Verification Dialog */}
-      <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
+      <Dialog
+        open={showVerificationDialog}
+        onOpenChange={setShowVerificationDialog}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-center text-xl">Verify Your Email</DialogTitle>
-            <DialogDescription className="text-center">Check your inbox for a verification link</DialogDescription>
+            <DialogTitle className="text-center text-xl">
+              Verify Your Email
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Check your inbox for a verification link
+            </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center space-y-4 py-6">
             <div className="rounded-full bg-green-50 p-4">
               <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
-            <p className="text-center text-sm text-foreground font-medium">{verificationMessage}</p>
+            <p className="text-center text-sm text-foreground font-medium">
+              {verificationMessage}
+            </p>
             <p className="text-center text-xs text-muted-foreground">
-              Please click the verification link in your email to activate your account.
+              Please click the verification link in your email to activate your
+              account.
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowVerificationDialog(false)} className="w-full">
+            <Button
+              variant="outline"
+              onClick={() => setShowVerificationDialog(false)}
+              className="w-full"
+            >
               Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
