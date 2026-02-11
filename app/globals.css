@@ -1,0 +1,241 @@
+@import url("https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&family=Manrope:wght@200;300;400;500;600;700;800&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.loader {
+  width: 50px;
+  --b: 8px; 
+  aspect-ratio: 1;
+  border-radius: 50%;
+  padding: 1px;
+  background: conic-gradient(#0000 10%,#f03355) content-box;
+  -webkit-mask:
+    repeating-conic-gradient(#0000 0deg,#000 1deg 20deg,#0000 21deg 36deg),
+    radial-gradient(farthest-side,#0000 calc(100% - var(--b) - 1px),#000 calc(100% - var(--b)));
+  -webkit-mask-composite: destination-in;
+          mask-composite: intersect;
+  animation:l4 1s infinite steps(10);
+}
+@keyframes l4 {to{transform: rotate(1turn)}}
+
+.pause-animation {
+  animation-play-state: paused !important;
+}
+
+/* Glassmorphism Effect */
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Scrollbar Styling */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: hsl(240 5% 96%);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(240 5% 65%);
+  border-radius: 50px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(240 5% 45%);
+}
+
+@layer utilities {
+  /* Modern Color Variables */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 210 80% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 240 5% 90%;
+    --accent-foreground: 240 6% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 210 80% 55%;
+    --radius: 0.5rem;
+    
+    --chart-1: 210 80% 60%;
+    --chart-2: 180 70% 45%;
+    --chart-3: 270 70% 60%;
+    --chart-4: 330 70% 55%;
+    --chart-5: 30 85% 60%;
+  }
+
+  .dark {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+    --card: 240 6% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 6% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 210 80% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 5% 15%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 5% 20%;
+    --input: 240 5% 20%;
+    --ring: 210 80% 55%;
+    
+    --chart-1: 210 80% 55%;
+    --chart-2: 180 70% 45%;
+    --chart-3: 270 70% 55%;
+    --chart-4: 330 70% 50%;
+    --chart-5: 30 85% 55%;
+  }
+
+  /* Updated Component Styles */
+  .input-class {
+    @apply text-16 placeholder:text-gray-400 rounded-lg border-2 border-gray-200 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20;
+  }
+
+  .form-btn {
+    @apply bg-gradient-to-r from-primary to-[hsl(210_80%_55%/0.8)] hover:from-[hsl(210_80%_55%/0.9)] hover:to-[hsl(210_80%_55%/0.7)] text-white shadow-lg transition-all;
+  }
+
+  .total-balance {
+    @apply bg-gradient-to-br from-white to-gray-50 border border-gray-100 shadow-sm;
+  }
+
+  .profile-img {
+    @apply border-4 border-white shadow-lg;
+  }
+
+  .glassmorphism {
+    @apply bg-white/10 backdrop-blur-lg border border-white/10;
+  }
+
+  /* Modern Table Styles */
+  .table-cell {
+    @apply px-4 py-3 text-sm text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800;
+  }
+
+  /* Hover Effects */
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-[1.02];
+  }
+}
+
+/* Smooth Transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Typography Enhancements */
+body {
+  @apply antialiased;
+}
+
+h1, h2, h3 {
+  @apply font-semibold tracking-tight;
+}
+
+/* Date Picker Customization */
+.react-datepicker {
+  @apply border border-gray-200 rounded-lg shadow-lg;
+}
+
+.react-datepicker__header {
+  @apply bg-gray-50 border-b border-gray-200 rounded-t-lg;
+}
+
+/* Phone Input Customization */
+.phone-input .PhoneInputInput {
+  @apply focus:ring-primary/20 focus:border-primary;
+}
+
+/* Print Optimization */
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+  padding-right: 100%;
+}
+
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-bounce {
+  animation: bounce 2s infinite;
+}
+/* Add to your globals.css */
+@media print {
+  body {
+    visibility: hidden;
+  }
+  
+  .print-area {
+    visibility: visible;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}/* Global CSS fix */
+.react-datepicker-popper {
+  z-index: 50 !important;
+}
+
+.react-datepicker__time-container {
+  width: 120px;
+}
+
+.react-datepicker__time-box {
+  width: 100% !important;
+}
