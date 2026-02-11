@@ -15,6 +15,7 @@
     "@auth/core": "^0.37.3",
     "@auth/prisma-adapter": "^2.5.3",
     "@aws-sdk/client-s3": "^3.665.0",
+    "@aws-sdk/client-sns": "^3.987.0",
     "@aws-sdk/s3-request-presigner": "^3.665.0",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
