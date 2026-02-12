@@ -1,7 +1,9 @@
-export const gpname = "NO 3 DHALPARA GRAM PANCHAYAT";
-export const gpaddress = "Vill-Kismatdapat, PO-Trimohini, PS-Hili";
-export const nameinprodhan = "No 3 Dhalpara Gram Panchayat";
-export const gpcode = "DGP";
-export const gpnameinshort = "Dhalpara";
-export const blockname= "Hili Dev."
-export const gpshortname= "Dhalpara"
+export const gpname = "NO 4 HARSURA GRAM PANCHAYAT";
+export const gpaddress = "Vill-Suhari, PO-Rampur, PS-Tapan";
+export const nameinprodhan = "No 4 Harsura Gram Panchayat";
+export const gpcode = "HRGP";
+export const gpnameinshort = "Harsura";
+export const blockname= "Tapan Dev."
+export const gpshortname= "Harsura"
+export const gpmail=""
+export const gptannumber=""
