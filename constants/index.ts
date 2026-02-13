@@ -2179,12 +2179,12 @@ export const villageData = [
 
 
 export const workorderforward = [
-  "The Executive Assistant, Dhalpara GP",
-  "The Nirman Sahayak, Dhalpara GP",
-  "The Secretary, Dhalpara GP",
-  "The Member, Concerned Sansad, Dhalpara GP",
-  "The Sanchalak, Shilpa-O- Parikathamo Upa Samity,Dhalpara GP",
-  "The Sanchalak, Siksha-O- Janasasthya Upa Samity,Dhalpara GP",
+  "The Executive Assistant, Harsura GP",
+  "The Nirman Sahayak, Harsura GP",
+  "The Secretary, Harsura GP",
+  "The Member, Concerned Sansad, Harsura GP",
+  "The Sanchalak, Shilpa-O- Parikathamo Upa Samity,Harsura GP",
+  "The Sanchalak, Siksha-O- Janasasthya Upa Samity,Harsura GP",
   "Office Notice Board",
 ];
 
