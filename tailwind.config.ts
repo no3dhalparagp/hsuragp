@@ -64,6 +64,15 @@ export default withUt({
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
+
+        wb: {
+        primary: '#8B1D18',   // WB Govt Maroon
+        secondary: '#C9A227', // Govt Gold
+        blue: '#1F4E79',      // Ink Blue
+        success: '#2E7D32',   // Green
+        bg: '#F6F7F9',
+        border: '#E1E4E8',
+      },
       },
 
       keyframes: {
