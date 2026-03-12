@@ -2199,5 +2199,5 @@ export const supplytermand = [
 
   "2 sets of color photographs of materials supplied.",
 
-  "Authority Compliance: All decisions of No. 3 Dhalpara Gram Panchayat regarding the supply shall be final and binding.",
+  "Authority Compliance: All decisions of No. 3 Harsura Gram Panchayat regarding the supply shall be final and binding.",
 ];
