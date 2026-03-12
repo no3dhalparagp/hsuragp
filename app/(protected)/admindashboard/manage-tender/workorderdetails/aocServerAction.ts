@@ -178,15 +178,7 @@ export const addAoCdetails = async (data: FormData) => {
 
     /* ----------------------------- EMAIL NOTIFICATION ----------------------------- */
 
-    if (bidder.agencydetails.email) {
-      await sentAwardedNotification(
-        bidder.agencydetails.email,
-        work.nitDetails?.memoNumber || 0,
-        work.nitDetails?.memoDate || new Date(),
-        work.workslno,
-        bidder.agencydetails.name
-      );
-    }
+  
 
     /* ----------------------------- SMS NOTIFICATION ----------------------------- */
 
