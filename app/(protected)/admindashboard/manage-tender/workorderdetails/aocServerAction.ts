@@ -176,47 +176,6 @@ export const addAoCdetails = async (data: FormData) => {
 
     await register(bidagencyId, work.earnestMoneyFee);
 
-    /* ----------------------------- EMAIL NOTIFICATION ----------------------------- */
-
-  
-
-    /* ----------------------------- SMS NOTIFICATION ----------------------------- */
-
-    const mobile = bidder.agencydetails.mobileNumber;
-
-    if (!mobile || mobile.length !== 10) {
-      throw new Error("Invalid bidder mobile number");
-    }
-
-    const phoneWithCountryCode = `+91${mobile}`;
-
-    const memoDate = work.nitDetails?.memoDate;
-
-    const smsMessage = `🎉 Congratulations!
-
-You have been awarded the contract.
-
-NIT No: ${work.nitDetails?.memoNumber ?? 0}/${gpcode}/${memoDate ? memoDate.getFullYear() : ""}
-Date: ${memoDate ? formatDate(memoDate) : "N/A"}
-Work Sl No: ${work.workslno}
-
-${gpnameinshort} GP
-Check your email for further details.`;
-
-    const sms = await sendSms(phoneWithCountryCode, smsMessage);
-
-    if (!sms) {
-      throw new Error("Failed to send SMS notification");
-    }
-
-    if (sms.MessageId) {
-      console.log("SMS sent successfully:", sms.MessageId);
-    } else {
-      console.log("SMS sending failed.");
-    }
-
-    /* ----------------------------- SUCCESS ----------------------------- */
-
     return {
       success: "Work order finalized successfully",
     };
