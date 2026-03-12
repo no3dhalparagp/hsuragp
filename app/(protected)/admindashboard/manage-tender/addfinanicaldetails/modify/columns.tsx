@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import React from "react"
-import { Button } from "@/components/ui/button"
-import type { AddFinancialDetailsType } from "@/types"
-import { ShowNitDetails } from "@/components/ShowNitDetails"
-import { BidFormDialog } from "@/components/bid-form-dialog"
+import React from "react";
+import { Button } from "@/components/ui/button";
+import type { AddFinancialDetailsType } from "@/types";
+import { ShowNitDetails } from "@/components/ShowNitDetails";
+import { BidFormDialog } from "@/components/bid-form-dialog";
 
 export const columns: any[] = [
   {
@@ -27,8 +27,8 @@ export const columns: any[] = [
     accessorKey: "workName",
     header: "Activity Details",
     cell: ({ row }: { row: any }) => {
-      const workDetail = row.original.ApprovedActionPlanDetails
-      return workDetail.activityDescription
+      const workDetail = row.original.ApprovedActionPlanDetails;
+      return workDetail.activityDescription;
     },
   },
   {
@@ -44,17 +44,20 @@ export const columns: any[] = [
           <BidFormDialog
             work={row.original}
             trigger={
-              <Button size="sm" variant="default" className="group-hover:bg-primary/10">
+              <Button
+                size="sm"
+                variant="default"
+                className="group-hover:bg-primary/10"
+              >
                 Modify Bids
               </Button>
             }
             onSuccess={() => {
-              console.log("Bids updated successfully!")
+              // The dialog handles refresh and toast
             }}
           />
         </div>
-      )
+      );
     },
   },
-]
-
+];

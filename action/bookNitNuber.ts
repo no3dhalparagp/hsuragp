@@ -91,7 +91,7 @@ export const bookNitNumber = async (
       },
     });
 
-    revalidatePath("/admindashboard/manage-tender/add");
+    revalidatePath("/admindashboard/manage-tender/view");
     return { success: "Tender Booked Successfully" };
   } catch (error: unknown) {
     console.error("Error creating tender:", error);
@@ -524,7 +524,8 @@ export const addFinancialDetails = async (
     }
 
     revalidatePath(`/admindashboard/manage-tender/addfinanicaldetails`);
-
+    revalidatePath(`/admindashboard/manage-tender/addbidderdetails/${tenderid}`);
+    revalidatePath(`/admindashboard/manage-tender/addfinanicaldetails`);
     return { 
       success: "Bid amount updated successfully",
       allBidsCompleted: allBidsEntered 

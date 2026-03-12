@@ -22,7 +22,7 @@ interface PrintPrayerData {
   contractorAddress: string;
   workOrderNumber: string;
   workOrderDate: Date;
- 
+  activityCode: string;
   
 }
 
@@ -48,10 +48,11 @@ export async function generatePrintPrayerPDF(data: PrintPrayerData) {
         workOrderNumber: data.workOrderNumber,
         workOrderDate: workOrderDateFormatted,
         workSlNo: data.workSlNo.toString(),
-        workName: data.workName,
+        workName: `${data.workName} - ${data.activityCode}`,
         contractorName: data.contractorName,
         contractorAddress: data.contractorAddress || "N/A",
         currentDate: currentDateFormatted,
+     
         
       },
     ];

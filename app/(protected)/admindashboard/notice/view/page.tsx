@@ -17,6 +17,8 @@ import {
   Eye,
   Pencil,
   Trash2,
+  FileText,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { deleteNotice } from "@/action/notice";
@@ -29,186 +31,313 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { IndeterminateCheckbox } from "@/components/ui/indeterminate-checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const page = async () => {
+const Page = async () => {
   const notices = await db.notice.findMany({
     include: { files: true },
     orderBy: { createdAt: "desc" },
   });
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Notices</h1>
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Notice Management</h1>
+          <p className="text-muted-foreground">
+            Manage official notices and circulars
+          </p>
+        </div>
+
         <Link href="/admindashboard/notice/add">
-          <Button>Add New Notice</Button>
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Notice
+          </Button>
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title & Description</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Files</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {notices.map((notice) => (
-              <TableRow key={notice.id}>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{notice.title}</h3>
-                      <Badge variant="outline" className="text-xs">
-                        {notice.reference}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {notice.description}
-                    </p>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge className="bg-green-100 text-green-700 hover:bg-green-200">
-                    {notice.type}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Building2 className="h-4 w-4 text-green-600" />
-                    {notice.department}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="h-4 w-4 text-green-600" />
-                    {new Date(notice.createdAt).toLocaleDateString()}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {notice.files && notice.files.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {notice.files.map((file, index) => (
-                        <Button
-                          key={index}
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs gap-1 hover:bg-green-50"
-                        >
-                          <Download className="h-3 w-3 text-green-600" />
-                          <span>{file.name}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="hover:bg-green-50"
-                        >
-                          <Eye className="h-4 w-4 text-green-600" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-3xl">
-                        <DialogHeader>
-                          <DialogTitle className="text-2xl font-bold">
-                            {notice.title}
-                          </DialogTitle>
-                        </DialogHeader>
-                        <ScrollArea className="max-h-[70vh] pr-4">
-                          <div className="space-y-6">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline">
-                                {notice.reference}
-                              </Badge>
-                              <Badge className="bg-green-100 text-green-700">
-                                {notice.type}
-                              </Badge>
-                            </div>
+      {/* Stats */}
+      <div className="grid md:grid-cols-3 gap-4">
 
-                            <div className="flex items-center gap-4 text-sm text-gray-600">
-                              <div className="flex items-center gap-2">
-                                <Building2 className="h-4 w-4 text-green-600" />
-                                {notice.department}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-green-600" />
-                                {new Date(
-                                  notice.createdAt
-                                ).toLocaleDateString()}
-                              </div>
-                            </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Notices
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-bold">
+            {notices.length}
+          </CardContent>
+        </Card>
 
-                            <div className="prose max-w-none">
-                              <p className="text-gray-700 whitespace-pre-wrap">
-                                {notice.description}
-                              </p>
-                            </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              Departments
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-bold">
+            {[...new Set(notices.map((n) => n.department))].length}
+          </CardContent>
+        </Card>
 
-                            {notice.files && notice.files.length > 0 && (
-                              <div className="space-y-2">
-                                <h3 className="font-medium">Attached Files</h3>
-                                <div className="flex flex-wrap gap-2">
-                                  {notice.files.map((file, index) => (
-                                    <Button key={index}>
-                                      <Download className="h-4 w-4 text-green-600" />
-                                      {file.name}
-                                    </Button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </DialogContent>
-                    </Dialog>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              Files Attached
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-bold">
+            {notices.reduce((a, n) => a + n.files.length, 0)}
+          </CardContent>
+        </Card>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="hover:bg-green-50"
-                      asChild
-                    >
-                      <Link href={`/admindashboard/notice/edit/${notice.id}`}>
-                        <Pencil className="h-4 w-4 text-blue-600" />
-                      </Link>
-                    </Button>
-                    <form
-                      action={async () => {
-                        "use server";
-                        await deleteNotice(notice.id);
-                        revalidatePath("/admindashboard/notice/view");
-                      }}
-                    >
-                      <Button
-                        type="submit"
-                        variant="ghost"
-                        size="sm"
-                        className="hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </form>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
       </div>
+
+      {/* Table */}
+      <Card>
+
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            All Notices
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="p-0">
+
+          <ScrollArea className="h-[600px]">
+
+            <Table>
+
+              <TableHeader className="bg-muted sticky top-0 z-10">
+
+                <TableRow>
+                  <TableHead>Notice</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Files</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+
+              </TableHeader>
+
+              <TableBody>
+
+                {notices.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10">
+                      No notices found
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {notices.map((notice) => (
+
+                  <TableRow key={notice.id} className="hover:bg-muted/50">
+
+                    {/* Title */}
+                    <TableCell>
+
+                      <div className="space-y-1">
+
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">
+                            {notice.title}
+                          </span>
+
+                          <Badge variant="outline" className="text-xs">
+                            {notice.reference}
+                          </Badge>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {notice.description}
+                        </p>
+
+                      </div>
+
+                    </TableCell>
+
+                    {/* Type */}
+                    <TableCell>
+
+                      <Badge className="bg-green-100 text-green-700">
+                        {notice.type}
+                      </Badge>
+
+                    </TableCell>
+
+                    {/* Department */}
+                    <TableCell>
+
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Building2 className="h-4 w-4 text-green-600" />
+                        {notice.department}
+                      </div>
+
+                    </TableCell>
+
+                    {/* Date */}
+                    <TableCell>
+
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4 text-green-600" />
+                        {new Date(notice.createdAt).toLocaleDateString()}
+                      </div>
+
+                    </TableCell>
+
+                    {/* Files */}
+                    <TableCell>
+
+                      {notice.files.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+
+                          {notice.files.map((file, i) => (
+
+                            <Button
+                              key={i}
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1"
+                            >
+
+                              <Download className="h-3 w-3 text-green-600" />
+                              {file.name}
+
+                            </Button>
+
+                          ))}
+
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          No files
+                        </span>
+                      )}
+
+                    </TableCell>
+
+                    {/* Actions */}
+                    <TableCell className="text-right">
+
+                      <div className="flex justify-end gap-1">
+
+                        {/* View */}
+                        <Dialog>
+
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <Eye className="h-4 w-4 text-green-600" />
+                            </Button>
+                          </DialogTrigger>
+
+                          <DialogContent className="max-w-3xl">
+
+                            <DialogHeader>
+                              <DialogTitle className="text-xl">
+                                {notice.title}
+                              </DialogTitle>
+                            </DialogHeader>
+
+                            <ScrollArea className="max-h-[70vh] pr-4">
+
+                              <div className="space-y-6">
+
+                                <div className="flex gap-2">
+                                  <Badge variant="outline">
+                                    {notice.reference}
+                                  </Badge>
+
+                                  <Badge>
+                                    {notice.type}
+                                  </Badge>
+                                </div>
+
+                                <div className="text-muted-foreground">
+                                  {notice.description}
+                                </div>
+
+                                {notice.files.length > 0 && (
+
+                                  <div>
+
+                                    <h3 className="font-medium mb-2">
+                                      Files
+                                    </h3>
+
+                                    <div className="flex gap-2 flex-wrap">
+
+                                      {notice.files.map((file, i) => (
+                                        <Button key={i} size="sm">
+                                          <Download className="h-4 w-4 mr-1" />
+                                          {file.name}
+                                        </Button>
+                                      ))}
+
+                                    </div>
+
+                                  </div>
+
+                                )}
+
+                              </div>
+
+                            </ScrollArea>
+
+                          </DialogContent>
+
+                        </Dialog>
+
+                        {/* Edit */}
+                        <Button variant="ghost" size="icon" asChild>
+
+                          <Link href={`/admindashboard/notice/edit/${notice.id}`}>
+                            <Pencil className="h-4 w-4 text-blue-600" />
+                          </Link>
+
+                        </Button>
+
+                        {/* Delete */}
+                        <form
+                          action={async () => {
+                            "use server";
+                            await deleteNotice(notice.id);
+                            revalidatePath("/admindashboard/notice/view");
+                          }}
+                        >
+
+                          <Button variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+
+                        </form>
+
+                      </div>
+
+                    </TableCell>
+
+                  </TableRow>
+
+                ))}
+
+              </TableBody>
+
+            </Table>
+
+          </ScrollArea>
+
+        </CardContent>
+
+      </Card>
+
     </div>
   );
 };
 
-export default page;
+export default Page;

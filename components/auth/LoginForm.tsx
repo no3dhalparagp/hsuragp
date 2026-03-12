@@ -272,7 +272,7 @@ export default function LoginForm() {
                           <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                             <Input
-                              placeholder="••••••••"
+                              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                               type={showPassword ? "text" : "password"}
                               className="pl-10 pr-10 py-2.5 transition-colors focus:bg-primary/5"
                               disabled={isPending}

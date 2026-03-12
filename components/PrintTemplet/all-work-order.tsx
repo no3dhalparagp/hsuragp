@@ -49,7 +49,7 @@ export async function generateworkorderPDFAll(inputs: any[]) {
     // 4. Create and click a download link
     const link = document.createElement("a");
     link.href = url;
-    link.download = `completion-certificates-${Date.now()}.pdf`;
+    link.download = `work-order-certificates-${Date.now()}.pdf`;
     document.body.appendChild(link);
     link.click();
 

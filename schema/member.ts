@@ -29,7 +29,7 @@ export const memberFormSchema = z.object({
   postOffice: z.string().min(1, "Post office is required"),
   district: z.string().min(1, "District is required"),
   policeStation: z.string().min(1, "Police station is required"),
-  aadhar: z.string().regex(/^\d{12}$/, "Invalid Aadhar number"),
+  aadhar: z.string().regex(/^\d{12}$/, "Invalid Aadhar number").optional(),
   pan: z
     .string()
     .regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN number")

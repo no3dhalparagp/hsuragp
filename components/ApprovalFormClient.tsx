@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -34,7 +33,12 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
-import { CheckCircle, XCircle, Loader2, CalendarIcon } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Loader2,
+  CalendarIcon,
+} from "lucide-react";
 
 import { approvedSchema } from "@/schema/approveschema";
 import { approvedWarishApplication } from "@/action/warishApplicationAction";
@@ -65,11 +69,10 @@ export default function ApprovalFormClient({
 
   const watchStatus = form.watch("status");
 
-  // Automatically set the current date when status is approved
+  // Auto set date for approval
   useEffect(() => {
     if (watchStatus === "approved") {
-      const currentDate = new Date();
-      form.setValue("memodate", currentDate);
+      form.setValue("memodate", new Date());
     } else {
       form.setValue("memodate", undefined);
     }
@@ -85,20 +88,22 @@ export default function ApprovalFormClient({
             memodate:
               values.status === "approved" ? values.memodate : undefined,
           };
+
           await approvedWarishApplication(submissionValues, id);
+
           toast({
             title: "Success",
             description: `Application ${values.status}`,
           });
+
           router.push("/admindashboard/manage-warish/approve");
         } catch (error) {
-          console.error("Error updating application:", error);
           toast({
             title: "Error",
             description:
               error instanceof Error
                 ? error.message
-                : "Failed to update application status",
+                : "Failed to update application",
             variant: "destructive",
           });
         }
@@ -108,26 +113,34 @@ export default function ApprovalFormClient({
   );
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-xl rounded-2xl overflow-hidden border-0">
-      <CardHeader className="bg-gradient-to-r from-primary to-primary/90 text-white p-6">
-        <CardTitle className="text-2xl font-bold flex items-center gap-2">
-          <div className="bg-white/20 p-2 rounded-full">
-            <CheckCircle className="h-6 w-6" />
+    <Card className="w-full max-w-3xl mx-auto shadow-2xl rounded-3xl border bg-background overflow-hidden">
+      
+      {/* HEADER */}
+      <CardHeader className="border-b bg-muted/30 px-8 py-6">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-2xl bg-primary/10">
+            <CheckCircle className="h-6 w-6 text-primary" />
           </div>
-          Application Review
-        </CardTitle>
-        <p className="text-primary-foreground/90">
-          Update application status with memo details or rejection remarks
-        </p>
+          <div>
+            <CardTitle className="text-2xl font-bold tracking-tight">
+              Application Decision
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Approve or reject the application with proper remarks
+            </p>
+          </div>
+        </div>
       </CardHeader>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-6 p-6">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-foreground mb-3">
-                Decision
-              </h3>
+
+          <CardContent className="space-y-8 px-8 py-8">
+
+            {/* DECISION SECTION */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Select Decision</h3>
+
               <FormField
                 control={form.control}
                 name="status"
@@ -136,88 +149,95 @@ export default function ApprovalFormClient({
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="grid grid-cols-2 gap-4"
+                        value={field.value}
+                        className="grid md:grid-cols-2 gap-6"
                       >
-                        <div>
+                        {/* APPROVE */}
+                        <Label
+                          htmlFor="status-approved"
+                          className={cn(
+                            "relative flex flex-col gap-4 p-6 rounded-2xl border transition-all cursor-pointer",
+                            field.value === "approved"
+                              ? "border-emerald-500 bg-emerald-50 shadow-md"
+                              : "border-border hover:border-emerald-300"
+                          )}
+                        >
                           <RadioGroupItem
                             value="approved"
                             id="status-approved"
-                            className="peer sr-only"
+                            className="sr-only"
                           />
-                          <Label
-                            htmlFor="status-approved"
-                            className={cn(
-                              "flex flex-col items-center justify-between rounded-xl border-2 p-5 hover:bg-green-50 transition-colors cursor-pointer",
-                              field.value === "approved"
-                                ? "border-green-500 bg-green-50"
-                                : "border-muted bg-popover"
-                            )}
-                          >
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="bg-green-100 p-2 rounded-full">
-                                <CheckCircle className="h-6 w-6 text-green-600" />
-                              </div>
-                              <span className="font-medium text-base">
-                                Approve
-                              </span>
+
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-emerald-100">
+                              <CheckCircle className="h-5 w-5 text-emerald-600" />
                             </div>
-                            <p className="text-sm text-muted-foreground text-center">
-                              Create memo for approval
-                            </p>
-                          </Label>
-                        </div>
-                        <div>
+                            <span className="font-semibold">
+                              Approve Application
+                            </span>
+                          </div>
+
+                          <p className="text-sm text-muted-foreground">
+                            Generate official memo and approve this application.
+                          </p>
+                        </Label>
+
+                        {/* REJECT */}
+                        <Label
+                          htmlFor="status-rejected"
+                          className={cn(
+                            "relative flex flex-col gap-4 p-6 rounded-2xl border transition-all cursor-pointer",
+                            field.value === "rejected"
+                              ? "border-red-500 bg-red-50 shadow-md"
+                              : "border-border hover:border-red-300"
+                          )}
+                        >
                           <RadioGroupItem
                             value="rejected"
                             id="status-rejected"
-                            className="peer sr-only"
+                            className="sr-only"
                           />
-                          <Label
-                            htmlFor="status-rejected"
-                            className={cn(
-                              "flex flex-col items-center justify-between rounded-xl border-2 p-5 hover:bg-red-50 transition-colors cursor-pointer",
-                              field.value === "rejected"
-                                ? "border-red-500 bg-red-50"
-                                : "border-muted bg-popover"
-                            )}
-                          >
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="bg-red-100 p-2 rounded-full">
-                                <XCircle className="h-6 w-6 text-red-600" />
-                              </div>
-                              <span className="font-medium text-base">
-                                Reject
-                              </span>
+
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-red-100">
+                              <XCircle className="h-5 w-5 text-red-600" />
                             </div>
-                            <p className="text-sm text-muted-foreground text-center">
-                              Provide rejection reason
-                            </p>
-                          </Label>
-                        </div>
+                            <span className="font-semibold">
+                              Reject Application
+                            </span>
+                          </div>
+
+                          <p className="text-sm text-muted-foreground">
+                            Provide rejection reason and close this application.
+                          </p>
+                        </Label>
                       </RadioGroup>
                     </FormControl>
-                    <FormMessage className="mt-2" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
 
+            {/* APPROVAL DETAILS */}
             {watchStatus === "approved" && (
-              <div className="space-y-4 bg-green-50/30 p-5 rounded-xl border border-green-200">
-                <h3 className="text-lg font-semibold text-green-800 flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5" />
-                  Approval Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-6 p-6 rounded-2xl border bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-emerald-600" />
+                  <h3 className="text-lg font-semibold text-emerald-700">
+                    Approval Information
+                  </h3>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  
+                  {/* Memo Number */}
                   <FormField
                     control={form.control}
                     name="memonumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-foreground">
-                          Memo Number
-                        </FormLabel>
+                        <FormLabel>Memo Number</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -226,7 +246,6 @@ export default function ApprovalFormClient({
                               setMemoNumber(e.target.value);
                               field.onChange(e);
                             }}
-                            className="bg-background shadow-sm"
                             placeholder="Enter memo number"
                           />
                         </FormControl>
@@ -235,47 +254,37 @@ export default function ApprovalFormClient({
                     )}
                   />
 
+                  {/* Memo Date */}
                   <FormField
                     control={form.control}
                     name="memodate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel className="text-foreground">
-                          Memo Date
-                        </FormLabel>
+                        <FormLabel>Memo Date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
                                 variant="outline"
                                 className={cn(
-                                  "text-left font-normal h-11 shadow-sm",
+                                  "justify-start text-left font-normal",
                                   !field.value && "text-muted-foreground"
                                 )}
-                                disabled={watchStatus === "approved"}
+                                disabled
                               >
-                                {field.value ? (
-                                  formatDate(field.value)
-                                ) : (
-                                  <span>Select date</span>
-                                )}
+                                {field.value
+                                  ? formatDate(field.value)
+                                  : "Select date"}
                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
+                          <PopoverContent className="w-auto p-0">
                             <Calendar
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
-                              disabled={(date) =>
-                                watchStatus === "approved"
-                                  ? date.getTime() !==
-                                    new Date().setHours(0, 0, 0, 0)
-                                  : date > new Date() ||
-                                    date < new Date("1900-01-01")
-                              }
-                              initialFocus
+                              disabled
                             />
                           </PopoverContent>
                         </Popover>
@@ -284,38 +293,35 @@ export default function ApprovalFormClient({
                     )}
                   />
                 </div>
-                <p className="text-sm text-green-700 bg-green-100/50 p-3 rounded-lg">
-                  Memo date is automatically set to today for approvals
-                </p>
+
+                <div className="text-sm text-muted-foreground bg-emerald-50 p-3 rounded-lg">
+                  Memo date is automatically assigned as today&apos;s date.
+                </div>
               </div>
             )}
 
-            <div className="mt-6">
+            {/* REMARKS */}
+            <div className="p-6 rounded-2xl border bg-muted/10">
               <FormField
                 control={form.control}
                 name="remarks"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-1">
-                      <span>Remarks</span>
+                    <FormLabel>
+                      Remarks{" "}
                       {watchStatus === "rejected" && (
                         <span className="text-destructive">*</span>
                       )}
-                      <span className="text-sm text-muted-foreground font-normal ml-2">
-                        {watchStatus === "approved"
-                          ? "(optional)"
-                          : "(required)"}
-                      </span>
                     </FormLabel>
                     <FormControl>
                       <Textarea
                         {...field}
                         placeholder={
                           watchStatus === "approved"
-                            ? "Add any additional comments..."
-                            : "Please provide reason for rejection"
+                            ? "Optional comments..."
+                            : "Provide rejection reason..."
                         }
-                        className="min-h-[120px] shadow-sm"
+                        className="min-h-[120px]"
                       />
                     </FormControl>
                     <FormMessage />
@@ -325,33 +331,28 @@ export default function ApprovalFormClient({
             </div>
           </CardContent>
 
-          <CardFooter className="bg-muted/50 px-6 py-5 border-t">
+          {/* FOOTER */}
+          <CardFooter className="px-8 py-6 border-t bg-muted/20">
             <Button
               type="submit"
+              size="lg"
               className={cn(
-                "w-full gap-2 h-12 text-base font-semibold transition-all",
+                "w-full h-14 text-base font-semibold rounded-xl transition-all",
                 watchStatus === "rejected"
                   ? "bg-destructive hover:bg-destructive/90"
-                  : "bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+                  : "bg-primary hover:bg-primary/90"
               )}
-              size="lg"
               disabled={isPending || !watchStatus}
             >
               {isPending ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   Processing...
                 </>
               ) : watchStatus === "approved" ? (
-                <>
-                  <CheckCircle className="h-5 w-5" />
-                  Confirm Approval
-                </>
+                "Approve Application"
               ) : watchStatus === "rejected" ? (
-                <>
-                  <XCircle className="h-5 w-5" />
-                  Confirm Rejection
-                </>
+                "Reject Application"
               ) : (
                 "Submit Decision"
               )}

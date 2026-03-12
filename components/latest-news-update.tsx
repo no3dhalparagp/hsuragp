@@ -30,44 +30,58 @@ function NoticeList({ notices }: { notices: NoticeItem[] }) {
   return (
     <ScrollArea className="h-[500px]">
       <Table>
-        <TableHeader className="sticky top-0 bg-slate-50 shadow-sm">
+        <TableHeader className="sticky top-0 bg-gray-100">
           <TableRow>
-            <TableHead className="text-left text-sm font-semibold text-gray-600">Title & Description</TableHead>
-            <TableHead className="text-left text-sm font-semibold text-gray-600 w-[150px]">Type</TableHead>
-            <TableHead className="text-left text-sm font-semibold text-gray-600 w-[200px]">Department</TableHead>
-            <TableHead className="text-left text-sm font-semibold text-gray-600 w-[150px]">Date</TableHead>
-            <TableHead className="text-left text-sm font-semibold text-gray-600 w-[200px]">Files</TableHead>
+            <TableHead className="text-sm font-semibold text-gray-700">Title & Description</TableHead>
+            <TableHead className="text-sm font-semibold text-gray-700 w-[120px]">Type</TableHead>
+            <TableHead className="text-sm font-semibold text-gray-700 w-[180px]">Department</TableHead>
+            <TableHead className="text-sm font-semibold text-gray-700 w-[140px]">Date</TableHead>
+            <TableHead className="text-sm font-semibold text-gray-700 w-[180px]">Files</TableHead>
           </TableRow>
         </TableHeader>
+
         <TableBody className="bg-white">
           {notices.map((notice) => (
-            <TableRow key={notice.id} className="border-b border-gray-100 hover:bg-green-50 transition-colors">
+            <TableRow
+              key={notice.id}
+              className="border-b border-gray-200 hover:bg-blue-50 transition"
+            >
               <TableCell className="p-3">
-                <div className="space-y-1">
+                <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-gray-900">{notice.title}</h3>
-                    <Badge variant="outline" className="text-xs">
+                    <h3 className="font-medium text-gray-900">
+                      {notice.title}
+                    </h3>
+                    <Badge variant="outline" className="text-xs border-gray-400 text-gray-700">
                       {notice.reference}
                     </Badge>
                   </div>
-                  <p className="text-xs text-gray-600 line-clamp-2">{notice.description}</p>
+                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                    {notice.description}
+                  </p>
                 </div>
               </TableCell>
+
               <TableCell className="p-3">
-                <Badge className="bg-green-100 text-green-700 hover:bg-green-200">{notice.type}</Badge>
+                <Badge className="bg-blue-100 text-[#1e3a8a] hover:bg-blue-100">
+                  {notice.type}
+                </Badge>
               </TableCell>
-              <TableCell className="p-3">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Building2 className="h-4 w-4 text-green-600" />
+
+              <TableCell className="p-3 text-sm text-gray-700">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-[#1e3a8a]" />
                   {notice.department}
                 </div>
               </TableCell>
-              <TableCell className="p-3">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Calendar className="h-4 w-4 text-green-600" />
+
+              <TableCell className="p-3 text-sm text-gray-700">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-[#1e3a8a]" />
                   {notice.date}
                 </div>
               </TableCell>
+
               <TableCell className="p-3">
                 {notice.files && notice.files.length > 0 && (
                   <div className="flex flex-wrap gap-2">
@@ -76,11 +90,11 @@ function NoticeList({ notices }: { notices: NoticeItem[] }) {
                         key={index}
                         variant="outline"
                         size="sm"
-                        className="h-7 text-xs gap-1 hover:bg-green-50"
+                        className="h-7 text-xs border-[#1e3a8a] text-[#1e3a8a] hover:bg-[#1e3a8a] hover:text-white"
                         onClick={() => window.open(file.url, "_blank")}
                       >
-                        <Download className="h-3 w-3 text-green-600" />
-                        <span>{file.name}</span>
+                        <Download className="h-3 w-3 mr-1" />
+                        {file.name}
                       </Button>
                     ))}
                   </div>
@@ -107,7 +121,7 @@ export default function LatestNewsUpdate() {
           setNotices(
             result.data.map((notice) => ({
               ...notice,
-              date: new Date(notice.date).toLocaleDateString("en-US", {
+              date: new Date(notice.date).toLocaleDateString("en-IN", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
@@ -117,7 +131,7 @@ export default function LatestNewsUpdate() {
         } else {
           setError("No notices available at the moment")
         }
-      } catch (err) {
+      } catch {
         setError("Failed to load notices. Please try again later.")
       } finally {
         setLoading(false)
@@ -129,23 +143,16 @@ export default function LatestNewsUpdate() {
 
   if (loading) {
     return (
-      <Card className="w-full shadow-md">
-        <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 py-4 px-5">
-          <CardTitle className="text-white text-2xl font-bold flex items-center gap-2">
-            <Newspaper className="h-6 w-6" />
-            <span>Official Notice Board</span>
+      <Card className="w-full border border-gray-200 shadow-none">
+        <CardHeader className="bg-[#1e3a8a] py-4 px-5">
+          <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
+            <Newspaper className="h-5 w-5" />
+            Official Notice Board
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-4 space-y-6">
+        <CardContent className="p-4 space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="space-y-4">
-              <Skeleton className="h-6 w-[200px] bg-green-100" />
-              <Skeleton className="h-4 w-[300px] bg-green-100" />
-              <div className="flex gap-4">
-                <Skeleton className="h-4 w-[120px] bg-green-100" />
-                <Skeleton className="h-4 w-[120px] bg-green-100" />
-              </div>
-            </div>
+            <Skeleton key={i} className="h-6 w-full bg-gray-200" />
           ))}
         </CardContent>
       </Card>
@@ -154,16 +161,16 @@ export default function LatestNewsUpdate() {
 
   if (error) {
     return (
-      <Card className="w-full shadow-md">
-        <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 py-4 px-5">
-          <CardTitle className="text-white text-2xl font-bold flex items-center gap-2">
-            <Newspaper className="h-6 w-6" />
-            <span>Official Notice Board</span>
+      <Card className="w-full border border-gray-200 shadow-none">
+        <CardHeader className="bg-[#1e3a8a] py-4 px-5">
+          <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
+            <Newspaper className="h-5 w-5" />
+            Official Notice Board
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4">
-          <Alert variant="destructive" className="bg-red-50 border-red-200">
-            <AlertDescription className="flex items-center gap-2 text-red-700">
+          <Alert variant="destructive">
+            <AlertDescription>
               <span className="font-semibold">Error:</span> {error}
             </AlertDescription>
           </Alert>
@@ -173,44 +180,43 @@ export default function LatestNewsUpdate() {
   }
 
   return (
-    <Card className="w-full shadow-md">
-      <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 py-4 px-5">
-        <CardTitle className="text-white text-2xl font-bold flex items-center gap-2">
-          <Newspaper className="h-6 w-6" />
-          <span>Official Notice Board</span>
+    <Card className="w-full border border-gray-200 shadow-none">
+      <CardHeader className="bg-[#1e3a8a] py-4 px-5">
+        <CardTitle className="text-white text-xl font-semibold flex items-center gap-2">
+          <Newspaper className="h-5 w-5" />
+          Official Notice Board
         </CardTitle>
       </CardHeader>
+
       <CardContent className="p-4">
         <Tabs defaultValue="all">
-          <TabsList className="w-full bg-slate-50 p-1 rounded-md mb-4">
+          <TabsList className="w-full bg-gray-100 p-1 mb-4">
             {["all", "tender", "notice", "circular", "other"].map((tab) => (
               <TabsTrigger
                 key={tab}
                 value={tab}
-                className="text-xs px-3 py-1.5 data-[state=active]:bg-white data-[state=active]:text-green-700"
+                className="text-xs data-[state=active]:bg-white data-[state=active]:text-[#1e3a8a]"
               >
                 {tab === "all" ? "All Notices" : tab + "s"}
               </TabsTrigger>
             ))}
           </TabsList>
 
-          <div>
-            <TabsContent value="all">
-              <NoticeList notices={notices} />
-            </TabsContent>
-            <TabsContent value="tender">
-              <NoticeList notices={notices.filter((n) => n.type === "Tender")} />
-            </TabsContent>
-            <TabsContent value="notice">
-              <NoticeList notices={notices.filter((n) => n.type === "Notice")} />
-            </TabsContent>
-            <TabsContent value="circular">
-              <NoticeList notices={notices.filter((n) => n.type === "Circular")} />
-            </TabsContent>
-            <TabsContent value="other">
-              <NoticeList notices={notices.filter((n) => n.type === "Other")} />
-            </TabsContent>
-          </div>
+          <TabsContent value="all">
+            <NoticeList notices={notices} />
+          </TabsContent>
+          <TabsContent value="tender">
+            <NoticeList notices={notices.filter((n) => n.type === "Tender")} />
+          </TabsContent>
+          <TabsContent value="notice">
+            <NoticeList notices={notices.filter((n) => n.type === "Notice")} />
+          </TabsContent>
+          <TabsContent value="circular">
+            <NoticeList notices={notices.filter((n) => n.type === "Circular")} />
+          </TabsContent>
+          <TabsContent value="other">
+            <NoticeList notices={notices.filter((n) => n.type === "Other")} />
+          </TabsContent>
         </Tabs>
       </CardContent>
     </Card>

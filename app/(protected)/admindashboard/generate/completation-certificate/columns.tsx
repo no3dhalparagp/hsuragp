@@ -14,7 +14,13 @@ import { Info } from "lucide-react";
 import { formatDate } from "@/utils/utils";
 import { ShowNitDetails } from "@/components/ShowNitDetails";
 import { ShowWorkOrderDetails } from "@/components/show-work-order-details";
-import { blockname, gpcode, gpname, nameinprodhan, gpaddress } from "@/constants/gpinfor";
+import {
+  blockname,
+  gpcode,
+  gpname,
+  nameinprodhan,
+  gpaddress,
+} from "@/constants/gpinfor";
 export const columns: ColumnDef<GetPaymentDetailstype>[] = [
   {
     accessorFn: (row) => row.id,

@@ -106,35 +106,35 @@ const PDF_CONFIG = {
 
   /** Page margins in points */
   MARGIN: {
-    TOP: 40,
-    BOTTOM: 40,
-    LEFT: 30,
-    RIGHT: 30
+    TOP: 25,
+    BOTTOM: 25,
+    LEFT: 15,
+    RIGHT: 15
   },
 
   /** Font sizes for different text elements */
   FONT_SIZES: {
-    TITLE: 14,      // Main title
-    HEADER: 11,     // Section headers
-    NORMAL: 9,      // Regular text
-    SMALL: 8,       // Table cells, footnotes
-    FOOTER: 8       // Footer text
+    TITLE: 12,      // Main title
+    HEADER: 10,     // Section headers
+    NORMAL: 8,      // Regular text
+    SMALL: 7,       // Table cells, footnotes
+    FOOTER: 7       // Footer text
   } as Record<string, number>,
 
   /** Line heights corresponding to font sizes */
   LINE_HEIGHTS: {
-    TITLE: 16,
-    HEADER: 13,
-    NORMAL: 11,
-    SMALL: 10,
-    FOOTER: 9
+    TITLE: 14,
+    HEADER: 12,
+    NORMAL: 10,
+    SMALL: 9,
+    FOOTER: 8
   } as Record<string, number>,
 
   /** Table-specific measurements */
   TABLE: {
-    ROW_MIN_HEIGHT: 20,     // Minimum height for table rows
-    HEADER_HEIGHT: 40,      // Height of table header
-    CELL_PADDING: 4         // Padding inside table cells
+    ROW_MIN_HEIGHT: 16,     // Minimum height for table rows
+    HEADER_HEIGHT: 30,      // Height of table header
+    CELL_PADDING: 3         // Padding inside table cells
   } as Record<string, number>
 };
 
@@ -221,7 +221,7 @@ export async function generateBillAbstractPDF(originalData: BillAbstractPDFData)
   y = tableResult.y;
 
   // Step 7: Draw calculation section (check if new page needed)
-  const calculationSpaceNeeded = 180;
+  const calculationSpaceNeeded = 150;
   if (y < PDF_CONFIG.MARGIN.BOTTOM + calculationSpaceNeeded) {
     // Not enough space, add new page
     page = pdfDoc.addPage(PDF_CONFIG.PAGE_SIZE);
@@ -1025,7 +1025,7 @@ function drawCertificateAndSignatures(
     font: helvetica
   });
 
-  y -= 40;
+  y -= 30;
 
   // Final signature (right-aligned)
   const finalSig = 'Sig.of Nirman Sahayak';

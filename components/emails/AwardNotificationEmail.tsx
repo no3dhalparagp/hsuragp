@@ -10,7 +10,7 @@ import {
   Section,
   Text,
 } from "@react-email/components";
-import { gpcode } from "@/constants/gpinfor";
+import { gpaddress, gpcode, gpnameinshort } from "@/constants/gpinfor";
 interface AwardNotificationEmailProps {
   nitNumber: number;
   nitDate: Date;
@@ -25,7 +25,7 @@ const AwardNotificationEmail = ({
   biddername,
 }: AwardNotificationEmailProps) => {
   const nitdetails = `${nitNumber}/${gpcode}/${nitDate.getFullYear()} Date:${formatDate(
-    nitDate
+    nitDate,
   )} Work Sl no :${workslno}`;
 
   return (
@@ -59,8 +59,8 @@ const AwardNotificationEmail = ({
             <Text className="text-[#475569] text-base mb-8 leading-relaxed">
               has been accepted as the{" "}
               <span className="font-semibold">lowest responsive bid</span> by
-              Dhalpara Gram Panchayat. Your work order has been successfully
-              generated and is ready for collection.
+              {gpnameinshort} Gram Panchayat. Your work order has been
+              successfully generated and is ready for collection.
             </Text>
 
             <div className="bg-[#fff7ed] rounded-xl p-6 mb-8 border border-[#fed7aa]">
@@ -72,7 +72,7 @@ const AwardNotificationEmail = ({
               </Heading>
               <ul className="list-disc pl-6 space-y-3">
                 <li className="text-[#475569]">
-                  Visit Dhalpara Panchayat Office between{" "}
+                  Visit {gpnameinshort} Panchayat Office between{" "}
                   <span className="font-medium">
                     10:30 AM - 4:30 PM (Weekdays)
                   </span>
@@ -95,9 +95,9 @@ const AwardNotificationEmail = ({
               </Heading>
               <address className="not-italic">
                 <Text className="text-[#475569] mb-2">
-                  Dhalpara Gram Panchayat Office
+                  {gpnameinshort} Gram Panchayat Office
                   <br />
-                  P.O. - Trimohini,Hili, Daksin Dinajpur, West Bengal 733126
+                  {gpaddress}
                 </Text>
                 <Text className="mb-2">
                   📞 <Text>03522-252037</Text>
@@ -119,7 +119,7 @@ const AwardNotificationEmail = ({
                 Yours faithfully,
               </Text>
               <Text className="text-[#1e293b] text-lg font-semibold mb-1">
-                Dhalpara Gram Panchayat
+                {gpnameinshort} Gram Panchayat
               </Text>
               <Text className="text-[#64748b] text-sm">
                 Dakshin Dinajpur District
@@ -131,8 +131,8 @@ const AwardNotificationEmail = ({
 
           <Section className="border-t border-[#e2e8f0] pt-6 text-center">
             <Text className="text-xs text-[#64748b]">
-              © {new Date().getFullYear()} Dhalpara Gram Panchayat. All rights
-              reserved.
+              © {new Date().getFullYear()} {gpnameinshort} Gram Panchayat. All
+              rights reserved.
             </Text>
           </Section>
         </Container>

@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import CorrectionRequestForm from "@/components/warishcorrection/correction-request-form";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 interface CorrectionRequest {
   id: string;
@@ -69,11 +70,13 @@ export default function ApplicationCorrectionRequestsClientPage({
   flatWarishDetails, // <-- add this
 }: ClientPageProps) {
   const [requests, setRequests] = useState(initialRequests);
+  const currentUser = useCurrentUser();
+  const requesterName = currentUser?.name || application.applicantName;
 
   const refreshRequests = async () => {
     try {
       const response = await fetch(
-        `/api/warish-correction-requests?warishApplicationId=${application.id}`
+        `/api/warish-correction-requests?warishApplicationId=${application.id}`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -138,13 +141,13 @@ export default function ApplicationCorrectionRequestsClientPage({
         currentValue: application.postOffice,
       },
     ],
-    [application]
+    [application],
   );
 
   // Memoize warishDetails array
   const memoizedWarishDetails = useMemo(
     () => application.warishDetails,
-    [application.warishDetails]
+    [application.warishDetails],
   );
 
   // Memoize availableFields for each family member
@@ -176,7 +179,7 @@ export default function ApplicationCorrectionRequestsClientPage({
         currentValue: detail.hasbandName || "",
       },
     ],
-    []
+    [],
   );
 
   // Helper to get family member name by ID
@@ -226,8 +229,8 @@ export default function ApplicationCorrectionRequestsClientPage({
                   application.warishApplicationStatus === "approved"
                     ? "text-green-600 border-green-600"
                     : application.warishApplicationStatus === "rejected"
-                    ? "text-red-600 border-red-600"
-                    : "text-yellow-600 border-yellow-600"
+                      ? "text-red-600 border-red-600"
+                      : "text-yellow-600 border-yellow-600"
                 }
               >
                 {application.warishApplicationStatus.charAt(0).toUpperCase() +
@@ -238,6 +241,7 @@ export default function ApplicationCorrectionRequestsClientPage({
                 targetType="application"
                 availableFields={applicationFields}
                 onRequestSubmitted={handleRequestSubmitted}
+                requesterName={requesterName}
               />
             </div>
           </div>
@@ -309,6 +313,7 @@ export default function ApplicationCorrectionRequestsClientPage({
                     availableFields={getFamilyFields(detail)}
                     warishDetails={flatWarishDetails}
                     onRequestSubmitted={handleRequestSubmitted}
+                    requesterName={requesterName}
                   />
                 </div>
               ))}
@@ -373,8 +378,8 @@ export default function ApplicationCorrectionRequestsClientPage({
                           request.status === "approved"
                             ? "text-green-600 border-green-600"
                             : request.status === "rejected"
-                            ? "text-red-600 border-red-600"
-                            : "text-yellow-600 border-yellow-600"
+                              ? "text-red-600 border-red-600"
+                              : "text-yellow-600 border-yellow-600"
                         }
                       >
                         {request.status.charAt(0).toUpperCase() +

@@ -45,7 +45,7 @@ interface PrintPrayerDocumentProps {
   workOrderDate: Date | string;
   completionDate: Date | null;
   securityDepositAmount: number | null;
-
+  activityCode: string;
   emdAmount: number | null;
 }
 
@@ -62,6 +62,7 @@ export default function PrintPrayerDocument({
   completionDate,
   securityDepositAmount,
   emdAmount,
+  activityCode,
 }: PrintPrayerDocumentProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +91,9 @@ export default function PrintPrayerDocument({
       const paragraph2 = `in NIT No ${nitDetails} dated ${nitDateFormatted} for Work Order No ${workOrderNumber} dated ${workOrderDateFormatted} (Work Sl. No: ${workSlNo.toString()}) for the work "${workName}".`;
       const paragraph3 = `was deposited for participation in NIT No ${nitDetails} dated ${nitDateFormatted} for Work Order No ${workOrderNumber} dated ${workOrderDateFormatted} (Work Sl. No: ${workSlNo.toString()}). As per the terms and conditions, I am now eligible for the refund of the earnest money deposit amount.`;
 
-      const securityamount = securityDepositAmount;
+      const securityamount = `Security Amount: ${
+        securityDepositAmount ? securityDepositAmount.toFixed(2) : "0.00"
+      }`;
 
       // Get template path based on prayer type
       const templatePath = getTemplatePath(prayerType);
@@ -110,7 +113,7 @@ export default function PrintPrayerDocument({
             workOrderNumber: workOrderNumber,
             workOrderDate: workOrderDateFormatted,
             workSlNo: workSlNo.toString(),
-            workName: workName,
+            workName: `${workName} - ${activityCode}`,
             completion_date: completionDate
               ? formatDate(completionDate)
               : "N/A",
@@ -119,6 +122,7 @@ export default function PrintPrayerDocument({
             contractor_name: contractorName,
             contractor_address: contractorAddress || "N/A",
             completionDate: completionDate ? formatDate(completionDate) : "N/A",
+            securityamount: securityamount,
           },
         ];
       } else if (prayerType === "EMD_REFUND") {
@@ -127,9 +131,10 @@ export default function PrintPrayerDocument({
           {
             gpname: gpname,
             gp_name: gpname,
+
             nit_details_subject: nitDetails,
             work_sl_no: workSlNo.toString(),
-            work_name: workName,
+            work_name: `${workName} - ${activityCode}`,
             paragraph2_continued: paragraph3,
             emd_amount: `Rs. ${emdAmountFormatted}`,
             contractor_name: contractorName,
@@ -148,7 +153,7 @@ export default function PrintPrayerDocument({
             workOrderNumber: workOrderNumber,
             workOrderDate: workOrderDateFormatted,
             workSlNo: workSlNo.toString(),
-            workName: workName,
+            workName: `${workName} - ${activityCode}`,
             contractorName: contractorName,
             contractorAddress: contractorAddress || "N/A",
             contractor_name: contractorName,
@@ -166,8 +171,8 @@ export default function PrintPrayerDocument({
         pdfBuffer instanceof ArrayBuffer
           ? new Uint8Array(pdfBuffer)
           : pdfBuffer instanceof Uint8Array
-            ? pdfBuffer
-            : new Uint8Array(pdfBuffer as any);
+          ? pdfBuffer
+          : new Uint8Array(pdfBuffer as any);
 
       const blob = new Blob([buffer], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);

@@ -59,6 +59,15 @@ export const WarishFormRow: React.FC<WarishFormRowProps> = ({ form, fieldArrayNa
     }
   }
 
+  // Function to capitalize each word
+  const capitalizeWords = (str: string) => {
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   return (
     <>
       <TableRow
@@ -96,11 +105,14 @@ export const WarishFormRow: React.FC<WarishFormRowProps> = ({ form, fieldArrayNa
                 <FormControl>
                   <Input
                     {...field}
+                    onChange={(e) => field.onChange(capitalizeWords(e.target.value))}
                     aria-label="Name"
                     autoFocus={depth === 0}
                     className={cn(
                       "w-full h-8 text-sm border-l-4",
-                      depth === 0 ? "border-l-primary" : `border-l-primary-${depth + 1}00`
+                      depth === 0
+                        ? "border-l-primary"
+                        : `border-l-primary-${depth + 1}00`
                     )}
                     placeholder={`Level ${depth + 1} Warish`}
                   />
@@ -250,6 +262,9 @@ export const WarishFormRow: React.FC<WarishFormRowProps> = ({ form, fieldArrayNa
                   <FormControl>
                     <Input
                       {...field}
+                      onChange={(e) =>
+                        field.onChange(capitalizeWords(e.target.value))
+                      }
                       className="w-full md:w-1/2 h-8 text-sm"
                       placeholder="Husband's Name"
                       aria-label="Husband's Name"

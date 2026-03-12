@@ -1,157 +1,312 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Fragment, useMemo } from "react"
+
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table"
+
 import { Badge } from "@/components/ui/badge"
-import { FileTextIcon, AlertCircleIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
+
+import {
+  FileTextIcon,
+  AlertCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  CheckCircleIcon,
+  ClockIcon
+} from "lucide-react"
+
 import WorkOrderAOCDialog from "./WorkOrderAOCDialog"
+
+interface Props {
+  financialWorkDetails: any[]
+}
 
 export default function FinancialWorkDetailsTable({
   financialWorkDetails,
-}: {
-  financialWorkDetails: any[]
-}) {
+}: Props) {
+
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null)
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
 
-  const toggleRowExpansion = (id: string) => {
-    const newExpanded = new Set(expandedRows)
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id)
-    } else {
-      newExpanded.add(id)
-    }
-    setExpandedRows(newExpanded)
+  const [fundFilter, setFundFilter] = useState("all")
+  const [nitFilter, setNitFilter] = useState("")
+
+  const uniqueFunds = useMemo(() => {
+    const funds = new Set(
+      financialWorkDetails.map(
+        (item) => item.ApprovedActionPlanDetails?.schemeName
+      )
+    )
+    return Array.from(funds).filter(Boolean)
+  }, [financialWorkDetails])
+
+  const filteredData = useMemo(() => {
+
+    return financialWorkDetails.filter((item) => {
+
+      const fundType = item.ApprovedActionPlanDetails?.schemeName || ""
+      const nitNo = item.nitDetails?.memoNumber || ""
+
+      const fundMatch =
+        fundFilter === "all" || fundType === fundFilter
+
+      const nitMatch =
+        nitFilter === "" ||
+        nitNo.toLowerCase().includes(nitFilter.toLowerCase())
+
+      return fundMatch && nitMatch
+    })
+
+  }, [financialWorkDetails, fundFilter, nitFilter])
+
+  const totalCount = filteredData.length
+
+  function toggleRowExpansion(id: string) {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev)
+      newSet.has(id) ? newSet.delete(id) : newSet.add(id)
+      return newSet
+    })
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+    <div className="w-full bg-white border border-blue-200 rounded-lg shadow-sm">
+
+      {/* Header */}
+      <div className="bg-blue-700 text-white px-4 py-3 flex justify-between items-center">
+
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Financial Evaluation Works</h1>
-          <p className="mt-2 text-sm text-gray-500">Works pending acceptance of contract (AOC)</p>
+          <h2 className="font-semibold text-lg">
+            Financial Evaluation Works
+          </h2>
+          <p className="text-blue-100 text-sm">
+            Pending Acceptance of Contract (AOC)
+          </p>
         </div>
-        <Badge variant="secondary" className="px-4 py-2 text-base">
-          Total Works: {financialWorkDetails.length}
+
+        <Badge className="bg-white text-blue-700 font-semibold px-3 py-1">
+          Total: {totalCount}
         </Badge>
+
       </div>
 
-      {financialWorkDetails.length === 0 ? (
-        <div className="text-center py-16 border-2 border-dashed rounded-xl">
-          <div className="flex flex-col items-center justify-center gap-4">
-            <AlertCircleIcon className="h-16 w-16 text-gray-400/80" />
-            <div className="space-y-2">
-              <h3 className="text-lg font-medium text-gray-900">No works in financial evaluation</h3>
-              <p className="text-sm text-gray-500">
-                All works have completed processing or none have reached this stage
-              </p>
-            </div>
-          </div>
+      {/* Filters */}
+      <div className="p-4 flex flex-wrap gap-4 border-b bg-gray-50">
+
+        {/* Fund Type Filter */}
+        <Select
+          value={fundFilter}
+          onValueChange={setFundFilter}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filter Fund Type" />
+          </SelectTrigger>
+
+          <SelectContent>
+            <SelectItem value="all">All Funds</SelectItem>
+
+            {uniqueFunds.map((fund) => (
+              <SelectItem key={fund} value={fund}>
+                {fund}
+              </SelectItem>
+            ))}
+
+          </SelectContent>
+        </Select>
+
+        {/* NIT Filter */}
+        <Input
+          placeholder="Search NIT No"
+          value={nitFilter}
+          onChange={(e) => setNitFilter(e.target.value)}
+          className="w-[220px]"
+        />
+
+      </div>
+
+      {/* Empty */}
+      {totalCount === 0 && (
+        <div className="py-12 text-center">
+          <AlertCircleIcon className="mx-auto h-12 w-12 text-gray-400 mb-3"/>
+          <p className="text-gray-600">No works available</p>
         </div>
-      ) : (
-        <div className="rounded-xl border shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table className="border-collapse">
-              <TableHeader className="bg-gray-50/80">
-                <TableRow>
-                  <TableHead className="w-12 text-gray-600 font-semibold">#</TableHead>
-                  <TableHead className="min-w-[180px] text-gray-600 font-semibold">NIT Details</TableHead>
-                  <TableHead className="w-28 text-gray-600 font-semibold">Status</TableHead>
-                  <TableHead className="min-w-[200px] text-gray-600 font-semibold">Activity</TableHead>
-                  <TableHead className="w-20 text-gray-600 font-semibold">Code</TableHead>
-                  <TableHead className="w-32 text-right text-gray-600 font-semibold">Estimated Cost</TableHead>
-                  <TableHead className="w-40 text-right text-gray-600 font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {financialWorkDetails.map((item, i) => {
-                  const isExpanded = expandedRows.has(item.id)
-                  return (
-                    <>
-                      <TableRow key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                        <TableCell className="font-medium text-gray-600">{i + 1}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <span className="font-medium text-gray-900">NIT No. {item.nitDetails.memoNumber}</span>
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                              <span>Work No. {item.workslno}</span>
-                              <span className="text-gray-300">•</span>
-                              <span>{item.nitDetails.memoDate.getFullYear()}</span>
-                            </div>
+      )}
+
+      {/* Table */}
+      {totalCount > 0 && (
+        <div className="overflow-x-auto">
+          <Table>
+
+            <TableHeader className="bg-blue-50">
+              <TableRow>
+                <TableHead className="w-12">Sl</TableHead>
+                <TableHead>NIT Details</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Activity</TableHead>
+                <TableHead>Code</TableHead>
+                <TableHead className="text-right">
+                  Estimated Cost
+                </TableHead>
+                <TableHead className="text-right">
+                  Action
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              {filteredData.map((item, index) => {
+
+                const expanded = expandedRows.has(item.id)
+                const isFinalized = item.isAOCFinalized === true
+
+                const memoDate = item.nitDetails?.memoDate
+                  ? new Date(item.nitDetails.memoDate).toLocaleDateString("en-IN")
+                  : "-"
+
+                return (
+                  <Fragment key={item.id}>
+
+                    <TableRow className="hover:bg-blue-50">
+
+                      <TableCell>{index + 1}</TableCell>
+
+                      <TableCell>
+                        <div>
+                          <div className="font-semibold text-gray-800">
+                            NIT No: {item.nitDetails?.memoNumber}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-orange-100 text-orange-800">
+                          <div className="text-sm text-gray-500">
+                            Work No: {item.workslno}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        {isFinalized ? (
+                          <Badge className="bg-green-600 text-white flex gap-1 items-center">
+                            <CheckCircleIcon className="w-3 h-3"/>
+                            AOC Finalized
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-yellow-500 text-white flex gap-1 items-center">
+                            <ClockIcon className="w-3 h-3"/>
                             Financial Evaluation
                           </Badge>
-                        </TableCell>
-                        <TableCell className="max-w-[300px]">
-                          <div className="flex items-start">
-                            <div 
-                              className={`text-gray-600 ${isExpanded ? '' : 'line-clamp-2'}`}
-                              onClick={() => toggleRowExpansion(item.id)}
-                            >
-                              {item.ApprovedActionPlanDetails.activityDescription}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="ml-2 h-6 w-6 p-0"
-                              onClick={() => toggleRowExpansion(item.id)}
-                            >
-                              {isExpanded ? (
-                                <ChevronUpIcon className="h-4 w-4" />
-                              ) : (
-                                <ChevronDownIcon className="h-4 w-4" />
-                              )}
-                            </Button>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-start gap-2">
+
+                          <div
+                            className={`text-gray-700 cursor-pointer ${
+                              expanded ? "" : "line-clamp-1"
+                            }`}
+                            onClick={() => toggleRowExpansion(item.id)}
+                          >
+                            {item.ApprovedActionPlanDetails?.activityDescription}
                           </div>
-                        </TableCell>
-                        <TableCell className="text-gray-600">#{item.ApprovedActionPlanDetails.activityCode}</TableCell>
-                        <TableCell className="text-right font-medium text-gray-900">
-                          ₹{item.ApprovedActionPlanDetails.estimatedCost.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right">
+
                           <Button
+                            variant="ghost"
                             size="sm"
-                            className="gap-2 bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
+                            onClick={() => toggleRowExpansion(item.id)}
+                          >
+                            {expanded
+                              ? <ChevronUpIcon className="h-4 w-4"/>
+                              : <ChevronDownIcon className="h-4 w-4"/>
+                            }
+                          </Button>
+
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        #{item.ApprovedActionPlanDetails?.activityCode}
+                      </TableCell>
+
+                      <TableCell className="text-right font-semibold">
+                        ₹{
+                          item.ApprovedActionPlanDetails?.estimatedCost
+                            ?.toLocaleString("en-IN")
+                        }
+                      </TableCell>
+
+                      <TableCell className="text-right">
+
+                        {isFinalized ? (
+                          <Badge className="bg-gray-300 text-gray-700">
+                            Completed
+                          </Badge>
+                        ) : (
+                          <Button
+                            className="bg-blue-700 hover:bg-blue-800 text-white"
+                            size="sm"
                             onClick={() => {
                               setSelectedWorkId(item.id)
                               setDialogOpen(true)
                             }}
                           >
-                            <FileTextIcon className="h-4 w-4" />
+                            <FileTextIcon className="h-4 w-4 mr-1"/>
                             Process AOC
                           </Button>
+                        )}
+
+                      </TableCell>
+
+                    </TableRow>
+
+                    {expanded && (
+                      <TableRow className="bg-blue-50">
+                        <TableCell colSpan={7}>
+                          <div className="p-3 text-sm text-gray-700 space-y-1">
+
+                            <div>
+                              <strong>Activity:</strong>{" "}
+                              {item.ApprovedActionPlanDetails?.activityDescription}
+                            </div>
+
+                            <div>
+                              <strong>Work ID:</strong> {item.id}
+                            </div>
+
+                            <div>
+                              <strong>Memo Date:</strong> {memoDate}
+                            </div>
+
+                          </div>
                         </TableCell>
                       </TableRow>
-                      {isExpanded && (
-                        <TableRow className="bg-blue-50/30">
-                          <TableCell colSpan={7} className="p-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <h4 className="font-medium text-gray-900 mb-2">Activity Details</h4>
-                                <p className="text-gray-600">{item.ApprovedActionPlanDetails.activityDescription}</p>
-                              </div>
-                              <div>
-                                <h4 className="font-medium text-gray-900 mb-2">Additional Information</h4>
-                                <p className="text-sm text-gray-600">Work ID: {item.id}</p>
-                                <p className="text-sm text-gray-600">NIT Memo Date: {item.nitDetails.memoDate.toLocaleDateString()}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                    )}
+
+                  </Fragment>
+                )
+              })}
+            </TableBody>
+
+          </Table>
         </div>
       )}
+
       <WorkOrderAOCDialog
         open={dialogOpen}
         onOpenChange={(open) => {
@@ -160,6 +315,7 @@ export default function FinancialWorkDetailsTable({
         }}
         workId={selectedWorkId}
       />
+
     </div>
   )
 }

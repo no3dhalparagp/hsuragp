@@ -39,6 +39,7 @@ export async function GET(req: Request) {
       warishRefNo: d.warish.warishRefNo,
       warishRefDate: d.warish.warishRefDate,
       documentUrl: d.cloudinaryUrl,
+      digitallySigned: d.digitallySigned,
     }))
 
     return NextResponse.json({ total, items, page, pageSize })

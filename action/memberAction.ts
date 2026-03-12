@@ -4,8 +4,8 @@ import { currentRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { memberFormSchema } from "@/schema/member";
 import { parseDateString } from "@/utils/utils";
-import { getSignedURL } from "./uploadfile";
 
+import crypto from "crypto";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 export const addmemberdetails = async (formData: FormData) => {
@@ -48,7 +48,6 @@ export const addmemberdetails = async (formData: FormData) => {
       epic,
       profession,
       annualFamilyIncome,
-      photo,
     } = validateField.data;
 
     const userRole = await currentRole();
@@ -75,28 +74,50 @@ export const addmemberdetails = async (formData: FormData) => {
     }
 
     let photoUrl = null;
-    let photoKey = null;
+    const photoFile = formData.get("photo") as File | null;
 
-    if (photo instanceof File) {
-      const signedUrlResult = await getSignedURL(photo.type, photo.size);
-      if ("error" in signedUrlResult) {
-        return { error: signedUrlResult.error };
+    if (photoFile && photoFile.size > 0) {
+      const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+      const apiKey = process.env.CLOUDINARY_API_KEY;
+      const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+      if (!cloudName || !apiKey || !apiSecret) {
+        return { error: "Cloudinary configuration is missing" };
       }
-      photoUrl = signedUrlResult.success.url.split("?")[0];
-      photoKey = signedUrlResult.success.key;
 
-      // Upload the file to S3 using the signed URL
-      const uploadResponse = await fetch(signedUrlResult.success.url, {
-        method: "PUT",
-        body: photo,
-        headers: {
-          "Content-Type": photo.type,
-        },
-      });
+      const timestamp = Math.floor(Date.now() / 1000);
+      const folder = "members";
+      const stringToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+      const signature = crypto
+        .createHash("sha1")
+        .update(stringToSign)
+        .digest("hex");
+
+      const cloudinaryFormData = new FormData();
+      cloudinaryFormData.append("file", photoFile);
+      cloudinaryFormData.append("api_key", apiKey);
+      cloudinaryFormData.append("timestamp", timestamp.toString());
+      cloudinaryFormData.append("signature", signature);
+      cloudinaryFormData.append("folder", folder);
+
+      const uploadResponse = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: "POST",
+          body: cloudinaryFormData,
+        }
+      );
 
       if (!uploadResponse.ok) {
-        return { error: "Failed to upload photo" };
+        return { error: "Failed to upload photo to Cloudinary" };
       }
+
+      const uploadResult = (await uploadResponse.json()) as {
+        secure_url?: string;
+        url?: string;
+      };
+
+      photoUrl = uploadResult.secure_url || uploadResult.url || null;
     }
 
     const member = await db.member.create({
@@ -130,7 +151,9 @@ export const addmemberdetails = async (formData: FormData) => {
         profession,
         annualFamilyIncome,
         photo: photoUrl,
+        financialYear: new Date().getFullYear().toString(),
       },
+
     });
     revalidatePath("/admindashboard/viewmenberdetails");
     return { success: "Member details added successfully", photoUrl: photoUrl };
@@ -192,25 +215,49 @@ export async function updateMemberDetails(formData: FormData) {
     // Handle photo upload
     let photoUrl = null;
     const photo = formData.get("photo") as File | null;
-    if (photo instanceof File) {
-      const signedUrlResult = await getSignedURL(photo.type, photo.size);
-      if ("error" in signedUrlResult) {
-        return { error: signedUrlResult.error };
-      }
-      photoUrl = signedUrlResult.success.url.split("?")[0];
 
-      // Upload the file to S3 using the signed URL
-      const uploadResponse = await fetch(signedUrlResult.success.url, {
-        method: "PUT",
-        body: photo,
-        headers: {
-          "Content-Type": photo.type,
-        },
-      });
+    if (photo && photo.size > 0) {
+      const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+      const apiKey = process.env.CLOUDINARY_API_KEY;
+      const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+      if (!cloudName || !apiKey || !apiSecret) {
+        return { error: "Cloudinary configuration is missing" };
+      }
+
+      const timestamp = Math.floor(Date.now() / 1000);
+      const folder = "members";
+      const stringToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+      const signature = crypto
+        .createHash("sha1")
+        .update(stringToSign)
+        .digest("hex");
+
+      const cloudinaryFormData = new FormData();
+      cloudinaryFormData.append("file", photo);
+      cloudinaryFormData.append("api_key", apiKey);
+      cloudinaryFormData.append("timestamp", timestamp.toString());
+      cloudinaryFormData.append("signature", signature);
+      cloudinaryFormData.append("folder", folder);
+
+      const uploadResponse = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: "POST",
+          body: cloudinaryFormData,
+        }
+      );
 
       if (!uploadResponse.ok) {
-        return { error: "Failed to upload photo" };
+        return { error: "Failed to upload photo to Cloudinary" };
       }
+
+      const uploadResult = (await uploadResponse.json()) as {
+        secure_url?: string;
+        url?: string;
+      };
+
+      photoUrl = uploadResult.secure_url || uploadResult.url || null;
     }
     const parsedate = parseDateString(dob);
     if (!parsedate) {

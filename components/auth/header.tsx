@@ -2,6 +2,7 @@ import React from "react";
 import { FaUnlock } from "react-icons/fa";
 import { Button } from "../ui/button";
 import Link from "next/link";
+import { gpnameinshort } from "@/constants/gpinfor";
 
 interface HeaderProps {
   label?: string;
@@ -12,7 +13,7 @@ const Header = ({ label }: HeaderProps) => {
     <div className="w-full flex flex-col gap-2 items-center justify-center">
       <h1 className="flex font-semibold text-2xl gap-4 text-slate-600">
         <FaUnlock size={10} />
-        Dhalpara Gram Panchayat
+        {gpnameinshort} Gram Panchayat
       </h1>
 
       <p className=" text-lg mt-3"> {label} </p>

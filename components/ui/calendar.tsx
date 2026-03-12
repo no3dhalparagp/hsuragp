@@ -17,49 +17,72 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      className={cn("p-3 bg-white rounded-md border shadow-sm", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+        months: "flex flex-col sm:flex-row gap-4",
         month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
-        nav: "space-x-1 flex items-center",
+
+        // Caption (Month + Year + Nav)
+        caption: "flex justify-center pt-1 relative items-center px-10",
+        caption_label: "text-sm font-semibold flex items-center h-7",
+
+        // Dropdown Support
+        caption_dropdowns: "flex justify-center gap-1.5 items-center mx-2",
+        dropdown:
+          "px-2 py-0.5 border rounded-md bg-white text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors appearance-none pr-6 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2210%22%20height%3D%2210%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')]%20bg-[length:12px]%20bg-[right_6px_center]%20bg-no-repeat",
+        dropdown_month: "relative inline-flex items-center",
+        dropdown_year: "relative inline-flex items-center",
+        vhidden: "hidden visually-hidden sr-only", // Standard way to hide label in v8 when dropdowns are active
+
+        // Navigation
+        nav: "flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity z-10",
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
+        nav_button_previous: "absolute left-2",
+        nav_button_next: "absolute right-2",
+
+        // Table Layout
+        table: "w-full border-collapse",
         head_row: "flex",
         head_cell:
-          "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+          "text-muted-foreground rounded-md w-9 font-medium text-[0.75rem]",
+
         row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+
+        cell: "relative h-9 w-9 text-center text-sm p-0 focus-within:z-20",
+
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
+          "h-9 w-9 p-0 font-normal transition-colors",
         ),
-        day_range_end: "day-range-end",
+
         day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside:
-          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
-        day_disabled: "text-muted-foreground opacity-50",
+          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+
+        day_today: "bg-accent text-accent-foreground font-semibold",
+
+        day_outside: "text-muted-foreground opacity-40",
+
+        day_disabled: "text-muted-foreground opacity-40 cursor-not-allowed",
+
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
+
         day_hidden: "invisible",
+
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
+        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
+        IconRight: () => <ChevronRight className="h-4 w-4" />,
       }}
       {...props}
     />
   );
 }
+
 Calendar.displayName = "Calendar";
 
 export { Calendar };

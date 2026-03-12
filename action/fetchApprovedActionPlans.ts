@@ -31,7 +31,7 @@ export async function fetchApprovedActionPlans(
           { activityDescription: { contains: searchTerm, mode: "insensitive" } },
           { schemeName: { contains: searchTerm, mode: "insensitive" } },
           { locationofAsset: { contains: searchTerm, mode: "insensitive" } },
-          { activityCode: { equals: searchTerm || undefined } },
+          { activityCode: { contains: searchTerm, mode: "insensitive" } },
         ],
       })
     }

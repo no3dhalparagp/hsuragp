@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 
 export async function POST(req: Request) {
   try {
-    const { fileName, fileType, base64, warishId } = await req.json()
+    const { fileName, fileType, base64, warishId, digitallySigned } = await req.json()
 
     if (!fileName || !fileType || !base64 || !warishId) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
@@ -19,8 +19,16 @@ export async function POST(req: Request) {
         cloudinaryUrl: url,
         cloudinaryPublicId: public_id,
         verified: true,
+        digitallySigned: digitallySigned || false,
       },
     })
+
+    if (digitallySigned) {
+      await db.warishApplication.update({
+        where: { id: warishId },
+        data: { digitallySigned: true },
+      })
+    }
 
     return NextResponse.json({ success: true, url })
   } catch (error) {

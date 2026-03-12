@@ -50,7 +50,7 @@ interface ApprovedActionPlanDetails {
   id: string;
   financialYear: string;
   schemeName: string;
-  activityCode: number;
+  activityCode: string;
   activityDescription: string;
   sector: string;
   estimatedCost: number;

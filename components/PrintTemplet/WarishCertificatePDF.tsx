@@ -12,11 +12,22 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Printer, Loader2 } from "lucide-react";
+import { Printer, Loader2, FileSignature } from "lucide-react";
 import { formatDate } from "@/utils/utils";
 import { domain_url } from "@/constants";
+
 const templatePath = "/templates/warishcertificate.json";
 
+/* ===================================================== */
+/* SERIAL NUMBER SYSTEM                                  */
+/* ===================================================== */
+
+const getSerialNumber = (depth: number, index: number): string => {
+  if (depth === 0) return `${index + 1}`; // 1,2,3
+  if (depth === 1) return String.fromCharCode(65 + index); // A,B,C
+  if (depth === 2) return String.fromCharCode(97 + index); // a,b,c
+  return `${index + 1}`; // fallback
+};
 // Function to convert image to base64
 const getBase64FromUrl = async (url: string) => {
   try {
@@ -33,8 +44,71 @@ const getBase64FromUrl = async (url: string) => {
     return null;
   }
 };
+/* ===================================================== */
+/* BUILD TREE FROM FLAT DB LIST                          */
+/* ===================================================== */
 
-type WarishCertificatePDFProps = {
+const buildWarishTree = (details: WarishDetailProps[]): WarishDetailProps[] => {
+  const map = new Map<string, WarishDetailProps>();
+
+  details.forEach((detail) => {
+    map.set(detail.id, { ...detail, children: [] });
+  });
+
+  const roots: WarishDetailProps[] = [];
+
+  map.forEach((detail) => {
+    if (detail.parentId) {
+      const parent = map.get(detail.parentId);
+      if (parent) parent.children.push(detail);
+    } else {
+      roots.push(detail);
+    }
+  });
+
+  return roots;
+};
+
+/* ===================================================== */
+/* GENERATE TABLE DATA                                   */
+/* ===================================================== */
+
+const generateTableData = (
+  details: WarishDetailProps[],
+  depth = 0,
+  parentIndex = "",
+): Array<[string, string, string, string, string]> => {
+  let rows: Array<[string, string, string, string, string]> = [];
+
+  details.forEach((detail, index) => {
+    const serial = parentIndex
+      ? `${parentIndex}.${getSerialNumber(depth, index)}`
+      : getSerialNumber(depth, index);
+
+    const displayName =
+      detail.livingStatus === "dead" ? `Late ${detail.name}` : detail.name;
+
+    rows.push([
+      serial,
+      displayName,
+      detail.relation,
+      detail.maritialStatus,
+      detail.hasbandName ?? "",
+    ]);
+
+    if (detail.children?.length) {
+      rows.push(...generateTableData(detail.children, depth + 1, serial));
+    }
+  });
+
+  return rows;
+};
+
+/* ===================================================== */
+/* COMPONENT                                              */
+/* ===================================================== */
+
+type Props = {
   applicationDetails: WarishApplicationProps;
   mode?: "downloadOnly" | "uploadAndDownload";
 };
@@ -42,190 +116,114 @@ type WarishCertificatePDFProps = {
 export default function WarishCertificatePDF({
   applicationDetails,
   mode = "downloadOnly",
-}: WarishCertificatePDFProps) {
+}: Props) {
   const [isGenerating, setIsGenerating] = useState(false);
   const router = useRouter();
 
-  const buildWarishTree = (
-    details: WarishDetailProps[]
-  ): WarishDetailProps[] => {
-    const map = new Map<string, WarishDetailProps>();
-    details.forEach((detail) =>
-      map.set(detail.id, { ...detail, children: [] })
+  /* ================= BUILD PDF ================= */
+
+  const buildPDF = async (digitallySignedText = "") => {
+    const nestedWarish = buildWarishTree(
+      applicationDetails.warishDetails || [],
     );
 
-    const rootDetails: WarishDetailProps[] = [];
-    map.forEach((detail) => {
-      if (detail.parentId) {
-        const parent = map.get(detail.parentId);
-        if (parent) {
-          parent.children = parent.children || [];
-          parent.children.push(detail);
-        }
-      } else {
-        rootDetails.push(detail);
-      }
-    });
+    const tableData = generateTableData(nestedWarish);
 
-    return rootDetails;
+    const body1 = `Certified that late ${applicationDetails.nameOfDeceased}, ${
+      applicationDetails.gender === "male"
+        ? "son of"
+        : applicationDetails.gender === "female" &&
+            applicationDetails.maritialStatus === "unmarried"
+          ? "daughter of"
+          : "wife of"
+    } ${
+      applicationDetails.gender === "female" &&
+      applicationDetails.maritialStatus === "married"
+        ? applicationDetails.spouseName
+        : applicationDetails.fatherName
+    } residing at ${applicationDetails.villageName} Village, ${
+      applicationDetails.postOffice
+    } Post Office, Hili Police Station of Dakshin Dinajpur District, West Bengal State, expired on ${
+      applicationDetails.dateOfDeath
+        ? formatDate(applicationDetails.dateOfDeath)
+        : ""
+    }, leaving behind the following persons as his/her legal heirs`;
+    // Load and convert logo to base64
+    const logoBase64 = await getBase64FromUrl("/images/logo.png");
+    const inputs = [
+      {
+        ref: applicationDetails.warishRefNo,
+        refdate: applicationDetails.warishRefDate
+          ? formatDate(applicationDetails.warishRefDate)
+          : "",
+        logo: logoBase64,
+        table: tableData,
+        body1,
+        field20: `${domain_url}/services/e-governance/verification?id=${applicationDetails.id}`,
+        digitally_signed: digitallySignedText,
+      },
+    ];
+
+    const pdf = await generatePDF(templatePath, inputs);
+    return new Blob([pdf], { type: "application/pdf" });
   };
 
-  const getSerialNumber = (depth: number, index: number): string => {
-    if (depth === 0) return `${index + 1}`;
-    if (depth === 1) return String.fromCharCode(65 + index);
-    return String.fromCharCode(97 + index);
-  };
+  /* ================= HANDLE GENERATE ================= */
 
-  const generateTableData = (
-    details: WarishDetailProps[],
-    depth: number = 0,
-    parentIndex: string = ""
-  ): Array<[string, string, string, string, string]> => {
-    return details.flatMap((detail, index) => {
-      // Generate current index based on depth and parentIndex
-      const currentIndex = parentIndex
-        ? `${parentIndex}.${getSerialNumber(depth, index)}`
-        : getSerialNumber(depth, index);
-      const name =
-        detail.livingStatus === "dead" ? `Late ${detail.name}` : detail.name;
-      const relation = detail.relation;
-
-      const row: [string, string, string, string, string] = [
-        currentIndex,
-        name,
-        relation,
-        detail.maritialStatus,
-        detail.hasbandName ? detail.hasbandName : "",
-      ];
-
-      const rows = [row];
-
-      // Recursively generate rows for children
-      if (detail.children && detail.children.length > 0) {
-        rows.push(
-          ...generateTableData(detail.children, depth + 1, currentIndex)
-        );
-      }
-
-      return rows;
-    });
-  };
-
-  const body1 = `Certified that late ${applicationDetails.nameOfDeceased}, ${
-    applicationDetails.gender === "male"
-      ? "son of"
-      : applicationDetails.gender === "female" &&
-        applicationDetails.maritialStatus === "unmarried"
-      ? "daughter of"
-      : "wife of"
-  } ${
-    applicationDetails.gender === "female" &&
-    applicationDetails.maritialStatus === "married"
-      ? applicationDetails.spouseName
-      : applicationDetails.fatherName
-  } residing at ${applicationDetails.villageName} Village, ${
-    applicationDetails.postOffice
-  } Post Office, Hili Police Station of Dakshin Dinajpur District, West Bengal State, expired on ${
-    applicationDetails.dateOfDeath
-      ? formatDate(applicationDetails.dateOfDeath)
-      : ""
-  }, leaving behind the following persons as his/her legal heirs`;
-
-  const handleGeneratePDF = async () => {
+  const handleGeneratePDF = async (withSignature: boolean) => {
     setIsGenerating(true);
 
     try {
-      const rootWarishDetails = await buildWarishTree(
-        applicationDetails.warishDetails
+      const blob = await buildPDF(
+        withSignature
+          ? `Digitally Signed by Prodhan\nDate: ${formatDate(new Date())}`
+          : "",
       );
-      const tableData = await generateTableData(rootWarishDetails);
 
-      // Load and convert logo to base64
-      const logoBase64 = await getBase64FromUrl("/images/logo.png");
-
-      const inputs = [
-        {
-          logo: logoBase64,
-          ref: applicationDetails.warishRefNo,
-          refdate: applicationDetails.warishRefDate
-            ? formatDate(applicationDetails.warishRefDate)
-            : "",
-          field12: `Further Certified that the all above persons are known to me & there is no other legal heir/heiress of late ${applicationDetails.nameOfDeceased}`,
-          table: tableData,
-          body1: body1,
-          field20: `${domain_url}/services/e-governance/verification?id=${applicationDetails.id}`,
-        },
-      ];
-
-      const pdf = await generatePDF(templatePath, inputs);
-      const blob = new Blob([pdf], { type: "application/pdf" });
-
-      // Always provide a download to the user first
+      // Always download
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `warish_certificate_${applicationDetails.id || "unknown"}.pdf`;
+      link.download = `${withSignature ? "signed_" : ""}warish_certificate_${applicationDetails.id}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
 
+      // Upload if needed
       if (mode === "uploadAndDownload") {
-        const base64Data: string = await new Promise((resolve, reject) => {
+        const base64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => {
-            const result = reader.result as string | null;
-            if (!result) {
-              reject(new Error("Failed to read PDF blob as data URL"));
-              return;
-            }
-            // result format: data:application/pdf;base64,AAAA...
-            const commaIndex = result.indexOf(",");
-            resolve(commaIndex >= 0 ? result.substring(commaIndex + 1) : result);
+            const result = reader.result as string;
+            resolve(result.split(",")[1]);
           };
-          reader.onerror = () => reject(reader.error || new Error("FileReader error"));
+          reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
 
-        const resp = await fetch("/api/warish/certificate/upload", {
+        await fetch("/api/warish/certificate/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            fileName: `warish_certificate_${applicationDetails.id || "unknown"}.pdf`,
+            fileName: `${withSignature ? "signed_" : ""}warish_certificate_${applicationDetails.id}.pdf`,
             fileType: "application/pdf",
-            base64: `data:application/pdf;base64,${base64Data}`,
+            base64: `data:application/pdf;base64,${base64}`,
             warishId: applicationDetails.id,
+            digitallySigned: withSignature,
           }),
         });
-
-        if (!resp.ok) {
-          throw new Error("Upload failed");
-        }
-
-        // Refresh the page after successful upload
-        router.refresh();
       }
 
       toast({
         title: "Success",
-        description: "Warish Certificate PDF generated successfully",
-        variant: "default",
+        description: "Warish Certificate generated successfully",
       });
+
+      router.refresh();
     } catch (error) {
-      console.error("Error in PDF generation:", error);
-      let errorMessage = "An unknown error occurred while generating the PDF.";
-
-      if (error instanceof Error) {
-        if (error.message.includes("Unknown schema type")) {
-          errorMessage =
-            "There's an issue with the PDF template. Please contact support.";
-        } else if (error.message.includes("Failed to load the PDF template")) {
-          errorMessage =
-            "Failed to load the PDF template. Please try again later.";
-        }
-      }
-
+      console.error(error);
       toast({
         title: "Error",
-        description: errorMessage,
+        description: "Failed to generate PDF",
         variant: "destructive",
       });
     } finally {
@@ -233,29 +231,46 @@ export default function WarishCertificatePDF({
     }
   };
 
+  /* ================= RENDER ================= */
+
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className="flex items-center gap-2">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="outline"
               size="icon"
-              onClick={handleGeneratePDF}
               disabled={isGenerating}
-              aria-label="Generate PDF"
-              className="w-10 h-10 transition-colors hover:bg-primary hover:text-primary-foreground"
+              onClick={() => handleGeneratePDF(false)}
             >
               {isGenerating ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="animate-spin h-5 w-5" />
               ) : (
                 <Printer className="h-5 w-5" />
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>Generate PDF</p>
-          </TooltipContent>
+          <TooltipContent>Generate PDF</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="default"
+              size="icon"
+              disabled={isGenerating}
+              onClick={() => handleGeneratePDF(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              {isGenerating ? (
+                <Loader2 className="animate-spin h-5 w-5" />
+              ) : (
+                <FileSignature className="h-5 w-5" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Generate Signed PDF</TooltipContent>
         </Tooltip>
       </TooltipProvider>
     </div>

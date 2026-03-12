@@ -8,16 +8,17 @@ generator client {
 }
 
 model GPProfile {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  gpname        String
-  gpaddress     String
-  nameinprodhan String
-  gpcode        String
-  gpnameinshort String
-  blockname     String
-  gpshortname   String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  String               @id @default(auto()) @map("_id") @db.ObjectId
+  gpname              String
+  gpaddress           String
+  nameinprodhan       String
+  gpcode              String
+  gpnameinshort       String
+  blockname           String
+  gpshortname         String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  linkageCertificates LinkageCertificate[]
 
   @@map("gp_profiles")
 }
@@ -40,15 +41,26 @@ enum UserStatus {
   inactive
 }
 
+enum Designation {
+  Executive_Assistant
+  Nirman_Sahayak
+  Secretary
+  Sahayak
+  GPKarmee
+  Casual
+}
+
 model User {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
   name          String?
-  email         String?   @unique
-  mobileNumber  String?   @unique
+  email         String?      @unique
+  mobileNumber  String?      @unique
   emailVerified DateTime?
   image         String?
   password      String?
-  role          UserRole  @default(user)
+  role          UserRole     @default(user)
+  // staff then degignation by enum
+  designation   Designation?
   accounts      Account[]
   sessions      Session[]
 
@@ -56,13 +68,20 @@ model User {
   twoFactorConfirmation TwoFactorConfirmation?
   // Added security fields
   failedLoginAttempts   Int                    @default(0) // Tracks consecutive failed attempts
-  lockoutExpiry         DateTime? // Temporary lock expiration timestamp
-  imageKey              String?
+  //////////////////////////////////////////////////
+  // Session control (prevent multiple login)
+  //////////////////////////////////////////////////
+
+  sessionToken  String?   @unique
+  sessionExpiry DateTime?
+  lockoutExpiry DateTime? // Temporary lock expiration timestamp
+  imageKey      String?
 
   userStatus UserStatus @default(active)
 
   Leave          Leave[]
-  approvedLeaves Leave[] @relation("ApproverLeaves")
+  approvedLeaves Leave[]      @relation("ApproverLeaves")
+  attendances    Attendance[]
 
   notifications                Notification[]
   messagesSent                 Message[]                    @relation("MessagesSent")
@@ -83,6 +102,7 @@ model User {
   workMeasurementBooks         WorkMeasurementBook[]
   workBillAbstracts            WorkBillAbstract[]
   workBillDeductions           WorkBillDeduction[]
+  linkageApplications          LinkageApplication[]
 }
 
 model Account {
@@ -102,6 +122,20 @@ model Account {
   User User @relation(fields: [userId], references: [id])
 
   @@unique([provider, providerAccountId])
+}
+
+model LoginAttempt {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String?
+  ipAddress String
+  success   Boolean
+  createdAt DateTime @default(now())
+}
+
+model BlockedIP {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  ipAddress String    @unique
+  expiresAt DateTime?
 }
 
 model Session {
@@ -225,6 +259,7 @@ model WarishApplication {
   User                      User?                       @relation(fields: [userId], references: [id])
   userId                    String?                     @db.ObjectId
   warishdocumentverified    Boolean                     @default(false)
+  digitallySigned           Boolean                     @default(false)
   WarishDocument            WarishDocument[]
   WarishModificationRequest WarishModificationRequest[]
 
@@ -439,6 +474,7 @@ model WorksDetail {
   approvedActionPlanDetailsId String                    @db.ObjectId
   paymentDetails              PaymentDetails[]
   workStatus                  workStatus                @default(approved)
+  boqPrepared                 Boolean                   @default(false)
   ApprovedActionPlanDetails   ApprovedActionPlanDetails @relation(fields: [approvedActionPlanDetailsId], references: [id])
   awardofContractId           String?                   @db.ObjectId
   WorkOrderCancellation       WorkOrderCancellation[]
@@ -640,99 +676,6 @@ model PDF {
   filename   String
   contentUrl String
   createdAt  DateTime @default(now())
-}
-
-model Mouzaname {
-  id            String       @id @default(auto()) @map("_id") @db.ObjectId
-  name          String
-  jlno          String
-  population    Population?  @relation(fields: [populationId], references: [id])
-  VillageData   VillageData? @relation(fields: [villageDataId], references: [id])
-  villageDataId String?      @db.ObjectId
-  populationId  String?      @db.ObjectId
-}
-
-model Sansad {
-  id           String        @id @default(auto()) @map("_id") @db.ObjectId
-  sansadname   String
-  sansadnumber String        @unique
-  VillageData  VillageData[]
-}
-
-model Member {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  salutation         String
-  firstName          String
-  middleName         String? // Optional
-  lastName           String? // Optional
-  fatherGuardianName String? // Optional
-  dob                DateTime // Store as DateTime
-  gender             String // 'male', 'female', 'other'
-  maritalStatus      String // 'single', 'married', 'divorced', etc.
-  religion           String
-  caste              String? // Optional
-  eduQualification   String
-  computerLiterate   String // 'yes', 'no'
-  motherTongue       String
-  bloodGroup         String // 'A+', 'B-', etc.
-  contactNo          String // Store as a string for phone numbers
-  whatsappNo         String? // Optional
-  email              String       @unique // Ensure unique email addresses
-  address            String
-  village            String
-  pin                String // Store as a string (6-digit PIN code)
-  postOffice         String
-  district           String
-  policeStation      String
-  aadhar             String       @unique // Ensure unique Aadhar numbers
-  pan                String? // Optional
-  epic               String? // Optional
-  profession         String
-  annualFamilyIncome String
-  photo              String? // Optional, store file path or URL for images
-  createdAt          DateTime     @default(now()) // Automatically set the current time when the document is created
-  updatedAt          DateTime     @updatedAt // Automatically updated on record modification
-  VillageData        VillageData? @relation(fields: [villageDataId], references: [id])
-  villageDataId      String?      @db.ObjectId
-}
-
-model PollingDetails {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  pollingdetailsno   Int          @unique
-  pollingdetailsname String
-  malevoter          Int
-  femalevoter        Int
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  VillageData        VillageData? @relation(fields: [villageDataId], references: [id])
-  villageDataId      String?      @db.ObjectId
-}
-
-model Population {
-  id            String @id @default(auto()) @map("_id") @db.ObjectId
-  male          Int
-  female        Int
-  st            Int
-  sc            Int
-  obc           Int
-  other         Int
-  hindu         Int
-  muslim        Int
-  christian     Int
-  otherReligion Int
-
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  Mouzaname Mouzaname[]
-}
-
-model VillageData {
-  id                   String           @id @default(auto()) @map("_id") @db.ObjectId
-  pollingstatusdetaial PollingDetails[]
-  memberdetails        Member[]
-  sansaddetails        Sansad           @relation(fields: [sansadId], references: [id])
-  sansadId             String           @db.ObjectId
-  mouzadetails         Mouzaname[]
 }
 
 model TenderPublish {
@@ -984,6 +927,7 @@ model WarishDocument {
   cloudinaryUrl      String
   cloudinaryPublicId String
   verified           Boolean           @default(false)
+  digitallySigned    Boolean           @default(false)
   remarks            String?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -1066,8 +1010,6 @@ model Booking {
 
   @@index([userId])
   @@index([employeeId])
-  @@index([status])
-  @@index([bookingDate])
 }
 
 model ServiceFee {
@@ -1309,14 +1251,12 @@ model NocApplication {
   applicantAddress String
 
   // Organizer & event details
-  organizerName      String
-  organizerType      String? // Club / Committee / Others
-  eventName          String
-  eventCategory      NocEventCategory @default(PUJA)
-  eventLocation      String
-  policeStation      String
-  postOffice         String
-  district           String
+  organizerName String
+  organizerType String? // Club / Committee / Others
+  eventName     String
+  eventCategory NocEventCategory @default(PUJA)
+  eventLocation String
+
   startDate          DateTime
   endDate            DateTime
   expectedAttendance Int?
@@ -2241,20 +2181,23 @@ model LandConversionApplication {
   applicantEmail   String?
   applicantAddress String
 
-  // Land details
-  khatianNo     String
-  plotNo        String
-  mouza         String
-  jlNo          String
-  policeStation String
-  block         String
-  district      String
-  state         String
-  landAreaDec   String
+  // Land details (first/primary land; additional lands in landDetails)
+  khatianNo String
+  plotNo    String
+  mouza     String
+  jlNo      String
+
+  landAreaDec String
 
   // Conversion details
   presentLandUse  String
   proposedLandUse String
+
+  // Multiple lands per certificate (additional parcels)
+  landDetails LandConversionLandDetail[]
+
+  // Uploaded documents (ID proof, land documents)
+  documents LandConversionDocument[]
 
   // Workflow relations (ONE-TO-ONE)
   verification LandConversionVerification?
@@ -2268,6 +2211,54 @@ model LandConversionApplication {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ================= ADDITIONAL LAND PARCELS (one certificate = multiple lands) =================
+
+model LandConversionLandDetail {
+  id            String                    @id @default(auto()) @map("_id") @db.ObjectId
+  applicationId String                    @db.ObjectId
+  application   LandConversionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  khatianNo       String
+  plotNo          String
+  mouza           String
+  jlNo            String
+  landAreaDec     String
+  presentLandUse  String
+  proposedLandUse String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([applicationId])
+  @@map("land_conversion_land_details")
+}
+
+// ================= APPLICATION DOCUMENTS (ID proof, land documents) =================
+
+enum LandConversionDocumentType {
+  ID_PROOF
+  LAND_DOCUMENT
+  OTHER
+}
+
+model LandConversionDocument {
+  id            String                    @id @default(auto()) @map("_id") @db.ObjectId
+  applicationId String                    @db.ObjectId
+  application   LandConversionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  documentType       LandConversionDocumentType
+  cloudinaryUrl      String
+  cloudinaryPublicId String
+  verified           Boolean                    @default(false)
+  remarks            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([applicationId])
+  @@map("land_conversion_documents")
 }
 
 // ================= VERIFICATION =================
@@ -2879,4 +2870,501 @@ enum MilestoneStatus {
   IN_PROGRESS
   COMPLETED
   DELAYED
+}
+
+enum LinkageApplicationStatus {
+  DRAFT
+  SUBMITTED
+  VALIDATION_PENDING
+  VALIDATED
+  OWNERSHIP_PENDING
+  OWNERSHIP_VERIFIED
+  APPROVAL_PENDING
+  APPROVED
+  ISSUED
+  RENEWAL_PENDING
+  RENEWED
+  DISPUTED
+  REJECTED
+  CANCELLED
+}
+
+enum LinkageValidationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LinkageOwnershipStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum DisputeStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+model LinkageApplication {
+  id                              String                          @id @default(auto()) @map("_id") @db.ObjectId
+  applicationNo                   String                          @unique
+  status                          LinkageApplicationStatus        @default(SUBMITTED)
+  applicantName                   String
+  applicantPhone                  String
+  applicantEmail                  String?
+  applicantAddress                String
+  applicantVillage                String?
+  applicantPostOffice             String?
+  applicantBlock                  String?
+  applicantDistrict               String?
+  applicantState                  String?
+  linkageType                     String
+  linkageCategory                 String?
+  linkageReason                   String?
+  linkedEntityName                String
+  linkedEntityAddress             String
+  documents                       String[]
+  createdAt                       DateTime                        @default(now())
+  updatedAt                       DateTime                        @updatedAt
+  createdBy                       User?                           @relation(fields: [createdById], references: [id])
+  createdById                     String?                         @db.ObjectId
+  verification                    LinkageDocumentValidation?
+  ownership                       LinkageOwnershipVerification?
+  certificate                     LinkageCertificate?
+  renewals                        LinkageRenewal[]
+  disputes                        LinkageDispute[]
+  linkageApplicationBeneficiaries LinkageApplicationBeneficiary[]
+
+  @@index([status, createdAt])
+}
+
+model LinkageDocumentValidation {
+  id                String                  @id @default(auto()) @map("_id") @db.ObjectId
+  applicationId     String                  @unique @db.ObjectId
+  application       LinkageApplication      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  validatorName     String
+  validationDate    DateTime
+  findings          String?
+  status            LinkageValidationStatus @default(PENDING)
+  documentsVerified String[]                @default([])
+  checklist         Json?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+}
+
+model LinkageOwnershipVerification {
+  id                 String                 @id @default(auto()) @map("_id") @db.ObjectId
+  applicationId      String                 @unique @db.ObjectId
+  application        LinkageApplication     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  officerName        String
+  verificationDate   DateTime
+  remarks            String?
+  ownershipConfirmed Boolean                @default(false)
+  status             LinkageOwnershipStatus @default(PENDING)
+  verifiedBy         String?
+  proofDocuments     String[]               @default([])
+  processedDate      DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+}
+
+model LinkageCertificate {
+  id                String               @id @default(auto()) @map("_id") @db.ObjectId
+  applicationId     String               @unique @db.ObjectId
+  application       LinkageApplication   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  certificateNo     String               @unique
+  issueDate         DateTime
+  expiryDate        DateTime?
+  conditions        String[]
+  signedBy          String
+  signedDesignation String
+  pdfUrl            String?
+  pdfKey            String?
+  verificationUrl   String?
+  qrCodeData        String?
+  gpProfileId       String?              @db.ObjectId
+  gpProfile         GPProfile?           @relation(fields: [gpProfileId], references: [id])
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  linkageRenewals   LinkageRenewal[]
+  linkageDisputes   LinkageDispute[]
+  beneficiaries     LinkageBeneficiary[]
+}
+
+model LinkageRenewal {
+  id                   String              @id @default(auto()) @map("_id") @db.ObjectId
+  certificateId        String              @db.ObjectId
+  certificate          LinkageCertificate  @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  renewalDate          DateTime
+  newExpiryDate        DateTime?
+  renewalReason        String
+  status               RenewalStatus       @default(PENDING)
+  processedBy          String?
+  processedDate        DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  linkageApplication   LinkageApplication? @relation(fields: [linkageApplicationId], references: [id])
+  linkageApplicationId String?             @db.ObjectId
+}
+
+model LinkageDispute {
+  id                   String              @id @default(auto()) @map("_id") @db.ObjectId
+  certificateId        String              @db.ObjectId
+  certificate          LinkageCertificate  @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  raisedByName         String
+  raisedByPhone        String
+  reason               String
+  status               DisputeStatus       @default(PENDING)
+  resolutionNotes      String?
+  resolvedAt           DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  linkageApplication   LinkageApplication? @relation(fields: [linkageApplicationId], references: [id])
+  linkageApplicationId String?             @db.ObjectId
+}
+
+model LinkageBeneficiary {
+  id            String               @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  relation      String
+  age           Int?
+  occupation    String?
+  gender        Gender?
+  parentId      String?              @db.ObjectId
+  parent        LinkageBeneficiary?  @relation("LinkageBeneficiaryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children      LinkageBeneficiary[] @relation("LinkageBeneficiaryHierarchy")
+  certificateId String               @db.ObjectId
+  certificate   LinkageCertificate   @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([certificateId])
+}
+
+model LinkageApplicationBeneficiary {
+  id            String                          @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  relation      String
+  age           Int?
+  occupation    String?
+  gender        Gender?
+  parentId      String?                         @db.ObjectId
+  parent        LinkageApplicationBeneficiary?  @relation("LinkageApplicationBeneficiaryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children      LinkageApplicationBeneficiary[] @relation("LinkageApplicationBeneficiaryHierarchy")
+  applicationId String                          @db.ObjectId
+  application   LinkageApplication              @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  createdAt     DateTime                        @default(now())
+  updatedAt     DateTime                        @updatedAt
+
+  @@index([applicationId])
+}
+
+model Mouzaname {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  name            String
+  jlno            String
+  totalHouseholds Int?
+
+  villageDataId String?      @db.ObjectId
+  VillageData   VillageData? @relation(fields: [villageDataId], references: [id])
+
+  populationSummary PopulationSummary[]
+  voterSummary      VoterSummary[]
+  toiletSummary     ToiletSummary[]
+  waterSummary      WaterSummary[]
+  population        Population[]
+  educationSummary  EducationSummary[]
+}
+
+model Sansad {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  financialYear String
+  sansadname    String
+  sansadnumber  String        @unique
+  VillageData   VillageData[]
+}
+
+model Member {
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  financialYear      String
+  salutation         String
+  firstName          String
+  middleName         String? // Optional
+  lastName           String? // Optional
+  fatherGuardianName String? // Optional
+  dob                DateTime // Store as DateTime
+  gender             String // 'male', 'female', 'other'
+  maritalStatus      String // 'single', 'married', 'divorced', etc.
+  religion           String
+  caste              String? // Optional
+  eduQualification   String
+  computerLiterate   String // 'yes', 'no'
+  motherTongue       String
+  bloodGroup         String // 'A+', 'B-', etc.
+  contactNo          String // Store as a string for phone numbers
+  whatsappNo         String? // Optional
+  email              String       @unique // Ensure unique email addresses
+  address            String
+  village            String
+  pin                String // Store as a string (6-digit PIN code)
+  postOffice         String
+  district           String
+  policeStation      String
+  aadhar             String?      @unique // Ensure unique Aadhar numbers
+  pan                String? // Optional
+  epic               String? // Optional
+  profession         String
+  annualFamilyIncome String
+  photo              String? // Optional, store file path or URL for images
+  createdAt          DateTime     @default(now()) // Automatically set the current time when the document is created
+  updatedAt          DateTime     @updatedAt // Automatically updated on record modification
+  VillageData        VillageData? @relation(fields: [villageDataId], references: [id])
+  villageDataId      String?      @db.ObjectId
+}
+
+model PollingDetails {
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  financialYear      String
+  pollingdetailsno   Int          @unique
+  pollingdetailsname String
+  malevoter          Int
+  femalevoter        Int
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  VillageData        VillageData? @relation(fields: [villageDataId], references: [id])
+  villageDataId      String?      @db.ObjectId
+}
+
+model Population {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  financialYear String
+  male          Int
+  female        Int
+  st            Int
+  sc            Int
+  obc           Int
+  other         Int
+  hindu         Int
+  muslim        Int
+  christian     Int
+  otherReligion Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mouzaId String    @db.ObjectId
+  mouza   Mouzaname @relation(fields: [mouzaId], references: [id])
+}
+
+model VillageData {
+  id                   String           @id @default(auto()) @map("_id") @db.ObjectId
+  financialYear        String
+  pollingstatusdetaial PollingDetails[]
+  memberdetails        Member[]
+  sansaddetails        Sansad           @relation(fields: [sansadId], references: [id])
+  sansadId             String           @db.ObjectId
+  mouzadetails         Mouzaname[]
+}
+
+model PopulationSummary {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  financialYear String
+
+  mouzaId String    @db.ObjectId
+  mouza   Mouzaname @relation(fields: [mouzaId], references: [id])
+
+  totalMale   Int
+  totalFemale Int
+
+  scMale   Int
+  scFemale Int
+
+  stMale   Int
+  stFemale Int
+
+  obcMale   Int
+  obcFemale Int
+
+  genMale   Int
+  genFemale Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VoterSummary {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  financialYear String
+
+  mouzaId String    @db.ObjectId
+  mouza   Mouzaname @relation(fields: [mouzaId], references: [id])
+
+  totalMaleVoter   Int
+  totalFemaleVoter Int
+
+  scMaleVoter   Int
+  scFemaleVoter Int
+
+  stMaleVoter   Int
+  stFemaleVoter Int
+
+  obcMaleVoter   Int
+  obcFemaleVoter Int
+
+  genMaleVoter   Int
+  genFemaleVoter Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ToiletSummary {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  financialYear String
+
+  mouzaId String    @db.ObjectId
+  mouza   Mouzaname @relation(fields: [mouzaId], references: [id])
+
+  totalHousehold     Int
+  toiletAvailable    Int
+  toiletNotAvailable Int
+
+  createdAt DateTime @default(now())
+}
+
+model WaterSummary {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  financialYear String
+
+  mouzaId String    @db.ObjectId
+  mouza   Mouzaname @relation(fields: [mouzaId], references: [id])
+
+  tapWater Int
+  handPump Int
+  well     Int
+  pond     Int
+  other    Int
+
+  createdAt DateTime @default(now())
+}
+
+model EducationSummary {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  financialYear String
+
+  mouzaId String    @db.ObjectId
+  mouza   Mouzaname @relation(fields: [mouzaId], references: [id])
+
+  illiterate Int
+  primary    Int
+  secondary  Int
+  higher     Int
+  graduate   Int
+
+  createdAt DateTime @default(now())
+}
+
+model Pond {
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  location  String
+  area      String?
+  status    PondStatus  @default(AVAILABLE)
+  leases    PondLease[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+enum PondStatus {
+  AVAILABLE
+  LEASED
+}
+
+model PondLease {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  pondId String @db.ObjectId
+  pond   Pond   @relation(fields: [pondId], references: [id])
+
+  leasePartyName         String
+  leasePartyFatherName   String?
+  leasePartyAddressLine1 String?
+  leasePartyAddressLine2 String?
+  leasePartyCity         String?
+  leasePartyPin          String?
+  leasePartyMobile       String
+  leaseAmountYearly      Float
+  leaseStartDate         DateTime
+  leaseEndDate           DateTime
+  totalAmount            Float
+  paidAmount             Float              @default(0)
+  pendingAmount          Float
+  status                 LeaseStatus        @default(ACTIVE)
+  remarks                String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  payments               PondLeasePayment[]
+
+  @@index([pondId])
+  @@index([leasePartyName])
+  @@index([status])
+}
+
+model PondLeasePayment {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  pondLeaseId String    @db.ObjectId
+  pondLease   PondLease @relation(fields: [pondLeaseId], references: [id], onDelete: Cascade)
+
+  amountPaid Float
+
+  paymentDate DateTime
+
+  paymentMethod PaymentMethod @default(CASH)
+
+  transactionId String?
+
+  remarks String?
+
+  createdAt DateTime @default(now())
+
+  @@index([pondLeaseId])
+  @@index([paymentDate])
+}
+
+enum LeaseStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+  HALF_DAY
+  WORK_FROM_HOME
+}
+
+model Attendance {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  date     DateTime
+  checkIn  DateTime?
+  checkOut DateTime?
+  status   AttendanceStatus @default(PRESENT)
+  notes    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@map("attendances")
 }

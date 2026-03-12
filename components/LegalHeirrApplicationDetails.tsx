@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Table,
@@ -7,19 +8,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Gender,
-  MaritialStatus,
-  LivingStatus,
-  WarishApplicationStatus,
-} from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { UserCheck, UserX, Users } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { UserCheck, UserX, Users, FileText } from "lucide-react";
 import { WarishDetailProps, WarishApplicationProps } from "@/types";
 import { capitalizeFirstLetter, formatText } from "@/utils/formatText";
 import { cn } from "@/lib/utils";
+
+const countAllHeirs = (details: WarishDetailProps[]): number => {
+  return details.reduce((acc, detail) => {
+    return acc + 1 + countAllHeirs(detail.children);
+  }, 0);
+};
 
 const getSerialNumber = (depth: number, index: number): string => {
   if (depth === 0) return `${index + 1}`;
@@ -41,43 +43,68 @@ const renderWarishDetails = (
       <TableRow
         key={detail.id}
         className={cn(
-          "transition-colors duration-200",
-          depth % 2 === 0 ? "bg-muted/30" : "bg-background",
+          "transition-all duration-200 hover:bg-muted/40",
           depth > 0 && "text-sm"
         )}
       >
-        <TableCell className="font-mono text-right w-[10%] text-muted-foreground">
+        <TableCell className="font-mono text-right w-[80px] text-muted-foreground">
           {currentIndex}
         </TableCell>
+
         <TableCell>
-          <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 24}px` }}>
+          <div
+            className="flex items-center gap-3 relative"
+            style={{ paddingLeft: `${depth * 20}px` }}
+          >
+            {depth > 0 && (
+              <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-border" />
+            )}
+
             {detail.livingStatus === "alive" ? (
-              <UserCheck className="h-4 w-4 text-green-500" />
+              <UserCheck className="h-4 w-4 text-emerald-500" />
             ) : (
               <UserX className="h-4 w-4 text-red-500" />
             )}
-            <span className="font-medium">{formatText(detail.name)}</span>
+
+            <span className="font-medium">
+              {formatText(detail.name)}
+            </span>
           </div>
         </TableCell>
+
         <TableCell>
-          <Badge variant={detail.gender === "male" ? "default" : "secondary"}>
-            {capitalizeFirstLetter(detail.gender)}
+          <Badge
+            className={cn(
+              "capitalize",
+              detail.gender === "male"
+                ? "bg-blue-100 text-blue-700"
+                : "bg-pink-100 text-pink-700"
+            )}
+          >
+            {detail.gender}
           </Badge>
         </TableCell>
+
         <TableCell className="text-muted-foreground">
           {formatText(detail.relation)}
         </TableCell>
+
         <TableCell>
           <Badge
-            variant={
-              detail.livingStatus === "alive" ? "success" : "destructive"
-            }
+            className={cn(
+              detail.livingStatus === "alive"
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-red-100 text-red-700"
+            )}
           >
             {capitalizeFirstLetter(detail.livingStatus)}
           </Badge>
         </TableCell>
+
         <TableCell className="text-muted-foreground">
-          {detail.hasbandName ? formatText(detail.hasbandName) : "—"}
+          {detail.hasbandName
+            ? formatText(detail.hasbandName)
+            : "—"}
         </TableCell>
       </TableRow>,
       ...(detail.children.length > 0
@@ -94,25 +121,59 @@ export default function LegalHeirrApplicationDetails({
   application: WarishApplicationProps;
   rootWarishDetails: WarishDetailProps[];
 }) {
+  const totalHeirs = countAllHeirs(rootWarishDetails);
+
   return (
-    <Card className="w-full border-t-4 border-t-primary shadow-md mb-2">
-      <CardHeader className="bg-muted/50 border-b">
-        <CardTitle className="flex items-center gap-3">
-          <div className="p-2 bg-background rounded-md shadow-sm">
-            <Users className="h-5 w-5 text-primary" />
+    <Card className="w-full shadow-lg border border-border rounded-2xl overflow-hidden">
+      <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <CardTitle className="flex items-center gap-3 text-lg font-semibold">
+            <div className="p-2 bg-background rounded-xl shadow-sm">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            Legal Heirs Details
+          </CardTitle>
+
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">
+              Total Heirs: {totalHeirs}
+            </Badge>
+
+            <Badge
+              className={cn(
+                application.warishApplicationStatus === "approved"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : application.warishApplicationStatus === "rejected"
+                  ? "bg-red-100 text-red-700"
+                  : "bg-amber-100 text-amber-700"
+              )}
+            >
+              {capitalizeFirstLetter(
+                application.warishApplicationStatus
+              )}
+            </Badge>
           </div>
-          <span>Table of Legal Heirs</span>
-          <Badge variant="outline" className="ml-auto">
-            Total: {rootWarishDetails.length}
-          </Badge>
-        </CardTitle>
+        </div>
+
+        <Separator className="mt-3" />
+
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+          <FileText className="h-4 w-4" />
+          Deceased:{" "}
+          <span className="font-medium text-foreground">
+            {formatText(application.nameOfDeceased)}
+          </span>
+        </div>
       </CardHeader>
-      <CardContent className="p-0 mb-2">
-        <ScrollArea className="rounded-md border">
+
+      <CardContent className="p-0">
+        <ScrollArea className="h-[400px]">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted hover:bg-muted">
-                <TableHead className="text-center">Sl No.</TableHead>
+              <TableRow className="bg-muted/40">
+                <TableHead className="text-center w-[80px]">
+                  Sl No.
+                </TableHead>
                 <TableHead>Full Name</TableHead>
                 <TableHead>Gender</TableHead>
                 <TableHead>Relation</TableHead>
@@ -120,6 +181,7 @@ export default function LegalHeirrApplicationDetails({
                 <TableHead>Spouse Name</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {renderWarishDetails(rootWarishDetails)}
             </TableBody>

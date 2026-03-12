@@ -1,7 +1,8 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { BuildingIcon, CurrencyIcon, CheckIcon } from "lucide-react";
+import { Building2, IndianRupee, Trophy, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BidAgency {
   id: string;
@@ -25,57 +26,100 @@ export function BidItem({
   const rank = getBidRank(item.id);
   const badgeColor = getBadgeColor(rank);
 
+  const isTopRank = rank === 1;
+
   return (
     <div
-      className={`flex items-center gap-4 p-4 rounded-lg border transition-all ${
+      className={cn(
+        "relative flex items-center gap-5 p-6 rounded-2xl border bg-background transition-all duration-200",
         isSelected
-          ? "ring-2 ring-primary bg-blue-50/30"
-          : "hover:bg-muted/40 cursor-pointer bg-white"
-      }`}
+          ? "ring-2 ring-primary shadow-md"
+          : "hover:shadow-sm hover:border-primary/40",
+        isTopRank && "border-emerald-400 bg-emerald-50/40"
+      )}
     >
+      {/* Checkbox */}
       <Checkbox
         id={`bid-${item.id}`}
         value={item.id}
         name="acceptbidderId"
         defaultChecked={isSelected}
+        className="mt-1"
       />
+
       <Label
         htmlFor={`bid-${item.id}`}
-        className="flex flex-1 items-center justify-between"
+        className="flex flex-1 items-center justify-between cursor-pointer"
       >
-        <div className="space-y-3">
+        {/* LEFT SECTION */}
+        <div className="space-y-4">
+
+          {/* Agency Name */}
           <div className="flex items-center gap-3">
-            <BuildingIcon className="w-5 h-5 text-muted-foreground" />
-            <span className="font-medium">{item.agencydetails.name}</span>
+            <div className="p-2 rounded-xl bg-muted">
+              <Building2 className="w-5 h-5 text-muted-foreground" />
+            </div>
+
+            <div>
+              <p className="font-semibold text-base">
+                {item.agencydetails.name}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Bidder ID: {item.id.slice(0, 8)}
+              </p>
+            </div>
           </div>
-          
-          <div className="flex gap-2">
+
+          {/* Rank + Status Badges */}
+          <div className="flex items-center gap-3 flex-wrap">
+
+            {/* Rank Badge */}
             {rank <= 3 && (
-              <Badge className={`${badgeColor} rounded-sm px-2 py-1`}>
-                {rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd"}
+              <Badge
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1",
+                  badgeColor
+                )}
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                {rank === 1
+                  ? "L1 (Lowest)"
+                  : rank === 2
+                  ? "L2"
+                  : "L3"}
               </Badge>
             )}
-            
+
+            {/* Selected Badge */}
             {isSelected && (
-              <Badge className="bg-blue-100 text-blue-800 rounded-sm px-2 py-1">
-                <CheckIcon className="w-4 h-4 mr-1" />
+              <Badge className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
                 Selected
               </Badge>
             )}
           </div>
         </div>
-        
-        <div className="flex items-center gap-2 bg-muted px-3 py-2 rounded-lg">
-          <CurrencyIcon className="w-5 h-5 text-muted-foreground" />
-          <span className="font-semibold">
-            {item.biddingAmount?.toLocaleString("en-US", {
-              style: "currency",
-              currency: "INR",
-              maximumFractionDigits: 0,
-            }) || "N/A"}
-          </span>
+
+        {/* RIGHT SECTION - Amount */}
+        <div
+          className={cn(
+            "flex items-center gap-2 px-4 py-3 rounded-xl font-semibold text-base",
+            isTopRank
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-muted text-foreground"
+          )}
+        >
+          <IndianRupee className="w-5 h-5" />
+          {item.biddingAmount?.toLocaleString("en-IN", {
+            maximumFractionDigits: 0,
+          }) || "N/A"}
         </div>
       </Label>
+
+      {/* Left rank stripe for L1 */}
+      {isTopRank && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 rounded-l-2xl" />
+      )}
     </div>
   );
 }

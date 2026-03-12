@@ -171,7 +171,16 @@ export const AbstractPage: React.FC<AbstractPageProps> = ({
               (Signature & Designation)
             </div>
           </div>
+          
         </div>
+        <div className="signature-block">
+            <div className="signature-line">
+              
+              <br />
+              Signature of agency 
+            </div>
+  
+          </div>
       </div>
     </div>
   );

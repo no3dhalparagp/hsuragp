@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -28,9 +27,13 @@ import {
   XCircle,
   Clock,
   Eye,
-  ChevronRight,
   Info,
   MoreHorizontal,
+  ArrowRight,
+  User,
+  CalendarDays,
+  Check,
+  X
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -41,6 +44,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface CorrectionRequest {
   id: string;
@@ -102,7 +106,7 @@ export default function CorrectionRequestReview({
           },
           body: JSON.stringify({
             approve,
-            reviewedBy: "Admin", // You might want to get this from user context
+            reviewedBy: "Admin", // Should be from context in real app
             reviewComments: reviewComments.trim() || undefined,
           }),
         }
@@ -137,27 +141,27 @@ export default function CorrectionRequestReview({
     switch (status) {
       case "pending":
         return (
-          <Badge className="bg-yellow-500/20 text-yellow-600 hover:bg-yellow-500/30 border-yellow-200">
-            <Clock className="w-3.5 h-3.5 mr-1" />
-            Pending
+          <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-200/50 gap-1 pr-2">
+            <Clock className="w-3 h-3" />
+            Pending Review
           </Badge>
         );
       case "approved":
         return (
-          <Badge className="bg-green-500/20 text-green-600 hover:bg-green-500/30 border-green-200">
-            <CheckCircle className="w-3.5 h-3.5 mr-1" />
+          <Badge variant="outline" className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-200/50 gap-1 pr-2">
+            <CheckCircle className="w-3 h-3" />
             Approved
           </Badge>
         );
       case "rejected":
         return (
-          <Badge className="bg-red-500/20 text-red-600 hover:bg-red-500/30 border-red-200">
-            <XCircle className="w-3.5 h-3.5 mr-1" />
+          <Badge variant="outline" className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-200/50 gap-1 pr-2">
+            <XCircle className="w-3 h-3" />
             Rejected
           </Badge>
         );
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
@@ -170,6 +174,11 @@ export default function CorrectionRequestReview({
 
   const formatDate = (date: Date | string) => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
+    return format(dateObj, "MMM dd, yyyy");
+  };
+  
+  const formatDateTime = (date: Date | string) => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
     return format(dateObj, "MMM dd, yyyy 'at' h:mm a");
   };
 
@@ -180,17 +189,17 @@ export default function CorrectionRequestReview({
 
   if (requests.length === 0) {
     return (
-      <Card className="bg-gray-50 dark:bg-gray-900 border-0">
-        <CardContent className="p-8 text-center">
-          <div className="flex flex-col items-center justify-center">
-            <Info className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-xl font-medium text-gray-500 mb-2">
-              No correction requests
-            </h3>
-            <p className="text-gray-400 max-w-md">
-              There are no correction requests to display at this time.
-            </p>
+      <Card className="bg-muted/5 border-dashed">
+        <CardContent className="p-8 text-center flex flex-col items-center justify-center min-h-[200px]">
+          <div className="bg-muted rounded-full p-4 mb-4">
+            <Info className="w-8 h-8 text-muted-foreground" />
           </div>
+          <h3 className="text-lg font-medium text-foreground mb-1">
+            No correction requests found
+          </h3>
+          <p className="text-muted-foreground text-sm max-w-xs">
+            There are no correction requests to display at this time.
+          </p>
         </CardContent>
       </Card>
     );
@@ -208,94 +217,100 @@ export default function CorrectionRequestReview({
         }
       }}
     >
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Review Correction Request</DialogTitle>
-          <div className="text-sm text-muted-foreground mt-1">
-            ID: {selectedRequest?.id}
+      <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0 border-none shadow-2xl">
+        <DialogHeader className="p-6 pb-4 bg-muted/30 border-b">
+          <div className="flex items-center justify-between gap-4">
+             <DialogTitle className="text-xl">Correction Request Review</DialogTitle>
+             {selectedRequest && getStatusBadge(selectedRequest.status)}
+          </div>
+          <div className="flex text-xs text-muted-foreground gap-3 mt-1">
+             <span className="font-mono bg-muted px-1.5 py-0.5 rounded border">ID: {selectedRequest?.id.slice(0, 8)}...</span>
+             <span>submitted on {selectedRequest && formatDate(selectedRequest.requestedDate)}</span>
           </div>
         </DialogHeader>
 
         {selectedRequest && (
-          <div className="space-y-6 py-2">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-6 p-4 bg-muted/20 rounded-lg border">
               <div>
-                <Label className="font-medium text-gray-700">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                   Field to Modify
                 </Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="outline">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-foreground">
                     {formatFieldName(selectedRequest.fieldToModify)}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground capitalize">
-                    ({selectedRequest.targetType})
                   </span>
+                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 capitalize font-normal bg-background border shadow-sm">
+                    {selectedRequest.targetType}
+                  </Badge>
                 </div>
               </div>
+              
               <div className="text-right">
-                <Label className="font-medium text-gray-700">Status</Label>
-                <div className="mt-1 flex justify-end">
-                  {getStatusBadge(selectedRequest.status)}
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                  Requested By
+                </Label>
+                <div className="flex items-center justify-end gap-2 text-sm font-medium">
+                  <User className="w-3.5 h-3.5 text-muted-foreground" />
+                  {selectedRequest.requestedBy}
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="font-medium text-gray-700">
-                  Current Value
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border rounded-lg overflow-hidden shadow-sm">
+              <div className="p-4 bg-red-50/50 dark:bg-red-950/10 border-b md:border-b-0 md:border-r border-border/60">
+                <Label className="text-xs font-semibold text-red-600/80 dark:text-red-400/80 uppercase tracking-wider flex items-center gap-2 mb-2">
+                  <X className="w-3 h-3" /> Current Value
                 </Label>
-                <div className="p-3 bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-sm break-words">
-                  {selectedRequest.currentValue || (
-                    <span className="text-gray-400 italic">Empty</span>
+                <div className="p-3 bg-background border border-red-100 dark:border-red-900/30 rounded text-sm break-words min-h-[3rem] flex items-center shadow-sm">
+                  {selectedRequest.currentValue ? (
+                     <span className="text-muted-foreground line-through decoration-red-400/50">{selectedRequest.currentValue}</span>
+                  ) : (
+                    <span className="text-muted-foreground italic text-xs">Empty</span>
                   )}
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label className="font-medium text-gray-700">
-                  Proposed Value
+              
+              <div className="p-4 bg-green-50/50 dark:bg-green-950/10">
+                <Label className="text-xs font-semibold text-green-600/80 dark:text-green-400/80 uppercase tracking-wider flex items-center gap-2 mb-2">
+                  <Check className="w-3 h-3" /> Proposed Value
                 </Label>
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-lg text-sm break-words">
-                  {selectedRequest.proposedValue}
+                <div className="p-3 bg-background border border-green-100 dark:border-green-900/30 rounded text-sm break-words min-h-[3rem] flex items-center shadow-sm font-medium">
+                  <span className="text-foreground">{selectedRequest.proposedValue}</span>
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="font-medium text-gray-700">
+              <Label className="font-medium text-sm flex items-center gap-2">
+                <Info className="w-4 h-4 text-primary" />
                 Reason for Modification
               </Label>
-              <div className="p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-sm">
-                {selectedRequest.reasonForModification}
+              <div className="p-4 bg-muted/30 border rounded-lg text-sm text-muted-foreground italic">
+                &quot;{selectedRequest.reasonForModification}&quot;
               </div>
             </div>
 
             {selectedRequest.status !== "pending" && (
-              <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border">
-                <h4 className="font-medium text-gray-900 mb-3 text-sm">
-                  Review Details
-                </h4>
+              <div className="bg-muted/40 p-4 rounded-lg border space-y-3">
+                <h4 className="font-medium text-sm border-b pb-2 mb-2">Review Details</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500 block">Reviewed By</span>
-                    <span className="font-medium">
-                      {selectedRequest.reviewedBy || "N/A"}
-                    </span>
+                    <span className="text-muted-foreground text-xs block mb-1">Reviewed By</span>
+                    <span className="font-medium">{selectedRequest.reviewedBy || "N/A"}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 block">Date</span>
+                    <span className="text-muted-foreground text-xs block mb-1">Review Date</span>
                     <span className="font-medium">
                       {selectedRequest.reviewedDate
-                        ? formatDate(selectedRequest.reviewedDate)
+                        ? formatDateTime(selectedRequest.reviewedDate)
                         : "N/A"}
                     </span>
                   </div>
                   {selectedRequest.reviewComments && (
-                    <div className="col-span-2 mt-2">
-                      <span className="text-gray-500 block">Comments</span>
-                      <p className="mt-1 text-gray-700">
-                        {selectedRequest.reviewComments}
-                      </p>
+                    <div className="col-span-2 bg-background p-3 rounded border text-sm mt-1">
+                      <span className="text-muted-foreground text-xs block mb-1 font-semibold">Reviewer Comments</span>
+                      <p className="text-foreground/90">{selectedRequest.reviewComments}</p>
                     </div>
                   )}
                 </div>
@@ -303,59 +318,60 @@ export default function CorrectionRequestReview({
             )}
 
             {selectedRequest.status === "pending" && (
-              <div className="space-y-2">
+              <div className="space-y-3 pt-2 border-t mt-2">
                 <Label
                   htmlFor="reviewComments"
-                  className="font-medium text-gray-700"
+                  className="font-medium text-sm text-foreground"
                 >
-                  Review Comments
+                  Review Comments <span className="text-muted-foreground font-normal">(Required for rejection)</span>
                 </Label>
                 <Textarea
                   id="reviewComments"
                   value={reviewComments}
                   onChange={(e) => setReviewComments(e.target.value)}
-                  placeholder="Add your review comments here..."
-                  className="min-h-[100px]"
+                  placeholder="Add your review notes here..."
+                  className="min-h-[100px] resize-none focus-visible:ring-offset-0"
                 />
-                <p className="text-xs text-gray-500">
-                  Required when rejecting a request
-                </p>
               </div>
             )}
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-            Close
-          </Button>
-          {selectedRequest?.status === "pending" && (
-            <>
-              <Button
-                variant="destructive"
-                onClick={() =>
-                  selectedRequest && handleReview(selectedRequest.id, false)
-                }
-                disabled={reviewingRequest === selectedRequest?.id}
-              >
-                {reviewingRequest === selectedRequest?.id
-                  ? "Rejecting..."
-                  : "Reject"}
-              </Button>
-              <Button
-                onClick={() =>
-                  selectedRequest && handleReview(selectedRequest.id, true)
-                }
-                disabled={reviewingRequest === selectedRequest?.id}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {reviewingRequest === selectedRequest?.id
-                  ? "Approving..."
-                  : "Approve"}
-              </Button>
-            </>
-          )}
-        </DialogFooter>
+        <div className="p-6 pt-2 border-t bg-muted/10 sticky bottom-0">
+          <DialogFooter className="gap-2 sm:gap-3 w-full sm:justify-between items-center">
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="text-muted-foreground">
+              Close
+            </Button>
+            
+            {selectedRequest?.status === "pending" && (
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    selectedRequest && handleReview(selectedRequest.id, false)
+                  }
+                  disabled={reviewingRequest === selectedRequest?.id}
+                  className="flex-1 sm:flex-none"
+                >
+                  {reviewingRequest === selectedRequest?.id
+                    ? "Rejecting..."
+                    : "Reject Request"}
+                </Button>
+                <Button
+                  onClick={() =>
+                    selectedRequest && handleReview(selectedRequest.id, true)
+                  }
+                  disabled={reviewingRequest === selectedRequest?.id}
+                  className="bg-green-600 hover:bg-green-700 text-white flex-1 sm:flex-none shadow-sm"
+                >
+                  {reviewingRequest === selectedRequest?.id
+                    ? "Approving..."
+                    : "Approve Request"}
+                </Button>
+              </div>
+            )}
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -364,9 +380,9 @@ export default function CorrectionRequestReview({
   if (viewMode === "table") {
     return (
       <>
-        <div className="rounded-md border bg-white dark:bg-gray-900">
+        <div className="rounded-md border bg-card">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead>Field</TableHead>
                 <TableHead>Requested By</TableHead>
@@ -383,35 +399,35 @@ export default function CorrectionRequestReview({
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
                       <span>{formatFieldName(request.fieldToModify)}</span>
-                      <span className="text-xs text-muted-foreground capitalize">
+                      <span className="text-[10px] text-muted-foreground capitalize bg-muted px-1.5 py-0.5 rounded w-fit mt-0.5 border">
                         {request.targetType}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span>{request.requestedBy}</span>
+                    <div className="flex flex-col text-sm">
+                      <span className="font-medium">{request.requestedBy}</span>
                       {request.warishApplication && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground truncate max-w-[120px]" title={request.warishApplication.acknowlegment}>
                           App: {request.warishApplication.acknowlegment}
                         </span>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                     {format(new Date(request.requestedDate), "MMM dd, yyyy")}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate" title={request.currentValue}>
+                  <TableCell className="max-w-[150px] truncate text-sm text-muted-foreground" title={request.currentValue}>
                     {request.currentValue || "-"}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate font-medium text-green-600" title={request.proposedValue}>
+                  <TableCell className="max-w-[150px] truncate font-medium text-green-600 dark:text-green-400 text-sm" title={request.proposedValue}>
                     {request.proposedValue}
                   </TableCell>
                   <TableCell>{getStatusBadge(request.status)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
                           <span className="sr-only">Open menu</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
@@ -446,80 +462,78 @@ export default function CorrectionRequestReview({
   // List View Implementation (Default)
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold">Correction Requests</h2>
-          <p className="text-sm text-muted-foreground">
-            {requests.length} request{requests.length !== 1 ? "s" : ""} found
+          <h2 className="text-xl font-semibold tracking-tight">Recent Requests</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+             Manage and track your correction requests.
           </p>
         </div>
+        <Badge variant="outline" className="px-3 py-1 bg-background text-sm font-medium">
+           {requests.length} Total
+        </Badge>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
         {requests.map((request) => (
           <Card
             key={request.id}
-            className="transition-all hover:shadow-md overflow-hidden border-l-4"
-            style={{
-              borderLeftColor:
-                request.status === "pending"
-                  ? "#eab308"
-                  : request.status === "approved"
-                  ? "#22c55e"
-                  : "#ef4444",
-            }}
+            className={cn(
+               "group transition-all hover:shadow-md cursor-pointer border-l-4 overflow-hidden",
+               request.status === "pending" ? "border-l-yellow-500 hover:border-l-yellow-600" :
+               request.status === "approved" ? "border-l-green-500 hover:border-l-green-600" :
+               "border-l-red-500 hover:border-l-red-600"
+            )}
+            onClick={() => openReviewDialog(request)}
           >
-            <CardHeader className="pb-2 pt-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    {formatFieldName(request.fieldToModify)}
-                    <span className="text-xs font-normal text-muted-foreground capitalize px-2 py-0.5 bg-muted rounded-full">
-                      {request.targetType}
-                    </span>
-                  </CardTitle>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                    <UserIcon className="h-3 w-3" />
-                    <span>{request.requestedBy}</span>
-                    <span>•</span>
-                    <span>{formatDate(request.requestedDate)}</span>
+            <CardContent className="p-0">
+               <div className="flex flex-col sm:flex-row">
+                  <div className="flex-1 p-5 space-y-4">
+                     <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                           <div className="flex items-center gap-2">
+                             <h3 className="font-semibold text-base text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
+                               {formatFieldName(request.fieldToModify)}
+                             </h3>
+                             <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal capitalize bg-muted/50 border shadow-none">
+                               {request.targetType}
+                             </Badge>
+                           </div>
+                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <User className="h-3 w-3" /> {request.requestedBy}
+                              <span>•</span>
+                              <CalendarDays className="h-3 w-3" /> {formatDate(request.requestedDate)}
+                           </div>
+                        </div>
+                        <div className="sm:hidden">
+                           {getStatusBadge(request.status)}
+                        </div>
+                     </div>
+                     
+                     <div className="flex items-center gap-3 text-sm bg-muted/20 p-3 rounded-lg border border-border/50">
+                        <div className="flex-1 min-w-0">
+                           <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider block mb-0.5">Current</span>
+                           <div className="truncate text-muted-foreground line-through decoration-border/60" title={request.currentValue}>
+                              {request.currentValue || <span className="italic opacity-50">Empty</span>}
+                           </div>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-muted-foreground/40 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                           <span className="text-[10px] uppercase text-green-600/70 font-semibold tracking-wider block mb-0.5">Proposed</span>
+                           <div className="truncate font-medium text-foreground" title={request.proposedValue}>
+                              {request.proposedValue}
+                           </div>
+                        </div>
+                     </div>
                   </div>
-                </div>
-                {getStatusBadge(request.status)}
-              </div>
-            </CardHeader>
-
-            <CardContent className="pb-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <div className="text-sm">
-                  <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-1">
-                    Current
-                  </span>
-                  <div className="font-medium truncate">
-                    {request.currentValue || "N/A"}
+                  
+                  <div className="hidden sm:flex flex-col items-end justify-between p-5 border-l bg-muted/5 w-[140px] shrink-0">
+                     {getStatusBadge(request.status)}
+                     <Button variant="ghost" size="sm" className="text-xs text-muted-foreground group-hover:text-primary h-8 px-2 hover:bg-primary/5 w-full mt-auto">
+                        Details <ChevronRight className="w-3 h-3 ml-1" />
+                     </Button>
                   </div>
-                </div>
-                <div className="text-sm">
-                  <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-1">
-                    Proposed
-                  </span>
-                  <div className="font-medium text-green-700 truncate">
-                    {request.proposedValue}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openReviewDialog(request)}
-                  className="text-xs"
-                >
-                  <Eye className="w-3.5 h-3.5 mr-1" />
-                  View Details
-                </Button>
-              </div>
+               </div>
             </CardContent>
           </Card>
         ))}
@@ -529,22 +543,22 @@ export default function CorrectionRequestReview({
   );
 }
 
-function UserIcon({ className }: { className?: string }) {
+function ChevronRight({ className, ...props }: React.ComponentProps<"svg">) {
   return (
     <svg
-      className={className}
-      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
       height="24"
+      viewBox="0 0 24 24"
+      fill="none"
       stroke="currentColor"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-      width="24"
-      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      {...props}
     >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
+      <path d="m9 18 6-6-6-6" />
     </svg>
   );
 }

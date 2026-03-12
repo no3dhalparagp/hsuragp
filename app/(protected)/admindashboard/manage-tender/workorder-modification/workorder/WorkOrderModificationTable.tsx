@@ -1,63 +1,221 @@
 "use client"
 
-import React, { useState } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from "react"
+
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table"
+
 import { PencilIcon } from "lucide-react"
 import WorkOrderModificationDialog from "./WorkOrderModificationDialog"
 
-export default function WorkOrderModificationTable({ workOrders }: { workOrders: any[] }) {
-  const [open, setOpen] = useState(false)
+interface WorkOrderModificationTableProps {
+  workOrders: any[]
+}
+
+export default function WorkOrderModificationTable({ workOrders }: WorkOrderModificationTableProps) {
+
+  const [data, setData] = useState<any[]>(workOrders)
+  const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+
+  // Filter data based on search and handle pagination
+  useEffect(() => {
+    const filtered = workOrders.filter((item) => {
+      const aoc = Array.isArray(item.AwardofContract)
+        ? item.AwardofContract[0]
+        : item.AwardofContract
+
+      const searchLower = search.toLowerCase()
+      const nitMatch = item.nitDetails?.memoNumber?.toLowerCase().includes(searchLower)
+      const workNoMatch = item.workslno?.toLowerCase().includes(searchLower)
+      const memoMatch = aoc?.workodermenonumber?.toLowerCase().includes(searchLower)
+
+      return nitMatch || workNoMatch || memoMatch
+    })
+
+    const itemsPerPage = 20
+    const total = Math.ceil(filtered.length / itemsPerPage)
+    setTotalPages(total === 0 ? 1 : total)
+
+    const start = (page - 1) * itemsPerPage
+    const paginated = filtered.slice(start, start + itemsPerPage)
+    setData(paginated)
+  }, [search, page, workOrders])
 
   return (
-    <div className="rounded-xl border shadow-sm overflow-hidden">
+    <div className="space-y-4 rounded-lg border bg-white shadow">
+
+      {/* Header */}
+      <div className="bg-blue-700 text-white px-4 py-3 font-semibold">
+        Work Order Modification
+      </div>
+
+      {/* Search */}
+      <div className="p-4">
+        <Input
+          placeholder="Search by NIT / Memo / Work No"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(1)
+          }}
+        />
+      </div>
+
+      {/* Table */}
       <div className="overflow-x-auto">
-        <Table className="border-collapse">
-          <TableHeader className="bg-gray-50/80">
+
+        <Table>
+
+          <TableHeader className="bg-blue-50">
+
             <TableRow>
-              <TableHead className="w-12 text-gray-600 font-semibold">#</TableHead>
-              <TableHead className="min-w-[180px] text-gray-600 font-semibold">NIT Details</TableHead>
-              <TableHead className="w-32 text-gray-600 font-semibold">Memo No</TableHead>
-              <TableHead className="w-32 text-gray-600 font-semibold">Memo Date</TableHead>
-              <TableHead className="w-24 text-gray-600 font-semibold">Delivery</TableHead>
-              <TableHead className="w-40 text-right text-gray-600 font-semibold">Actions</TableHead>
+
+              <TableHead>Sl</TableHead>
+              <TableHead>NIT Number</TableHead>
+              <TableHead>Work No</TableHead>
+              <TableHead>Memo Number</TableHead>
+              <TableHead>Memo Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+
             </TableRow>
+
           </TableHeader>
+
           <TableBody>
-            {workOrders.map((item, i) => (
-              <TableRow key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                <TableCell className="font-medium text-gray-600">{i + 1}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium text-gray-900">NIT No. {item.nitDetails?.memoNumber}</span>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <span>Work No. {item.workslno}</span>
-                      <span className="text-gray-300">•</span>
-                      <span>{item.nitDetails?.memoDate ? new Date(item.nitDetails.memoDate).getFullYear() : ""}</span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>{(Array.isArray(item.AwardofContract) ? item.AwardofContract[0]?.workodermenonumber : item.AwardofContract?.workodermenonumber) ?? "-"}</TableCell>
-                <TableCell>{(() => { const ao = Array.isArray(item.AwardofContract) ? item.AwardofContract[0] : item.AwardofContract; return ao?.workordeermemodate ? new Date(ao.workordeermemodate).toLocaleDateString() : "-" })()}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={(Array.isArray(item.AwardofContract) ? item.AwardofContract[0]?.isdelivery : item.AwardofContract?.isdelivery) ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
-                    {(Array.isArray(item.AwardofContract) ? item.AwardofContract[0]?.isdelivery : item.AwardofContract?.isdelivery) ? "Delivered" : "Pending"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button size="sm" className="gap-2" onClick={() => { setSelectedId(item.id); setOpen(true) }}>
-                    <PencilIcon className="h-4 w-4" /> Edit
-                  </Button>
+
+            {data.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8">
+                  No Data Found
                 </TableCell>
               </TableRow>
-            ))}
+            )}
+
+            {data.map((item, index) => {
+
+              const aoc = Array.isArray(item.AwardofContract)
+                ? item.AwardofContract[0]
+                : item.AwardofContract
+
+              return (
+                <TableRow key={item.id}>
+
+                  <TableCell>
+                    {(page - 1) * 20 + index + 1}
+                  </TableCell>
+
+                  <TableCell>
+                    {item.nitDetails?.memoNumber ?? "-"}
+                  </TableCell>
+
+                  <TableCell>
+                    {item.workslno ?? "-"}
+                  </TableCell>
+
+                  <TableCell>
+                    {aoc?.workodermenonumber ?? "-"}
+                  </TableCell>
+
+                  <TableCell>
+                    {aoc?.workordeermemodate
+                      ? new Date(
+                          aoc.workordeermemodate
+                        ).toLocaleDateString("en-IN")
+                      : "-"}
+                  </TableCell>
+
+                  <TableCell>
+
+                    <Badge
+                      className={
+                        aoc?.isdelivery
+                          ? "bg-green-600 text-white"
+                          : "bg-yellow-500 text-white"
+                      }
+                    >
+                      {aoc?.isdelivery
+                        ? "Delivered"
+                        : "Pending"}
+                    </Badge>
+
+                  </TableCell>
+
+                  <TableCell className="text-right">
+
+                    <Button
+                      size="sm"
+                      className="bg-blue-700 hover:bg-blue-800 text-white"
+                      onClick={() => {
+                        setSelectedId(item.id)
+                        setOpen(true)
+                      }}
+                    >
+                      <PencilIcon className="h-4 w-4 mr-1" />
+                      Modify
+                    </Button>
+
+                  </TableCell>
+
+                </TableRow>
+              )
+            })}
+
           </TableBody>
+
         </Table>
+
       </div>
-      <WorkOrderModificationDialog open={open} onOpenChange={setOpen} workId={selectedId} />
+
+      {/* Pagination */}
+
+      <div className="flex justify-between items-center p-4">
+
+        <Button
+          disabled={page === 1}
+          onClick={() => setPage(page - 1)}
+        >
+          Previous
+        </Button>
+
+        <span className="text-sm">
+          Page {page} of {totalPages}
+        </span>
+
+        <Button
+          disabled={page === totalPages}
+          onClick={() => setPage(page + 1)}
+        >
+          Next
+        </Button>
+
+      </div>
+
+      {/* Dialog */}
+
+      {selectedId && (
+        <WorkOrderModificationDialog
+          open={open}
+          onOpenChange={setOpen}
+          workId={selectedId}
+        />
+      )}
+
     </div>
   )
 }
-

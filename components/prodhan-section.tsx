@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { gpnameinshort } from "@/constants/gpinfor";
 
 export default function ProdhanSection() {
   return (
@@ -22,10 +23,10 @@ export default function ProdhanSection() {
           </div>
           <div className="flex-1 text-center md:text-left">
             <p className="text-gray-800 text-lg leading-relaxed mb-6">
-              Welcome to Dhalpara Gram Panchayat. We are committed to serving
-              our community and working towards sustainable development. Our
-              goal is to improve the quality of life for all residents through
-              transparent governance and inclusive growth.
+              Welcome to {gpnameinshort} Gram Panchayat. We are committed to
+              serving our community and working towards sustainable development.
+              Our goal is to improve the quality of life for all residents
+              through transparent governance and inclusive growth.
             </p>
             <Link href="/prodhan-speech">
               <Button

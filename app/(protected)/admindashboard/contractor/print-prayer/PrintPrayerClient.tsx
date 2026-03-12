@@ -70,9 +70,11 @@ type WorkDetail = {
   workslno: number;
   completionDate: Date | null;
   finalEstimateAmount: number;
+  workStatus?: string | null;
   paymentDetails: Array<{
     securityDeposit: {
       securityDepositAmt: number;
+      paymentstatus?: string | null;
     } | null;
   }>;
   nitDetails: {
@@ -81,6 +83,7 @@ type WorkDetail = {
   };
   ApprovedActionPlanDetails: {
     activityDescription: string;
+    activityCode: string;
   };
   AwardofContract: {
     workodermenonumber: string | null;
@@ -179,9 +182,27 @@ export default function PrintPrayerClient({
     ? groupedByAgency[selectedAgency] || []
     : [];
 
-  const totalWorksCount = selectedWorks.length;
-  const eligibleWorksCount = selectedWorks.filter(
-    (work) => work.AwardofContract?.workorderdetails?.[0]?.Bidagency?.agencydetails
+  let filteredWorks = selectedWorks;
+
+  if (selectedPrayerType === "BILL_PRAYER") {
+    // Exclude works whose bills are already paid
+    filteredWorks = filteredWorks.filter(
+      (work) => work.workStatus !== "billpaid"
+    );
+  }
+
+  if (selectedPrayerType === "SECURITY_MONEY_RELEASE") {
+    // Exclude works where security deposit has already been paid/released
+    filteredWorks = filteredWorks.filter(
+      (work) =>
+        work.paymentDetails[0]?.securityDeposit?.paymentstatus !== "paid"
+    );
+  }
+
+  const totalWorksCount = filteredWorks.length;
+  const eligibleWorksCount = filteredWorks.filter(
+    (work) =>
+      work.AwardofContract?.workorderdetails?.[0]?.Bidagency?.agencydetails
   ).length;
 
   const isPrayerTypeAvailable =
@@ -277,15 +298,21 @@ export default function PrintPrayerClient({
 
               {/* PRAYER TYPE BADGE */}
               {selectedPrayerTypeData && (
-                <div className={`p-3 rounded-lg ${selectedPrayerTypeData.badgeColor} border`}>
+                <div
+                  className={`p-3 rounded-lg ${selectedPrayerTypeData.badgeColor} border`}
+                >
                   <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded ${selectedPrayerTypeData.color} bg-opacity-20`}>
+                    <div
+                      className={`p-1.5 rounded ${selectedPrayerTypeData.color} bg-opacity-20`}
+                    >
                       {selectedPrayerTypeData.icon && (
                         <selectedPrayerTypeData.icon className="h-4 w-4" />
                       )}
                     </div>
                     <div>
-                      <p className="font-medium">{selectedPrayerTypeData.label}</p>
+                      <p className="font-medium">
+                        {selectedPrayerTypeData.label}
+                      </p>
                       <p className="text-xs opacity-90">
                         {selectedPrayerTypeData.description}
                       </p>
@@ -321,7 +348,11 @@ export default function PrintPrayerClient({
                     >
                       <div className="flex items-center gap-2">
                         <Building className="h-4 w-4 text-slate-500" />
-                        <span className={selectedAgency ? "font-medium" : "text-slate-500"}>
+                        <span
+                          className={
+                            selectedAgency ? "font-medium" : "text-slate-500"
+                          }
+                        >
                           {selectedAgency || "Choose contractor..."}
                         </span>
                       </div>
@@ -363,12 +394,20 @@ export default function PrintPrayerClient({
                   <Separator />
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 bg-slate-50 rounded-lg">
-                      <p className="text-xs text-slate-600 font-medium">Total Works</p>
-                      <p className="text-2xl font-bold text-slate-900">{totalWorksCount}</p>
+                      <p className="text-xs text-slate-600 font-medium">
+                        Total Works
+                      </p>
+                      <p className="text-2xl font-bold text-slate-900">
+                        {totalWorksCount}
+                      </p>
                     </div>
                     <div className="p-3 bg-blue-50 rounded-lg">
-                      <p className="text-xs text-blue-600 font-medium">Eligible</p>
-                      <p className="text-2xl font-bold text-blue-900">{eligibleWorksCount}</p>
+                      <p className="text-xs text-blue-600 font-medium">
+                        Eligible
+                      </p>
+                      <p className="text-2xl font-bold text-blue-900">
+                        {eligibleWorksCount}
+                      </p>
                     </div>
                   </div>
                   <Progress
@@ -376,7 +415,8 @@ export default function PrintPrayerClient({
                     className="h-2"
                   />
                   <p className="text-xs text-slate-500 text-center">
-                    {Math.round((eligibleWorksCount / totalWorksCount) * 100)}% works are eligible
+                    {Math.round((eligibleWorksCount / totalWorksCount) * 100)}%
+                    works are eligible
                   </p>
                 </div>
               )}
@@ -421,7 +461,8 @@ export default function PrintPrayerClient({
                 No Contractor Selected
               </h3>
               <p className="text-slate-500 text-center max-w-sm mb-6">
-                Please select a contractor from the sidebar to view their awarded works and generate prayer documents.
+                Please select a contractor from the sidebar to view their
+                awarded works and generate prayer documents.
               </p>
               <Badge variant="outline" className="text-sm">
                 {agencyNames.length} contractors available
@@ -439,7 +480,8 @@ export default function PrintPrayerClient({
                 Prayer Type Unavailable
               </h3>
               <p className="text-amber-600 text-center max-w-sm mb-6">
-                The selected prayer type is currently under development and will be available soon.
+                The selected prayer type is currently under development and will
+                be available soon.
               </p>
               <Button
                 variant="outline"
@@ -462,7 +504,7 @@ export default function PrintPrayerClient({
                       Awarded Works
                     </CardTitle>
                     <CardDescription className="text-slate-300">
-                      {selectedAgency} • {selectedWorks.length} works
+                      {selectedAgency} • {filteredWorks.length} works
                     </CardDescription>
                   </div>
                   <Badge variant="secondary" className="text-sm font-medium">
@@ -496,7 +538,9 @@ export default function PrintPrayerClient({
                       <TableHeader>
                         <TableRow className="bg-slate-50">
                           <TableHead className="w-12 text-center">#</TableHead>
-                          <TableHead className="min-w-[300px]">Work Description</TableHead>
+                          <TableHead className="min-w-[300px]">
+                            Work Description
+                          </TableHead>
                           <TableHead>NIT Details</TableHead>
                           <TableHead>Work Order</TableHead>
                           {selectedPrayerType === "SECURITY_MONEY_RELEASE" && (
@@ -509,15 +553,16 @@ export default function PrintPrayerClient({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {selectedWorks.map((work, i) => {
+                        {filteredWorks.map((work, i) => {
                           const nitDate = new Date(work.nitDetails.memoDate);
-                          const woDate = work.AwardofContract?.workordeermemodate
+                          const woDate = work.AwardofContract
+                            ?.workordeermemodate
                             ? new Date(work.AwardofContract.workordeermemodate)
                             : null;
 
                           const agency =
-                            work.AwardofContract?.workorderdetails?.[0]?.Bidagency
-                              ?.agencydetails;
+                            work.AwardofContract?.workorderdetails?.[0]
+                              ?.Bidagency?.agencydetails;
 
                           const emdAmount = Math.round(
                             (work.finalEstimateAmount * 2) / 100
@@ -542,7 +587,7 @@ export default function PrintPrayerClient({
                               <TableCell>
                                 <div>
                                   <p className="font-medium text-slate-900 line-clamp-2">
-                                    {work.ApprovedActionPlanDetails.activityDescription}
+                                    {`${work.ApprovedActionPlanDetails.activityDescription} -${work.ApprovedActionPlanDetails.activityCode}`}
                                   </p>
                                   <div className="flex items-center gap-3 mt-1">
                                     <Badge
@@ -574,47 +619,60 @@ export default function PrintPrayerClient({
                                 {woDate ? (
                                   <div className="space-y-1">
                                     <Badge className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100">
-                                      {work.AwardofContract?.workodermenonumber}/{gpcode}/
-                                      {woDate.getFullYear()}
+                                      {work.AwardofContract?.workodermenonumber}
+                                      /{gpcode}/{woDate.getFullYear()}
                                     </Badge>
                                     <p className="text-xs text-slate-500">
                                       {formatDate(woDate)}
                                     </p>
                                   </div>
                                 ) : (
-                                  <Badge variant="destructive" className="text-xs">
+                                  <Badge
+                                    variant="destructive"
+                                    className="text-xs"
+                                  >
                                     <AlertCircle className="h-3 w-3 mr-1" />
                                     Missing
                                   </Badge>
                                 )}
                               </TableCell>
 
-                              {selectedPrayerType === "SECURITY_MONEY_RELEASE" && (
+                              {selectedPrayerType ===
+                                "SECURITY_MONEY_RELEASE" && (
                                 <>
                                   <TableCell>
                                     {work.completionDate ? (
                                       <div className="flex items-center gap-2">
                                         <Calendar className="h-3.5 w-3.5 text-emerald-600" />
                                         <span className="text-sm font-medium">
-                                          {formatDate(new Date(work.completionDate))}
+                                          {formatDate(
+                                            new Date(work.completionDate)
+                                          )}
                                         </span>
                                       </div>
                                     ) : (
-                                      <Badge variant="outline" className="text-xs">
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
                                         <Clock className="h-3 w-3 mr-1" />
                                         Pending
                                       </Badge>
                                     )}
                                   </TableCell>
                                   <TableCell>
-                                    {work.paymentDetails[0]?.securityDeposit?.securityDepositAmt ? (
+                                    {work.paymentDetails[0]?.securityDeposit
+                                      ?.securityDepositAmt ? (
                                       <div className="font-medium">
                                         {formatCurrency(
-                                          work.paymentDetails[0].securityDeposit.securityDepositAmt
+                                          work.paymentDetails[0].securityDeposit
+                                            .securityDepositAmt
                                         )}
                                       </div>
                                     ) : (
-                                      <span className="text-slate-400 text-sm">N/A</span>
+                                      <span className="text-slate-400 text-sm">
+                                        N/A
+                                      </span>
                                     )}
                                   </TableCell>
                                 </>
@@ -629,15 +687,21 @@ export default function PrintPrayerClient({
                                         : work.completionDate
                                     }
                                     securityDepositAmount={
-                                      selectedPrayerType === "BILL_PRAYER"
-                                        ? null
-                                        : work.paymentDetails[0]?.securityDeposit
+                                      selectedPrayerType ===
+                                      "SECURITY_MONEY_RELEASE"
+                                        ? work.paymentDetails[0]?.securityDeposit
                                             ?.securityDepositAmt ?? null
+                                        : null
                                     }
                                     emdAmount={emdAmount}
                                     prayerType={selectedPrayerType}
                                     workName={
-                                      work.ApprovedActionPlanDetails.activityDescription
+                                      work.ApprovedActionPlanDetails
+                                        .activityDescription
+                                    }
+                                    activityCode={
+                                      work.ApprovedActionPlanDetails
+                                        .activityCode
                                     }
                                     nitNumber={`${
                                       work.nitDetails.memoNumber
@@ -645,7 +709,9 @@ export default function PrintPrayerClient({
                                     nitDate={nitDate}
                                     workSlNo={work.workslno.toString()}
                                     contractorName={agency.name}
-                                    contractorAddress={agency.contactDetails || ""}
+                                    contractorAddress={
+                                      agency.contactDetails || ""
+                                    }
                                     workOrderNumber={`${
                                       work.AwardofContract?.workodermenonumber
                                     }/${gpcode}/${woDate.getFullYear()}`}
@@ -677,8 +743,12 @@ export default function PrintPrayerClient({
                             <Receipt className="h-5 w-5 text-blue-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-slate-600">Total Works</p>
-                            <p className="text-2xl font-bold">{selectedWorks.length}</p>
+                            <p className="text-sm font-medium text-slate-600">
+                              Total Works
+                            </p>
+                            <p className="text-2xl font-bold">
+                              {filteredWorks.length}
+                            </p>
                           </div>
                         </div>
                       </CardContent>
@@ -690,8 +760,12 @@ export default function PrintPrayerClient({
                             <CheckCircle className="h-5 w-5 text-emerald-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-slate-600">Eligible for {selectedPrayerTypeData?.label}</p>
-                            <p className="text-2xl font-bold text-emerald-700">{eligibleWorksCount}</p>
+                            <p className="text-sm font-medium text-slate-600">
+                              Eligible for {selectedPrayerTypeData?.label}
+                            </p>
+                            <p className="text-2xl font-bold text-emerald-700">
+                              {eligibleWorksCount}
+                            </p>
                           </div>
                         </div>
                       </CardContent>
@@ -710,7 +784,10 @@ export default function PrintPrayerClient({
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-slate-300 rounded-full"></div>
-                      <span>{selectedWorks.length - eligibleWorksCount} with incomplete data</span>
+                      <span>
+                        {filteredWorks.length - eligibleWorksCount} with
+                        incomplete data
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -727,7 +804,8 @@ export default function PrintPrayerClient({
       {/* FOOTER NOTES */}
       <div className="text-center text-sm text-slate-500 pt-4 border-t">
         <p>
-          Prayer documents are generated in PDF format. Ensure all required information is complete before generation.
+          Prayer documents are generated in PDF format. Ensure all required
+          information is complete before generation.
         </p>
         <p className="mt-1 text-xs">
           For assistance, contact the contract management department.

@@ -18,7 +18,7 @@ export async function GET(request: Request) {
         { activityDescription: { contains: search, mode: "insensitive" } },
         { schemeName: { contains: search, mode: "insensitive" } },
         { locationofAsset: { contains: search, mode: "insensitive" } },
-        { activityCode: { equals: search?.trim() || undefined } },
+        { activityCode: { contains: search, mode: "insensitive" } },
       ];
     }
     if (financialYear && financialYear !== "all") {

@@ -103,7 +103,7 @@ export default function CoverPagePrint({
             }) || [],
 
           activitycode:
-            String(workCoverPageType.ApprovedActionPlanDetails.activityCode),
+            workCoverPageType.ApprovedActionPlanDetails.activityCode,
           workcompletation: workCoverPageType.completionDate
             ? formatDate(workCoverPageType.completionDate)
             : "",

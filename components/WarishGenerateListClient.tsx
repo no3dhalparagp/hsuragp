@@ -1,39 +1,67 @@
-"use client"
+"use client";
 
-import type { WarishApplicationProps } from "@/types"
-import { Input } from "@/components/ui/input"
-import { useEffect, useState } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { formatDate } from "@/utils/utils"
-import { Badge } from "@/components/ui/badge"
-import WarishCertificatePDF from "@/components/PrintTemplet/WarishCertificatePDF"
-import { Button } from "@/components/ui/button"
-import { Search, ChevronLeft, ChevronRight, FileText, Download, Filter, Users, User } from "lucide-react"
+import type { WarishApplicationProps } from "@/types";
+import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { formatDate } from "@/utils/utils";
+import { Badge } from "@/components/ui/badge";
+import WarishCertificatePDF from "@/components/PrintTemplet/WarishCertificatePDF";
+import { Button } from "@/components/ui/button";
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Download,
+  Filter,
+  Users,
+  User,
+  FileSignature,
+} from "lucide-react";
 
-export default function WarishGenerateListClient({ applications: initial }: { applications: WarishApplicationProps[] }) {
-  const [q, setQ] = useState("")
-  const [page, setPage] = useState(1)
-  const [pageSize] = useState(10)
-  const [total, setTotal] = useState(initial.length)
-  const [applications, setApplications] = useState<WarishApplicationProps[]>(initial)
+export default function WarishGenerateListClient({
+  applications: initial,
+}: {
+  applications: WarishApplicationProps[];
+}) {
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [total, setTotal] = useState(initial.length);
+  const [applications, setApplications] =
+    useState<WarishApplicationProps[]>(initial);
 
   useEffect(() => {
-    const controller = new AbortController()
+    const controller = new AbortController();
     const run = async () => {
-      const url = `/api/warish/generate-ready?q=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`
-      const res = await fetch(url, { signal: controller.signal })
+      const url = `/api/warish/generate-ready?q=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`;
+      const res = await fetch(url, { signal: controller.signal });
       if (res.ok) {
-        const data = await res.json()
-        setApplications(data.items)
-        setTotal(data.total)
+        const data = await res.json();
+        setApplications(data.items);
+        setTotal(data.total);
       }
-    }
-    run()
-    return () => controller.abort()
-  }, [q, page, pageSize])
+    };
+    run();
+    return () => controller.abort();
+  }, [q, page, pageSize]);
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="space-y-6">
@@ -57,9 +85,11 @@ export default function WarishGenerateListClient({ applications: initial }: { ap
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
-              <div className="text-3xl font-bold text-gray-800 dark:text-white">{total}</div>
+              <div className="text-3xl font-bold text-gray-800 dark:text-white">
+                {total}
+              </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                application{total !== 1 ? 's' : ''} pending
+                application{total !== 1 ? "s" : ""} pending
               </div>
             </div>
           </CardContent>
@@ -79,7 +109,10 @@ export default function WarishGenerateListClient({ applications: initial }: { ap
               <Input
                 placeholder="Search applications..."
                 value={q}
-                onChange={(e) => { setPage(1); setQ(e.target.value) }}
+                onChange={(e) => {
+                  setPage(1);
+                  setQ(e.target.value);
+                }}
                 className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
               />
             </div>
@@ -115,6 +148,9 @@ export default function WarishGenerateListClient({ applications: initial }: { ap
                   <TableHead className="text-center font-semibold text-gray-700 dark:text-gray-300 py-4">
                     Status
                   </TableHead>
+                  <TableHead className="text-center font-semibold text-gray-700 dark:text-gray-300 py-4">
+                    DSC
+                  </TableHead>
                   <TableHead className="text-right font-semibold text-gray-700 dark:text-gray-300 py-4">
                     Action
                   </TableHead>
@@ -123,8 +159,8 @@ export default function WarishGenerateListClient({ applications: initial }: { ap
               <TableBody>
                 {applications.length > 0 ? (
                   applications.map((application, index) => (
-                    <TableRow 
-                      key={application.id} 
+                    <TableRow
+                      key={application.id}
                       className="border-b border-gray-100 dark:border-gray-800 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors group"
                     >
                       <TableCell className="text-center font-medium text-gray-600 dark:text-gray-400 py-4">
@@ -141,25 +177,42 @@ export default function WarishGenerateListClient({ applications: initial }: { ap
                         </div>
                       </TableCell>
                       <TableCell className="text-center py-4">
-                        <Badge 
-                          variant="outline" 
+                        <Badge
+                          variant="outline"
                           className="font-mono px-3 py-1 text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
                         >
                           {application.warishRefNo || "N/A"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center text-gray-600 dark:text-gray-400 py-4">
-                        {application.warishRefDate ? formatDate(application.warishRefDate) : "N/A"}
+                        {application.warishRefDate
+                          ? formatDate(application.warishRefDate)
+                          : "N/A"}
                       </TableCell>
                       <TableCell className="text-center py-4">
                         <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 px-3 py-1">
                           Ready to Generate
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-center py-4">
+                        {application.digitallySigned ? (
+                          <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 px-3 py-1">
+                            <FileSignature className="h-3 w-3 mr-1" />
+                            Signed
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-gray-400 border-gray-200 px-3 py-1"
+                          >
+                            Pending
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right py-4">
                         <div className="flex justify-end">
-                          <WarishCertificatePDF 
-                            applicationDetails={application} 
+                          <WarishCertificatePDF
+                            applicationDetails={application}
                             mode="uploadAndDownload"
                           />
                         </div>
@@ -172,9 +225,13 @@ export default function WarishGenerateListClient({ applications: initial }: { ap
                       <div className="flex flex-col items-center justify-center gap-4 text-gray-500 dark:text-gray-400">
                         <FileText className="h-16 w-16 opacity-40" />
                         <div className="space-y-2">
-                          <p className="text-lg font-medium">No applications found</p>
+                          <p className="text-lg font-medium">
+                            No applications found
+                          </p>
                           <p className="text-sm max-w-sm">
-                            {q ? "Try adjusting your search query" : "All applications have been processed"}
+                            {q
+                              ? "Try adjusting your search query"
+                              : "All applications have been processed"}
                           </p>
                         </div>
                         {q && (
@@ -193,14 +250,24 @@ export default function WarishGenerateListClient({ applications: initial }: { ap
               </TableBody>
             </Table>
           </div>
-          
+
           {/* Pagination */}
           {applications.length > 0 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20">
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Showing <span className="font-semibold text-gray-900 dark:text-white">{(page - 1) * pageSize + 1}</span> to{" "}
-                <span className="font-semibold text-gray-900 dark:text-white">{Math.min(page * pageSize, total)}</span> of{" "}
-                <span className="font-semibold text-gray-900 dark:text-white">{total}</span> results
+                Showing{" "}
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {(page - 1) * pageSize + 1}
+                </span>{" "}
+                to{" "}
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {Math.min(page * pageSize, total)}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {total}
+                </span>{" "}
+                results
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -215,9 +282,13 @@ export default function WarishGenerateListClient({ applications: initial }: { ap
                 </Button>
                 <div className="flex items-center gap-2 text-sm px-4 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
                   <span className="text-gray-600 dark:text-gray-400">Page</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{page}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {page}
+                  </span>
                   <span className="text-gray-600 dark:text-gray-400">of</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{totalPages}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {totalPages}
+                  </span>
                 </div>
                 <Button
                   variant="outline"
@@ -235,5 +306,5 @@ export default function WarishGenerateListClient({ applications: initial }: { ap
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

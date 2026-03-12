@@ -1,5 +1,3 @@
-import { AgencyType } from "@prisma/client";
-
 export type Agreement = {
   id: string;
   aggrementno: string;
@@ -18,9 +16,6 @@ export type Agreement = {
     agencydetails: {
       name: string;
       contactDetails: string;
-      agencyType: AgencyType;
-      proprietorName: string;
-      
     };
   };
 };

@@ -1,100 +1,157 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { signOut, useSession } from "next-auth/react"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { LogOut, Settings, User } from 'lucide-react'
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LogOut,
+  Settings,
+  User,
+  ChevronUp,
+  Loader2,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 
 export default function ImprovedFooter() {
-    const [isOpen, setIsOpen] = useState(false)
-    const router = useRouter()
-    const { data: session } = useSession()
+  const { data: session } = useSession();
+  const router = useRouter();
 
-    const handleLogout = async () => {
-        await signOut({ redirect: false })
-        router.push('/')
-    }
+  const [isOpen, setIsOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-    const handleSettings = () => {
-        router.push('/admindashboard/settings')
-    }
+  if (!session?.user) return null;
 
-    const handleProfile = () => {
-        router.push('/admindashboard/profile')
-    }
+  const { name, email, image } = session.user;
 
-    if (!session?.user) {
-        return null
-    }
+  const handleLogout = () => {
+    startTransition(async () => {
+      await signOut({ redirect: false });
+      router.push("/");
+    });
+  };
 
-    const { name, email, image } = session.user
+  const navigate = (path: string) => {
+    setIsOpen(false);
+    router.push(path);
+  };
 
-    return (
-        <footer className="w-full lg:w-64 sticky bottom-0 z-10 p-4 bg-background/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex justify-between items-center shadow-sm">
-            <Popover open={isOpen} onOpenChange={setIsOpen}>
-                <PopoverTrigger asChild>
-                    <Button 
-                        variant="ghost" 
-                        className="p-0 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
-                    >
-                        <Avatar className="h-9 w-9 border-2 border-gray-200 dark:border-gray-700">
-                            <AvatarImage src={image || undefined} alt={name || 'User'} />
-                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white">
-                                {name ? name.charAt(0) : 'U'}
-                            </AvatarFallback>
-                        </Avatar>
-                        <span className="sr-only">Open user menu</span>
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent 
-                    className="w-56 p-2 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800"
-                    align="start"
-                >
-                    <div className="flex flex-col px-3 py-2">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{email}</p>
-                    </div>
-                    <div className="mt-2 space-y-1">
-                        <Button 
-                            variant="ghost" 
-                            className="w-full justify-start px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                            onClick={() => { handleProfile(); setIsOpen(false); }}
-                        >
-                            <User className="mr-2 h-4 w-4 text-gray-700 dark:text-gray-300" />
-                            <span className="text-gray-700 dark:text-gray-300">Profile</span>
-                        </Button>
-                        <Button 
-                            variant="ghost" 
-                            className="w-full justify-start px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                            onClick={() => { handleSettings(); setIsOpen(false); }}
-                        >
-                            <Settings className="mr-2 h-4 w-4 text-gray-700 dark:text-gray-300" />
-                            <span className="text-gray-700 dark:text-gray-300">Settings</span>
-                        </Button>
-                        <Button 
-                            variant="ghost" 
-                            className="w-full justify-start px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:text-red-400"
-                            onClick={() => { handleLogout(); setIsOpen(false); }}
-                        >
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Logout
-                        </Button>
-                    </div>
-                </PopoverContent>
-            </Popover>
-
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleLogout} 
-                className="lg:hidden px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:text-red-400"
+  return (
+    <footer className="w-full lg:w-64 sticky bottom-0 z-20 border-t bg-background/80 backdrop-blur-md px-4 py-3">
+      <div className="flex items-center justify-between">
+        {/* User Popover */}
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-muted transition-all w-full justify-start"
             >
-                <LogOut className="h-4 w-4 mr-2" />
-                <span className="truncate max-w-[120px]">{name}</span>
+              <Avatar className="h-9 w-9 ring-2 ring-primary/20">
+                <AvatarImage src={image || undefined} alt={name || "User"} />
+                <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold">
+                  {name?.charAt(0) || "U"}
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="hidden lg:flex flex-col text-left truncate">
+                <span className="text-sm font-medium truncate">
+                  {name}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {email}
+                </span>
+              </div>
+
+              <ChevronUp
+                className={`ml-auto h-4 w-4 transition-transform ${
+                  isOpen ? "rotate-180" : ""
+                }`}
+              />
             </Button>
-        </footer>
-    )
+          </PopoverTrigger>
+
+          <AnimatePresence>
+            {isOpen && (
+              <PopoverContent
+                align="start"
+                className="w-60 p-2 rounded-2xl shadow-xl"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-1"
+                >
+                  {/* Profile */}
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start rounded-lg"
+                    onClick={() => navigate("/admindashboard/profile")}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Button>
+
+                  {/* Settings */}
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start rounded-lg"
+                    onClick={() => navigate("/admindashboard/settings")}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </Button>
+
+                  <Separator className="my-2" />
+
+                  {/* Logout */}
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    onClick={handleLogout}
+                    disabled={isPending}
+                  >
+                    {isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <LogOut className="mr-2 h-4 w-4" />
+                    )}
+                    Logout
+                  </Button>
+                </motion.div>
+              </PopoverContent>
+            )}
+          </AnimatePresence>
+        </Popover>
+
+        {/* Mobile Quick Logout */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleLogout}
+          disabled={isPending}
+          className="lg:hidden text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+        >
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <LogOut className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+    </footer>
+  );
 }

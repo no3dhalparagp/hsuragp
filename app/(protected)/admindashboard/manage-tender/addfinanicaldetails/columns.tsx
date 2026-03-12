@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import type { ColumnDef } from "@tanstack/react-table"
-import { Button } from "@/components/ui/button"
-import type { AddFinancialDetailsType } from "@/types"
-import { EyeIcon, PlusIcon } from "lucide-react"
-import { ShowNitDetails } from "@/components/ShowNitDetails"
-import { BidFormDialog } from "@/components/bid-form-dialog"
+import type { ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import type { AddFinancialDetailsType } from "@/types";
+import { EyeIcon, PlusIcon } from "lucide-react";
+import { ShowNitDetails } from "@/components/ShowNitDetails";
+import { BidFormDialog } from "@/components/bid-form-dialog";
 
 export const columns: ColumnDef<AddFinancialDetailsType>[] = [
   {
@@ -28,8 +28,8 @@ export const columns: ColumnDef<AddFinancialDetailsType>[] = [
     accessorKey: "workName",
     header: "Activity Details",
     cell: ({ row }) => {
-      const workDetail = row.original.ApprovedActionPlanDetails
-      return workDetail.activityDescription
+      const workDetail = row.original.ApprovedActionPlanDetails;
+      return workDetail.activityDescription;
     },
   },
   {
@@ -41,7 +41,9 @@ export const columns: ColumnDef<AddFinancialDetailsType>[] = [
     id: "Actions",
     cell: ({ row }) => {
       // Check if all bids are already entered
-      const allBidsEntered = !row.original.biddingAgencies.some((agency) => agency.biddingAmount == null)
+      const allBidsEntered = !row.original.biddingAgencies.some(
+        (agency) => agency.biddingAmount == null,
+      );
 
       return (
         <div className="flex gap-2">
@@ -67,12 +69,11 @@ export const columns: ColumnDef<AddFinancialDetailsType>[] = [
               </Button>
             }
             onSuccess={() => {
-              // Optionally refresh the data or show a success message
-              console.log("Bids submitted successfully!")
+              // The dialog handles refresh and toast
             }}
           />
         </div>
-      )
+      );
     },
   },
-]
+];

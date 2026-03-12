@@ -22,21 +22,14 @@ async function CorrectionRequestsContent() {
   });
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Correction Requests
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Search for Warish applications and manage correction requests
-        </p>
-      </div>
-
-      <div className="space-y-12">
+    <div className="min-h-screen bg-background pb-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-10">
         <EnhancedCorrectionSearch initialRequests={[]} initialApp={null} />
 
         {recentRequests.length > 0 && (
-          <RecentRequestsList requests={recentRequests} />
+          <div className="max-w-7xl mx-auto">
+            <RecentRequestsList requests={recentRequests} />
+          </div>
         )}
       </div>
     </div>
@@ -45,30 +38,21 @@ async function CorrectionRequestsContent() {
 
 function LoadingSkeleton() {
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <Skeleton className="h-8 w-64 mb-2" />
-        <Skeleton className="h-4 w-96" />
-      </div>
-
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <Skeleton className="h-6 w-48 mb-4" />
-          <div className="flex gap-2">
-            <Skeleton className="h-10 flex-1" />
-            <Skeleton className="h-10 w-24" />
-          </div>
-        </CardContent>
-      </Card>
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="w-full h-[400px] rounded-3xl bg-muted/20 animate-pulse mb-12" />
 
       <div className="space-y-4">
-        <Skeleton className="h-6 w-32 mb-4" />
+        <Skeleton className="h-8 w-48 mb-6" />
         {[1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardContent className="p-4">
-              <Skeleton className="h-4 w-3/4 mb-2" />
-              <Skeleton className="h-3 w-1/2 mb-1" />
-              <Skeleton className="h-3 w-2/3" />
+          <Card key={i} className="border-0 shadow-sm">
+            <CardContent className="p-6">
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-1/3" />
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-1/4" />
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                </div>
+              </div>
             </CardContent>
           </Card>
         ))}

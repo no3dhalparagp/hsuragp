@@ -38,6 +38,15 @@ export const ApplicationInfo: React.FC<ApplicationInfoProps> = ({ form }) => {
   const materialdece = form.watch("maritialStatus");
   const relationValue = form.watch("relationwithdeceased");
 
+  // Function to capitalize each word
+  const capitalizeWords = (str: string) => {
+    return str
+      .toLowerCase()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg shadow-sm">
       <FormField
@@ -103,6 +112,7 @@ export const ApplicationInfo: React.FC<ApplicationInfoProps> = ({ form }) => {
               <Input
                 placeholder="Applicant Name / আবেদনকারীর নাম"
                 {...field}
+                onChange={(e) => field.onChange(capitalizeWords(e.target.value))}
                 className="h-10 text-sm bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </FormControl>
@@ -190,7 +200,9 @@ export const ApplicationInfo: React.FC<ApplicationInfoProps> = ({ form }) => {
                 <Input
                   placeholder="Specify other relation / অন্যান্য সম্পর্ক উল্লেখ করুন"
                   value={field.value === "other" ? "" : field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
+                  onChange={(e) =>
+                    field.onChange(capitalizeWords(e.target.value))
+                  }
                   className="h-10 text-sm bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </FormControl>
@@ -215,6 +227,7 @@ export const ApplicationInfo: React.FC<ApplicationInfoProps> = ({ form }) => {
               <Input
                 placeholder="Name of Deceased / মৃত ব্যক্তির নাম"
                 {...field}
+                onChange={(e) => field.onChange(capitalizeWords(e.target.value))}
                 className="h-10 text-sm bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </FormControl>
@@ -224,57 +237,72 @@ export const ApplicationInfo: React.FC<ApplicationInfoProps> = ({ form }) => {
       />
 
       <FormField
-        control={form.control}
-        name="dateOfDeath"
-        render={({ field }) => (
-          <FormItem className="flex flex-col space-y-2">
-            <FormLabel className="text-sm font-medium text-gray-700">
-              <BilingualLabel english="Date of Death" bengali="মৃত্যুর তারিখ" />
-            </FormLabel>
-            <Popover>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full h-10 px-3 text-left text-sm font-normal bg-white border-gray-300 hover:bg-gray-50",
-                      !field.value && "text-gray-400"
-                    )}
-                  >
-                    {field.value ? (
-                      formatDate(field.value)
-                    ) : (
-                      <span>Pick a date / তারিখ নির্বাচন করুন</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={field.onChange}
-                  disabled={(date) =>
-                    date > new Date() || date < new Date("1900-01-01")
-                  }
-                  initialFocus
-                  // Add these props for month/year dropdowns
-                  captionLayout="dropdown"
-                  fromYear={1900}
-                  toYear={new Date().getFullYear()}
-                  classNames={{
-                    caption_dropdowns: "flex gap-2 px-3 pt-1",
-                    dropdown: "px-2 py-1 border rounded-md",
-                    vhidden: "sr-only",
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-            <FormMessage className="text-xs text-red-500" />
-          </FormItem>
-        )}
-      />
+  control={form.control}
+  name="dateOfDeath"
+  render={({ field }) => (
+    <FormItem className="flex flex-col space-y-2">
+      <FormLabel className="text-sm font-semibold text-gray-700">
+        <BilingualLabel
+          english="Date of Death"
+          bengali="মৃত্যুর তারিখ"
+        />
+      </FormLabel>
+
+      <Popover>
+        <PopoverTrigger asChild>
+          <FormControl>
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                "w-full h-10 px-3 text-left text-sm font-normal bg-white border border-gray-300 hover:bg-gray-50 justify-between",
+                !field.value && "text-muted-foreground"
+              )}
+            >
+              {field.value ? (
+                formatDate(new Date(field.value))
+              ) : (
+                <span>
+                  Pick a date / তারিখ নির্বাচন করুন
+                </span>
+              )}
+
+              <CalendarIcon className="h-4 w-4 opacity-60" />
+            </Button>
+          </FormControl>
+        </PopoverTrigger>
+
+        <PopoverContent
+          className="w-auto p-0 shadow-lg border rounded-md"
+          align="start"
+        >
+          <Calendar
+            mode="single"
+            selected={field.value ? new Date(field.value) : undefined}
+            onSelect={(date) => {
+              field.onChange(date);
+            }}
+            disabled={(date) =>
+              date > new Date() || date < new Date("1900-01-01")
+            }
+            initialFocus
+            captionLayout="dropdown"
+            fromYear={1900}
+            toYear={new Date().getFullYear()}
+            classNames={{
+              caption_dropdowns: "flex justify-center gap-2 px-3 pt-2",
+              dropdown:
+                "px-2 py-1 border rounded-md bg-white text-sm focus:outline-none",
+              vhidden: "sr-only",
+            }}
+          />
+        </PopoverContent>
+      </Popover>
+
+      <FormMessage className="text-xs text-red-500" />
+    </FormItem>
+  )}
+/>
 
       <FormField
         control={form.control}
@@ -393,6 +421,7 @@ export const ApplicationInfo: React.FC<ApplicationInfoProps> = ({ form }) => {
               <Input
                 placeholder="Enter Fathers Name / পিতার নাম লিখুন"
                 {...field}
+                onChange={(e) => field.onChange(capitalizeWords(e.target.value))}
                 className="h-10 text-sm bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </FormControl>
@@ -417,6 +446,9 @@ export const ApplicationInfo: React.FC<ApplicationInfoProps> = ({ form }) => {
                 <Input
                   placeholder="Enter Spouses Name / স্বামী/স্ত্রীর নাম লিখুন"
                   {...field}
+                  onChange={(e) =>
+                    field.onChange(capitalizeWords(e.target.value))
+                  }
                   className="h-10 text-sm bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </FormControl>

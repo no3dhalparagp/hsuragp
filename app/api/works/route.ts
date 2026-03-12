@@ -5,8 +5,9 @@ export async function GET() {
   try {
     const works = await db.worksDetail.findMany({
       where: {
-        workStatus: {
-          not: "billpaid"
+        
+        tenderStatus: {
+          not: "Cancelled"
         }
       },
       include: {

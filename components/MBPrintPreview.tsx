@@ -1,19 +1,43 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, X, FileDown, Loader2 } from "lucide-react";
-import { MBEntry, MBPrintPreviewProps, PrintRow } from "./MBPrint/types";
+import { Printer, X, FileDown } from "lucide-react";
+
+import {
+  MBPrintPreviewProps,
+  PrintRow,
+  MBEntry,
+  Measurement,
+} from "./MBPrint/types";
+
 import { CoverPage } from "./MBPrint/CoverPage";
 import { RulesPage } from "./MBPrint/RulesPage";
 import { DetailsPage } from "./MBPrint/DetailsPage";
 import { MeasurementPage } from "./MBPrint/MeasurementPage";
 import { AbstractPage } from "./MBPrint/AbstractPage";
 import { BlankPage } from "./MBPrint/BlankPage";
+
 import { printStyles } from "./MBPrint/printStyles";
 
 // @ts-ignore
 import html2pdf from "html2pdf.js";
+
+/** Ensure measurements is always an array (API may return JSON string or object). */
+function normalizeMeasurements(entry: MBEntry): Measurement[] {
+  const m = entry.measurements;
+  if (Array.isArray(m)) return m;
+  if (m == null) return [];
+  if (typeof m === "string") {
+    try {
+      const parsed = JSON.parse(m);
+      return Array.isArray(parsed) ? parsed : [parsed].filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+  return [m].filter(Boolean);
+}
 
 export function MBPrintPreview({
   entries,
@@ -22,317 +46,358 @@ export function MBPrintPreview({
   metadata,
   onClose,
 }: MBPrintPreviewProps) {
+
   const printRef = useRef<HTMLDivElement>(null);
-  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const toAlpha = (n: number) => String.fromCharCode(96 + n);
+  const toAlpha = (n: number) => String.fromCharCode(97 + n);
 
-  const handleGeneratePDF = async () => {
-    if (!printRef.current) return;
-    setIsGenerating(true);
+  /* ============================================
+     BUILD PRINT ROWS
+  ============================================ */
 
-    const element = printRef.current;
-    
-    // Configure options for A4 landscape booklet
-    const opt = {
-      margin: 0,
-      filename: `MB_Booklet_${metadata.mbNumber}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true,
-        logging: false 
-      },
-      jsPDF: { 
-        unit: "mm", 
-        format: "a4", 
-        orientation: "landscape" 
-      },
-    };
+  const rows = useMemo(() => {
+    const out: PrintRow[] = [];
+    let mainSl = 0;
+    let subSl = 0;
+    let lastEstimateId: string | null = null;
 
-    try {
-      await html2pdf().set(opt).from(element).save();
-    } catch (error) {
-      console.error("PDF Generation failed:", error);
-      alert("Failed to generate PDF. Please try again.");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+    entries.forEach((entry) => {
+      const measurements = normalizeMeasurements(entry);
+      const entryWithMeasurements = { ...entry, measurements };
 
-  const handlePrint = () => {
-    const content = printRef.current;
-    if (!content) return;
+      const parent = estimateItems.find((i) => i.id === entry.estimateItemId);
+      const schedulePageNo = parent?.schedulePageNo ?? "";
 
-    const w = window.open("", "_blank");
-    if (!w) return alert("Allow popup to print");
-
-    w.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Measurement Book</title>
-          <style>${printStyles}</style>
-        </head>
-        <body>${content.innerHTML}</body>
-      </html>
-    `);
-
-    w.document.close();
-    w.focus();
-    w.print();
-    w.close();
-  };
-
-  /* ---------------- MB ROW BUILD ---------------- */
-
-  const rows: PrintRow[] = [];
-  let mainSl = 0;
-  let subSl = 0;
-  let lastEstimateId: string | null = null;
-
-  entries.forEach((e) => {
-    const isSub = !!e.subItemId;
-
-    if (e.estimateItemId !== lastEstimateId) {
-      mainSl++;
-      subSl = 0;
-      lastEstimateId = e.estimateItemId;
-
-      const parent = estimateItems.find((i) => i.id === e.estimateItemId);
-      if (parent) {
-        rows.push({
+      if (entry.estimateItemId !== lastEstimateId) {
+        mainSl++;
+        subSl = 0;
+        lastEstimateId = entry.estimateItemId;
+        const parentDesc = parent?.description ?? "";
+        const cleaned =
+          schedulePageNo && parentDesc.startsWith(schedulePageNo)
+            ? parentDesc.slice(schedulePageNo.length)
+            : parentDesc;
+        out.push({
           type: "group-header",
           slNo: mainSl,
-          description: parent.description,
-          schedulePageNo: parent.schedulePageNo,
+          description: cleaned,
+          schedulePageNo,
         });
       }
-    }
 
-    // For sub-items, show numbering like 1(a), 1(b), etc.
-    const slNo = isSub ? `${mainSl}(${toAlpha(++subSl)})` : mainSl;
+      const baseDesc =
+        schedulePageNo && entry.workItemDescription.startsWith(schedulePageNo)
+          ? entry.workItemDescription.slice(schedulePageNo.length)
+          : entry.workItemDescription;
+      const firstParticular = measurements[0]?.description?.trim?.();
+      const headerDesc = firstParticular || baseDesc;
 
-    rows.push({
-      type: "header",
-      entry: e,
-      slNo,
-      hasMeasurements: !!e.measurements?.length,
-      showParentHeader: false,
-      isSubItem: isSub,
-    });
+      const isSubItem = !!entry.subItemId;
+      const slNo = isSubItem ? `${mainSl}(${toAlpha(subSl++)})` : mainSl;
 
-    e.measurements?.forEach((m, i) => {
-      rows.push({
-        type: "measurement",
-        measurement: m,
-        idx: i + 1,
-        parentEntry: e,
+      out.push({
+        type: "header",
+        entry: { ...entryWithMeasurements, workItemDescription: headerDesc },
+        slNo,
+        hasMeasurements: measurements.length > 0,
+        showParentHeader: false,
+        isSubItem,
       });
+
+      measurements.forEach((measurement, idx) => {
+        out.push({
+          type: "measurement",
+          measurement,
+          idx: idx + 1,
+          parentEntry: entryWithMeasurements,
+        });
+      });
+
+      if (measurements.length > 0) {
+        out.push({ type: "total", entry: entryWithMeasurements });
+      }
     });
 
-    if (e.measurements?.length) {
-      rows.push({ type: "total", entry: e });
-    }
-  });
+    return out;
+  }, [entries, estimateItems]);
 
-  /* ---------------- PAGINATION ---------------- */
+  /* ============================================
+     PAGINATION
+     Half A4 landscape usable content height:
+       Sheet 210mm - page padding 5mm*2 - border padding 4mm*2 - header 10mm - footer 16mm ≈ 156mm
+       156mm × 3.7795 px/mm ≈ 590px → use 520px with safety margin
+  ============================================ */
 
-  // We reserve 2 lines per page for Brought forward / Carried forward
-  // so effective data lines per page are slightly reduced.
-  const LINES = 20;
-  const pages: PrintRow[][] = [];
+  const pages = useMemo(() => {
+    const MAX_HEIGHT = 520;
 
-  // First, group rows into logical blocks so that
-  // a header + its measurements + its total never split across pages.
-  const blocks: PrintRow[][] = [];
-  for (let i = 0; i < rows.length; ) {
-    const r = rows[i];
-
-    // Group-header stands alone as its own block
-    if (r.type === "group-header") {
-      blocks.push([r]);
-      i += 1;
-      continue;
-    }
-
-    if (r.type === "header") {
-      const block: PrintRow[] = [r];
-      let j = i + 1;
-      while (
-        j < rows.length &&
-        rows[j].type !== "header" &&
-        rows[j].type !== "group-header"
-      ) {
-        block.push(rows[j]);
-        j++;
+    const estimateHeight = (row: PrintRow) => {
+      if (row.type === "group-header") {
+        const chars = row.description?.length ?? 0;
+        const lines = Math.max(1, Math.ceil(chars / 50));
+        return 20 + lines * 16;
       }
-      blocks.push(block);
-      i = j;
-      continue;
-    }
-
-    // Fallback: single row block
-    blocks.push([r]);
-    i += 1;
-  }
-
-  // Now paginate by blocks
-  let currentPage: PrintRow[] = [];
-  let currentCount = 0;
-
-  const blockSize = (block: PrintRow[]) =>
-    block.reduce((sum, r) => {
-      let lines = 1;
-      if (r.type === "group-header") lines = 2;
-      else if (r.type === "header") {
-        const descLen = r.entry.workItemDescription?.length || 0;
-        // Estimate: 25 chars per line for the description column
-        const textLines = Math.ceil(descLen / 25) || 1;
-        lines = Math.max(1, textLines);
+      if (row.type === "header") {
+        const chars = row.entry.workItemDescription.length;
+        const lines = Math.max(1, Math.ceil(chars / 50));
+        return 20 + lines * 16;
       }
-      return sum + lines;
-    }, 0);
+      if (row.type === "measurement") return 22;
+      if (row.type === "total") return 26;
+      return 22;
+    };
 
-  blocks.forEach((block) => {
-    const need = blockSize(block);
-    if (currentCount + need > LINES && currentPage.length > 0) {
-      pages.push(currentPage);
-      currentPage = [];
-      currentCount = 0;
-    }
-    currentPage.push(...block);
-    currentCount += need;
-  });
+    // Group: header always stays with its measurements + total in same block
+    const blocks: PrintRow[][] = [];
+    let currentBlock: PrintRow[] = [];
 
-  if (currentPage.length) pages.push(currentPage);
+    rows.forEach((row) => {
+      if (row.type === "group-header" || row.type === "header") {
+        if (currentBlock.length > 0) {
+          blocks.push(currentBlock);
+          currentBlock = [];
+        }
+        currentBlock.push(row);
+      } else {
+        currentBlock.push(row);
+      }
+    });
+    if (currentBlock.length > 0) blocks.push(currentBlock);
 
-  /* ---------------- CARRY / BROUGHT FORWARD ---------------- */
+    const TRANSFER_ROW = 26; // height reserved for Brought/Carried Forward row
 
-  const pageSummaries = pages.map((pageRows) => {
-    const pageQuantity = pageRows
-      .filter((r) => r.type === "total")
-      .reduce(
-        (sum, r) => sum + (r.type === "total" ? r.entry.quantityExecuted : 0),
-        0,
-      );
-    const pageAmount = pageRows
-      .filter((r) => r.type === "total")
-      .reduce((sum, r) => sum + (r.type === "total" ? r.entry.amount : 0), 0);
-    return { pageQuantity, pageAmount };
-  });
+    const newPages: PrintRow[][] = [];
+    let currentPage: PrintRow[] = [];
+    let pageHeight = 0;
 
-  let runningQuantity = 0;
+    blocks.forEach((block) => {
+      const blockH = block.reduce((sum, row) => sum + estimateHeight(row), 0);
+      // Reserve space for a "Carried Forward" row
+      const overhead = currentPage.length > 0 ? TRANSFER_ROW : 0;
+      if (pageHeight + blockH + overhead > MAX_HEIGHT && currentPage.length > 0) {
+        newPages.push(currentPage);
+        currentPage = [];
+        pageHeight = TRANSFER_ROW; // account for "Brought Forward" on next page
+      }
+      currentPage.push(...block);
+      pageHeight += blockH;
+    });
+
+    if (currentPage.length) newPages.push(currentPage);
+    return newPages;
+  }, [rows]);
+
+  const safeWorkDetails = workDetails ?? {};
+  const safeMetadata = {
+    mbNumber: metadata?.mbNumber ?? "",
+    mbPageNumber: metadata?.mbPageNumber ?? "",
+    measuredDate: metadata?.measuredDate ?? "",
+    measuredBy: metadata?.measuredBy ?? "",
+  };
+
+  /* ============================================
+     BUILD MEASUREMENT PAGES
+  ============================================ */
+
+  let runningQty = 0;
   let runningAmount = 0;
 
-  const measurementPages = pages.map((r, i) => {
-    const { pageQuantity, pageAmount } = pageSummaries[i];
-    const broughtForwardQuantity = runningQuantity;
-    const broughtForwardAmount = runningAmount;
+  const measurementPages = pages.map((pageRows, index) => {
+    const pageQty = pageRows
+      .filter((r) => r.type === "total")
+      .reduce(
+        (sum, r) =>
+          sum + (r.type === "total" ? Number(r.entry.quantityExecuted) || 0 : 0),
+        0
+      );
 
-    runningQuantity += pageQuantity;
+    const pageAmount = pageRows
+      .filter((r) => r.type === "total")
+      .reduce(
+        (sum, r) => sum + (r.type === "total" ? Number(r.entry.amount) || 0 : 0),
+        0
+      );
+
+    const broughtQty = runningQty;
+    const broughtAmt = runningAmount;
+
+    runningQty += pageQty;
     runningAmount += pageAmount;
-
-    const carryForwardQuantity = runningQuantity;
-    const carryForwardAmount = runningAmount;
 
     return (
       <MeasurementPage
-        key={i}
-        rows={r}
-        pageIndex={i}
-        mbNumber={metadata.mbNumber}
-        metadata={metadata}
-        broughtForwardQuantity={broughtForwardQuantity}
-        broughtForwardAmount={broughtForwardAmount}
-        carryForwardQuantity={carryForwardQuantity}
-        carryForwardAmount={carryForwardAmount}
+        key={index}
+        rows={pageRows}
+        pageIndex={index}
+        mbNumber={safeMetadata.mbNumber}
+        metadata={{
+          ...safeMetadata,
+          totalMeasurementPages: pages.length,
+        }}
+        broughtForwardQuantity={broughtQty}
+        broughtForwardAmount={broughtAmt}
+        carryForwardQuantity={runningQty}
+        carryForwardAmount={runningAmount}
       />
     );
   });
 
-  // Extract financial details for AbstractPage
-  const aap = workDetails?.ApprovedActionPlanDetails || {};
-  const estimatedCost = aap.estimatedCost || 0;
+  /* ============================================
+     ALL PAGES (sequential order)
+  ============================================ */
 
-  const aoc = workDetails?.AwardofContract || {};
-  const workOrderDetails = aoc?.workorderdetails?.[0] || {};
-  const bidAgency = workOrderDetails?.Bidagency || {};
-  const tenderedAmount = bidAgency?.biddingAmount || 0;
+  const estimatedCost =
+    workDetails?.ApprovedActionPlanDetails?.estimatedCost ??
+    workDetails?.finalEstimateAmount ??
+    0;
+
+  const tenderedAmount =
+    workDetails?.AwardofContract?.workorderdetails?.[0]?.Bidagency
+      ?.biddingAmount ?? 0;
 
   const allPages: JSX.Element[] = [
-    <CoverPage key="c" metadata={metadata} />,
-    <RulesPage key="r" />,
-    <DetailsPage key="d" workDetails={workDetails} />,
+    <CoverPage key="cover" metadata={safeMetadata} />,
+    <RulesPage key="rules" />,
+    <DetailsPage key="details" workDetails={safeWorkDetails} />,
     ...measurementPages,
     <AbstractPage
-      key="a"
+      key="abstract"
       pageNo={measurementPages.length + 4}
       entries={entries}
-      metadata={metadata}
+      metadata={safeMetadata}
       estimatedCost={estimatedCost}
       tenderedAmount={tenderedAmount}
     />,
   ];
 
-  // Ensure we have an even number of logical pages so each sheet has two sides.
-  // We add at most ONE blank page to avoid duplicated blank pages in print.
+  // Pad to even count so every sheet has two pages
   if (allPages.length % 2 === 1) {
-    const nextNo = allPages.length + 1;
-    allPages.push(<BlankPage key={`blank-${nextNo}`} pageNo={nextNo} />);
+    allPages.push(<BlankPage key="blank" pageNo={allPages.length + 1} />);
   }
 
-  /* ---------------- BOOKLET IMPOSITION ---------------- */
+  /* ============================================
+     BOOKLET SHEETS: saddle-stitch imposition
+     Sheet 1 = [Page 1  |  Last Page]
+     Sheet 2 = [Page 2  |  2nd-last Page]
+     Sheet 3 = [Page 3  |  3rd-last Page]  … and so on.
+     When sheets are folded and stacked, pages read in order.
+  ============================================ */
 
   const sheets: JSX.Element[][] = [];
-  const pageCount = allPages.length;
-  const sheetCount = pageCount / 2;
-
-  for (let sheetIndex = 0; sheetIndex < sheetCount; sheetIndex++) {
-    const leftIndex =
-      sheetIndex % 2 === 0 ? pageCount - 1 - sheetIndex : sheetIndex;
-    const rightIndex =
-      sheetIndex % 2 === 0 ? sheetIndex : pageCount - 1 - sheetIndex;
-
-    sheets.push([allPages[leftIndex], allPages[rightIndex]]);
+  const total = allPages.length;
+  for (let i = 0; i < total / 2; i++) {
+    sheets.push([allPages[i], allPages[total - 1 - i]]);
   }
 
+  /* ============================================
+     PRINT FUNCTION
+  ============================================ */
+
+  const handlePrint = () => {
+    if (!printRef.current) return;
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+
+    const content = printRef.current.innerHTML;
+    const doc = win.document;
+    doc.open();
+    doc.write(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Measurement Book - ${metadata.mbNumber || "Print"}</title>
+  <style>${printStyles}</style>
+</head>
+<body>
+  <div class="print-root">${content}</div>
+</body>
+</html>
+    `);
+    doc.close();
+
+    const doPrint = () => {
+      win.focus();
+      win.print();
+      win.onafterprint = () => win.close();
+    };
+
+    if (doc.readyState === "complete") {
+      setTimeout(doPrint, 100);
+    } else {
+      win.onload = () => setTimeout(doPrint, 100);
+    }
+  };
+
+  /* ============================================
+     PDF FUNCTION
+  ============================================ */
+
+  const handlePDF = async () => {
+    if (!printRef.current) return;
+
+    setIsGenerating(true);
+    try {
+      const filename = `mb-${metadata?.mbNumber || "measurement-book"}.pdf`;
+      await html2pdf().from(printRef.current).save(filename);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  /* ============================================
+     UI
+  ============================================ */
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex flex-col">
-      <div className="bg-white m-6 rounded shadow flex flex-col h-full">
-        <div className="p-4 border-b flex justify-between">
-          <b>MB Print Preview</b>
+    <div className="fixed inset-0 bg-black/80 z-50">
+      <div className="bg-white m-6 h-full flex flex-col">
+
+        <div className="p-4 border-b flex justify-between items-center">
+          <div>
+            <b>MB Print Preview</b>
+            <span className="ml-4 text-sm text-gray-500">
+              {allPages.length} pages · {sheets.length} sheets (A4 landscape, 2-up)
+            </span>
+          </div>
+
           <div className="flex gap-2">
             <Button onClick={handlePrint}>
-              <Printer className="h-4 w-4 mr-2" /> Print
+              <Printer className="w-4 h-4 mr-2" />
+              Print
             </Button>
-            <Button onClick={handleGeneratePDF} disabled={isGenerating}>
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...
-                </>
-              ) : (
-                <>
-                  <FileDown className="h-4 w-4 mr-2" /> Generate PDF
-                </>
-              )}
+
+            <Button onClick={handlePDF} disabled={isGenerating}>
+              <FileDown className="w-4 h-4 mr-2" />
+              PDF
             </Button>
+
             <Button variant="ghost" onClick={onClose}>
               <X />
             </Button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto bg-gray-200 p-6">
-          <div ref={printRef}>
-            {sheets.map((s, i) => (
-              <div key={i} className="sheet">
-                {s[0]}
-                {s[1]}
-              </div>
-            ))}
-          </div>
+        <div
+          ref={printRef}
+          className="flex-1 overflow-auto bg-gray-300 p-6 space-y-6"
+        >
+          {sheets.map((sheet, index) => (
+            <div
+              key={index}
+              className="sheet shadow-lg"
+              style={{ margin: "0 auto" }}
+            >
+              {sheet[0]}
+              {sheet[1]}
+            </div>
+          ))}
         </div>
+
       </div>
     </div>
   );

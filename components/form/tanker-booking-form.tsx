@@ -21,7 +21,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,34 +35,21 @@ import { useToast } from "@/components/ui/use-toast";
 import { CalendarIcon, Loader2, Truck, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBooking } from "@/action/bookings";
-import { ServiceType } from "@prisma/client";
 import { getServiceFee } from "@/action/service-fee";
-import { useRouter, useSearchParams } from "next/navigation";
 import { getAvailableSlots } from "@/action/availability";
-import { Badge } from "@/components/ui/badge";
+import { useRouter, useSearchParams } from "next/navigation";
+
+type ServiceType = "WATER_TANKER" | "DUSTBIN_VAN";
 
 const formSchema = z.object({
   selectedServices: z
     .array(z.enum(["WATER_TANKER", "DUSTBIN_VAN"]))
     .min(1, "Please select at least one service"),
-  name: z
-    .string()
-    .min(1, "Name is required")
-    .trim()
-    .refine((val) => val.length > 0, "Name cannot be empty"),
-  address: z
-    .string()
-    .min(1, "Address is required")
-    .trim()
-    .refine((val) => val.length > 0, "Address cannot be empty"),
-  phone: z
-    .string()
-    .min(10, "Phone number must be 10 digits")
-    .max(10, "Phone number must be 10 digits")
-    .regex(/^[0-9]{10}$/, "Phone number must contain only digits"),
+  name: z.string().min(1, "Name is required").trim(),
+  address: z.string().min(1, "Address is required").trim(),
+  phone: z.string().regex(/^[0-9]{10}$/, "Phone number must be 10 digits"),
   bookingDate: z.date({
     required_error: "Booking date is required",
-    invalid_type_error: "Please select a valid date",
   }),
 });
 
@@ -71,8 +57,9 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function TankerBookingForm() {
   const searchParams = useSearchParams();
-  const { toast } = useToast();
   const router = useRouter();
+  const { toast } = useToast();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -87,530 +74,369 @@ export default function TankerBookingForm() {
   const selectedServices = form.watch("selectedServices");
   const bookingDate = form.watch("bookingDate");
 
-  // Set initial booking date from URL
+  const today = useMemo(
+    () => new Date(new Date().setHours(0, 0, 0, 0)),
+    []
+  );
+
+  // Set booking date from URL
   useEffect(() => {
     const dateParam = searchParams.get("date");
     if (dateParam) {
-      try {
-        const parsedDate = new Date(dateParam);
-        if (!isNaN(parsedDate.getTime()) && parsedDate >= new Date(new Date().setHours(0, 0, 0, 0))) {
-          form.setValue("bookingDate", parsedDate);
-        }
-      } catch (error) {
-        console.error("Invalid date parameter:", error);
+      const parsed = new Date(dateParam);
+      if (!isNaN(parsed.getTime())) {
+        form.setValue("bookingDate", parsed);
       }
     }
   }, [searchParams, form]);
 
-  // Fetch service fees for both services
-  const { data: waterTankerFee } = useQuery({
+  // Fetch Fees
+  const waterTankerFee = useQuery({
     queryKey: ["serviceFee", "WATER_TANKER"],
     queryFn: () => getServiceFee("WATER_TANKER"),
-    refetchOnWindowFocus: false,
   });
 
-  const { data: dustbinVanFee } = useQuery({
+  const dustbinVanFee = useQuery({
     queryKey: ["serviceFee", "DUSTBIN_VAN"],
     queryFn: () => getServiceFee("DUSTBIN_VAN"),
-    refetchOnWindowFocus: false,
   });
 
-  // Fetch available slots for selected services
-  const { data: waterTankerSlots, isFetching: isFetchingWaterTanker } = useQuery({
-    queryKey: ["availableSlots", "WATER_TANKER", bookingDate?.toISOString()],
-    queryFn: () => {
-      if (!bookingDate) return { success: false, data: 0 };
-      return getAvailableSlots("WATER_TANKER", bookingDate);
-    },
-    refetchOnWindowFocus: false,
+  // Fetch Slots
+  const waterTankerSlots = useQuery({
+    queryKey: ["slots", "WATER_TANKER", bookingDate],
+    queryFn: () => getAvailableSlots("WATER_TANKER", bookingDate!),
     enabled: !!bookingDate && selectedServices.includes("WATER_TANKER"),
   });
 
-  const { data: dustbinVanSlots, isFetching: isFetchingDustbinVan } = useQuery({
-    queryKey: ["availableSlots", "DUSTBIN_VAN", bookingDate?.toISOString()],
-    queryFn: () => {
-      if (!bookingDate) return { success: false, data: 0 };
-      return getAvailableSlots("DUSTBIN_VAN", bookingDate);
-    },
-    refetchOnWindowFocus: false,
+  const dustbinVanSlots = useQuery({
+    queryKey: ["slots", "DUSTBIN_VAN", bookingDate],
+    queryFn: () => getAvailableSlots("DUSTBIN_VAN", bookingDate!),
     enabled: !!bookingDate && selectedServices.includes("DUSTBIN_VAN"),
   });
 
-  // Calculate total amount
+  // Calculate total
   const totalAmount = useMemo(() => {
     let total = 0;
-    if (selectedServices.includes("WATER_TANKER") && waterTankerFee?.success && waterTankerFee.data?.amount) {
-      total += waterTankerFee.data.amount;
-    }
-    if (selectedServices.includes("DUSTBIN_VAN") && dustbinVanFee?.success && dustbinVanFee.data?.amount) {
-      total += dustbinVanFee.data.amount;
-    }
-    return total;
-  }, [selectedServices, waterTankerFee, dustbinVanFee]);
 
-  // Check if slots are available for all selected services
+    if (
+      selectedServices.includes("WATER_TANKER") &&
+      waterTankerFee.data?.data?.amount
+    ) {
+      total += waterTankerFee.data.data.amount;
+    }
+
+    if (
+      selectedServices.includes("DUSTBIN_VAN") &&
+      dustbinVanFee.data?.data?.amount
+    ) {
+      total += dustbinVanFee.data.data.amount;
+    }
+
+    return total;
+  }, [selectedServices, waterTankerFee.data, dustbinVanFee.data]);
+
+  const hasSlots = (slots?: number) =>
+    typeof slots === "number" && slots > 0;
+
   const allSlotsAvailable = useMemo(() => {
     if (!bookingDate || selectedServices.length === 0) return false;
-    
-    const waterTankerAvailable = !selectedServices.includes("WATER_TANKER") || 
-      (waterTankerSlots?.data && waterTankerSlots.data > 0);
-    const dustbinVanAvailable = !selectedServices.includes("DUSTBIN_VAN") || 
-      (dustbinVanSlots?.data && dustbinVanSlots.data > 0);
-    
-    return waterTankerAvailable && dustbinVanAvailable;
-  }, [bookingDate, selectedServices, waterTankerSlots, dustbinVanSlots]);
 
-  const isFetchingSlots = isFetchingWaterTanker || isFetchingDustbinVan;
+    return selectedServices.every((service) => {
+      if (service === "WATER_TANKER")
+        return hasSlots(waterTankerSlots.data?.data);
 
-  // Booking mutation - creates bookings for all selected services
+      if (service === "DUSTBIN_VAN")
+        return hasSlots(dustbinVanSlots.data?.data);
+
+      return false;
+    });
+  }, [
+    bookingDate,
+    selectedServices,
+    waterTankerSlots.data,
+    dustbinVanSlots.data,
+  ]);
+
+  const isFetchingSlots =
+    waterTankerSlots.isFetching || dustbinVanSlots.isFetching;
+
+  // Booking Mutation
   const bookingMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const bookings = [];
-      const trimmedName = values.name.trim();
-      const trimmedAddress = values.address.trim();
-      const trimmedPhone = values.phone.trim();
-
-      for (const serviceType of values.selectedServices) {
-        let amount = 0;
-        if (serviceType === "WATER_TANKER" && waterTankerFee?.success && waterTankerFee.data?.amount) {
-          amount = waterTankerFee.data.amount;
-        } else if (serviceType === "DUSTBIN_VAN" && dustbinVanFee?.success && dustbinVanFee.data?.amount) {
-          amount = dustbinVanFee.data.amount;
-        }
-
-        const result = await createBooking({
-          serviceType,
-          name: trimmedName,
-          address: trimmedAddress,
-          phone: trimmedPhone,
-          bookingDate: values.bookingDate,
-          amount,
-        });
-
-        if (!result.success) {
-          throw new Error(result.error || `Failed to book ${serviceType}`);
-        }
-
-        bookings.push(result);
-      }
-
-      return { success: true, bookings };
+      await Promise.all(
+        values.selectedServices.map((service) =>
+          createBooking({
+            ...values,
+            serviceType: service,
+            amount:
+              service === "WATER_TANKER"
+                ? waterTankerFee.data?.data?.amount ?? 0
+                : dustbinVanFee.data?.data?.amount ?? 0,
+          })
+        )
+      );
     },
-    onSuccess: (result, values) => {
-      const serviceNames = values.selectedServices
-        .map((s) => s.toLowerCase().replace("_", " "))
-        .join(" and ");
-      
+
+    onSuccess: (_, values) => {
       toast({
-        title: "Booking successful!",
-        description: `Your ${serviceNames} service${values.selectedServices.length > 1 ? "s have" : " has"} been booked for ${format(
+        title: "Booking Successful",
+        description: `Service booked for ${format(
           values.bookingDate,
           "PPP"
         )}`,
       });
-      
-      form.reset({
-        selectedServices: [],
-        name: "",
-        address: "",
-        phone: "",
-        bookingDate: undefined,
-      });
-      
+
+      form.reset();
       router.refresh();
-      
     },
-    onError: (error) => {
-      console.error("Booking error:", error);
+
+    onError: () => {
       toast({
-        title: "Booking failed",
-        description: error instanceof Error ? error.message : "Please try again later",
+        title: "Booking Failed",
+        description: "Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  // Form submit handler
-  const onSubmit = (values: FormValues) => {
-    // Validate and trim all string fields before submission
-    const trimmedValues = {
-      ...values,
-      name: values.name.trim(),
-      address: values.address.trim(),
-      phone: values.phone.trim(),
-    };
+  const canSubmit =
+    !!bookingDate &&
+    selectedServices.length > 0 &&
+    allSlotsAvailable &&
+    !isFetchingSlots &&
+    !bookingMutation.isPending;
 
-    // Additional validation
-    if (!trimmedValues.name || trimmedValues.name.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Customer name is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (trimmedValues.selectedServices.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please select at least one service",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!trimmedValues.bookingDate) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a booking date",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    bookingMutation.mutate(trimmedValues);
-  };
-
-  const isPending = bookingMutation.isPending;
+  const services = [
+    {
+      type: "WATER_TANKER" as ServiceType,
+      label: "Water Tanker",
+      icon: <Truck className="h-4 w-4 text-blue-600" />,
+      fee: waterTankerFee,
+      slots: waterTankerSlots,
+    },
+    {
+      type: "DUSTBIN_VAN" as ServiceType,
+      label: "Dustbin Van",
+      icon: <Trash2 className="h-4 w-4 text-green-600" />,
+      fee: dustbinVanFee,
+      slots: dustbinVanSlots,
+    },
+  ];
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Truck className="h-5 w-5" />
-          Service Booking
-        </CardTitle>
+        <CardTitle>Service Booking</CardTitle>
         <CardDescription>
-          Book water tanker and/or dustbin van service in one click
+          Book water tanker and dustbin van services
         </CardDescription>
       </CardHeader>
+
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Service Selection */}
+          <form
+            onSubmit={form.handleSubmit((v) =>
+              bookingMutation.mutate(v)
+            )}
+            className="space-y-6"
+          >
+            {/* Services */}
             <FormField
               control={form.control}
               name="selectedServices"
-              render={() => (
+              render={({ field }) => (
                 <FormItem>
-                  <div className="mb-4">
-                    <FormLabel className="text-base">Select Services</FormLabel>
-                    <FormDescription>
-                      You can select one or both services
-                    </FormDescription>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="selectedServices"
-                      render={({ field }) => {
-                        return (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes("WATER_TANKER")}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...field.value, "WATER_TANKER"])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== "WATER_TANKER"
-                                        )
-                                      );
-                                }}
-                                disabled={isPending}
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none flex-1">
-                              <FormLabel className="flex items-center gap-2 cursor-pointer">
-                                <Truck className="h-4 w-4 text-blue-600" />
-                                Water Tanker
-                              </FormLabel>
-                              <FormDescription>
-                                {waterTankerFee?.success && waterTankerFee.data?.amount ? (
-                                  <span className="font-semibold text-primary">
-                                    ₹{waterTankerFee.data.amount}
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground">Loading fee...</span>
-                                )}
-                              </FormDescription>
-                              {bookingDate && selectedServices.includes("WATER_TANKER") && (
-                                <div className={cn(
-                                  "text-xs font-medium mt-1",
-                                  waterTankerSlots?.data && waterTankerSlots.data > 0
-                                    ? "text-green-600"
-                                    : "text-destructive"
-                                )}>
-                                  {isFetchingWaterTanker ? (
-                                    <span className="flex items-center gap-1">
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                      Checking...
-                                    </span>
-                                  ) : waterTankerSlots?.data && waterTankerSlots.data > 0 ? (
-                                    `${waterTankerSlots.data} slot${waterTankerSlots.data > 1 ? "s" : ""} available`
-                                  ) : (
-                                    "No slots available"
-                                  )}
-                                </div>
+                  <FormLabel>Select Services</FormLabel>
+
+                  <div className="grid md:grid-cols-2 gap-4 mt-3">
+                    {services.map((service) => {
+                      const checked = field.value.includes(service.type);
+
+                      const noSlots =
+                        bookingDate &&
+                        typeof service.slots.data?.data === "number" &&
+                        service.slots.data.data === 0;
+
+                      return (
+                        <div
+                          key={service.type}
+                          className="border rounded-lg p-4 flex gap-3"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            disabled={
+                              bookingMutation.isPending || noSlots
+                            }
+                            onCheckedChange={(c) => {
+                              if (c) {
+                                field.onChange(
+                                  Array.from(
+                                    new Set([
+                                      ...field.value,
+                                      service.type,
+                                    ])
+                                  )
+                                );
+                              } else {
+                                field.onChange(
+                                  field.value.filter(
+                                    (v) => v !== service.type
+                                  )
+                                );
+                              }
+                            }}
+                          />
+
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              {service.icon}
+                              <span className="font-medium">
+                                {service.label}
+                              </span>
+                            </div>
+
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              {service.fee.isLoading ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <>₹{service.fee.data?.data?.amount}</>
                               )}
                             </div>
-                          </FormItem>
-                        );
-                      }}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="selectedServices"
-                      render={({ field }) => {
-                        return (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes("DUSTBIN_VAN")}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...field.value, "DUSTBIN_VAN"])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== "DUSTBIN_VAN"
-                                        )
-                                      );
-                                }}
-                                disabled={isPending}
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none flex-1">
-                              <FormLabel className="flex items-center gap-2 cursor-pointer">
-                                <Trash2 className="h-4 w-4 text-green-600" />
-                                Dustbin Van
-                              </FormLabel>
-                              <FormDescription>
-                                {dustbinVanFee?.success && dustbinVanFee.data?.amount ? (
-                                  <span className="font-semibold text-primary">
-                                    ₹{dustbinVanFee.data.amount}
+
+                            {bookingDate && checked && (
+                              <div className="text-xs mt-1">
+                                {service.slots.isFetching ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : noSlots ? (
+                                  <span className="text-red-500 font-medium">
+                                    Fully booked
                                   </span>
                                 ) : (
-                                  <span className="text-muted-foreground">Loading fee...</span>
+                                  <span className="text-green-600 font-medium">
+                                    {service.slots.data?.data} slots
+                                    available
+                                  </span>
                                 )}
-                              </FormDescription>
-                              {bookingDate && selectedServices.includes("DUSTBIN_VAN") && (
-                                <div className={cn(
-                                  "text-xs font-medium mt-1",
-                                  dustbinVanSlots?.data && dustbinVanSlots.data > 0
-                                    ? "text-green-600"
-                                    : "text-destructive"
-                                )}>
-                                  {isFetchingDustbinVan ? (
-                                    <span className="flex items-center gap-1">
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                      Checking...
-                                    </span>
-                                  ) : dustbinVanSlots?.data && dustbinVanSlots.data > 0 ? (
-                                    `${dustbinVanSlots.data} slot${dustbinVanSlots.data > 1 ? "s" : ""} available`
-                                  ) : (
-                                    "No slots available"
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </FormItem>
-                        );
-                      }}
-                    />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
+
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Total Amount Display */}
-            {selectedServices.length > 0 && totalAmount > 0 && (
-              <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Total Amount:</span>
-                  <span className="text-2xl font-bold text-primary">₹{totalAmount.toLocaleString()}</span>
-                </div>
-                {selectedServices.length > 1 && (
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    {selectedServices.map((service, index) => {
-                      const fee = service === "WATER_TANKER" 
-                        ? waterTankerFee?.data?.amount 
-                        : dustbinVanFee?.data?.amount;
-                      return fee ? (
-                        <div key={service} className="flex justify-between">
-                          <span>{service.replace("_", " ")}:</span>
-                          <span>₹{fee}</span>
-                        </div>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter customer full name"
-                        disabled={isPending}
-                        onChange={(e) => {
-                          const value = e.target.value.trimStart();
-                          field.onChange(value);
-                        }}
-                        onBlur={(e) => {
-                          const value = e.target.value.trim();
-                          field.onChange(value);
-                          form.setValue("name", value);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="tel"
-                        pattern="[0-9]{10}"
-                        placeholder="Enter 10-digit number"
-                        disabled={isPending}
-                        maxLength={10}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "").slice(0, 10);
-                          field.onChange(value);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
+            {/* Name */}
             <FormField
               control={form.control}
-              name="address"
+              name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Delivery Address</FormLabel>
+                  <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Enter complete delivery address"
-                      rows={3}
-                      disabled={isPending}
-                      onChange={(e) => {
-                        const value = e.target.value.trimStart();
-                        field.onChange(value);
-                      }}
-                      onBlur={(e) => {
-                        const value = e.target.value.trim();
-                        field.onChange(value);
-                        form.setValue("address", value);
-                      }}
-                    />
+                    <Input {...field} placeholder="Customer name" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {/* Phone */}
             <FormField
               control={form.control}
-              name="bookingDate"
+              name="phone"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <div className="flex items-center justify-between">
-                    <FormLabel>Booking Date</FormLabel>
-                    {isFetchingSlots && (
-                      <span className="text-xs text-muted-foreground flex items-center">
-                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                        Checking availability...
-                      </span>
-                    )}
-                  </div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          disabled={isPending || isFetchingSlots}
-                          type="button"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={(date) => {
-                          if (date) {
-                            field.onChange(date);
-                          }
-                        }}
-                        disabled={(date) => {
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          return date < today;
-                        }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input {...field} maxLength={10} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {/* Address */}
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} rows={3} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Booking Date */}
+            <FormField
+              control={form.control}
+              name="bookingDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Booking Date</FormLabel>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" type="button">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {field.value
+                          ? format(field.value, "PPP")
+                          : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent>
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(date) =>
+                          date && field.onChange(date)
+                        }
+                        disabled={(date) => date < today}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Summary */}
+            {bookingDate && selectedServices.length > 0 && (
+              <div className="p-4 border rounded-lg bg-muted/30">
+                <div className="flex justify-between text-sm">
+                  <span>Date:</span>
+                  <span>{format(bookingDate, "PPP")}</span>
+                </div>
+
+                <div className="flex justify-between font-semibold mt-2">
+                  <span>Total:</span>
+                  <span>₹{totalAmount.toLocaleString()}</span>
+                </div>
+              </div>
+            )}
+
             <Button
               type="submit"
+              disabled={!canSubmit}
               className="w-full"
-              disabled={
-                isPending || 
-                !bookingDate || 
-                selectedServices.length === 0 ||
-                !allSlotsAvailable ||
-                isFetchingSlots
-              }
             >
-              {isPending ? (
+              {bookingMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Processing...
                 </>
-              ) : selectedServices.length === 0 ? (
-                "Please Select at Least One Service"
-              ) : !allSlotsAvailable ? (
-                "No Slots Available for Selected Services"
               ) : (
-                `Book ${selectedServices.length > 1 ? "Services" : "Service"} (₹${totalAmount.toLocaleString()})`
+                `Book Service (₹${totalAmount.toLocaleString()})`
               )}
             </Button>
           </form>

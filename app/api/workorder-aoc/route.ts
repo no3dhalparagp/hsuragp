@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
   const workId = req.nextUrl.searchParams.get("workId");
   if (!workId) return NextResponse.json({ error: "Missing workId" }, { status: 400 });
 
-  const [acceptbi, worksDetail] = await Promise.all([
+  const [acceptbi, worksDetail, lastAoc] = await Promise.all([
     db.bidagency.findMany({
       where: { worksDetailId: workId },
       select: {
@@ -15,8 +15,35 @@ export async function GET(req: NextRequest) {
         WorksDetail: { include: { nitDetails: true } },
       },
     }),
-    db.worksDetail.findUnique({ where: { id: workId }, include: { nitDetails:true, ApprovedActionPlanDetails: true, AwardofContract: true } }),
+    db.worksDetail.findUnique({
+      where: { id: workId },
+      include: {
+        nitDetails: true,
+        ApprovedActionPlanDetails: true,
+        AwardofContract: true,
+      },
+    }),
+    db.awardofContract.findFirst({
+      orderBy: {
+        id: "desc",
+      },
+      select: {
+        workodermenonumber: true,
+        workordeermemodate: true,
+        WorksDetail: {
+          take: 1,
+          select: {
+            workslno: true,
+            ApprovedActionPlanDetails: {
+              select: {
+                activityDescription: true,
+              },
+            },
+          },
+        },
+      },
+    }),
   ]);
 
-  return NextResponse.json({ acceptbi, worksDetail });
+  return NextResponse.json({ acceptbi, worksDetail, lastAoc });
 } 

@@ -3,14 +3,24 @@ import { db } from "@/lib/db"
 import { formatDate } from "@/utils/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { 
-  CalendarIcon, 
-  FileTextIcon, 
-  UserIcon, 
-  ClipboardIcon,  // Add this import
-  EyeIcon, 
-  AlertCircleIcon 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  CalendarIcon,
+  FileTextIcon,
+  UserIcon,
+  ClipboardListIcon,
+  EyeIcon,
+  AlertCircleIcon,
+  CheckCircle2Icon,
+  XCircleIcon,
+  Loader2Icon,
 } from "lucide-react"
 import Link from "next/link"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -21,17 +31,22 @@ const StaffDashboard = async () => {
 
   if (!cstaff) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
-        <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full transform transition-all hover:scale-105">
-          <AlertCircleIcon className="w-20 h-20 text-yellow-500 mb-6 mx-auto animate-pulse" />
-          <h2 className="text-3xl font-bold text-gray-800 mb-4 text-center">Access Denied</h2>
-          <p className="text-gray-600 text-center text-lg">Please log in to view your dashboard.</p>
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-indigo-50 to-purple-100">
+        <div className="bg-white p-10 rounded-3xl shadow-xl text-center max-w-md">
+          <AlertCircleIcon className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            Access Denied
+          </h2>
+          <p className="text-gray-600">
+            Please login to access your dashboard.
+          </p>
         </div>
       </div>
     )
   }
 
-  const warishApplications = await db.warishApplication.findMany({
+  
+const warishApplications = await db.warishApplication.findMany({
     where: {
       assingstaffId: cstaff.id,
       warishApplicationStatus: "process",
@@ -40,109 +55,125 @@ const StaffDashboard = async () => {
       createdAt: "desc",
     },
   })
+  
+
+  // 📊 Dashboard Stats
+  const total = warishApplications.length
+  const processing = warishApplications.filter(
+    (a) => a.warishApplicationStatus === "process"
+  ).length
+  const approved = warishApplications.filter(
+    (a) => a.warishApplicationStatus === "approved"
+  ).length
+  const rejected = warishApplications.filter(
+    (a) => a.warishApplicationStatus === "rejected"
+  ).length
+
+  const getStatusVariant = (status: string) => {
+    if (status === "approved") return "success"
+    if (status === "rejected") return "destructive"
+    if (status === "process") return "secondary"
+    return "default"
+  }
 
   return (
-    <ScrollArea className="h-[calc(100vh-4rem)] bg-gradient-to-br from-purple-50 to-indigo-100">
-      <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow-2xl rounded-3xl overflow-hidden border border-gray-200 transform transition-all hover:shadow-3xl">
-          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-8">
-            <h2 className="text-3xl font-bold flex items-center">
-              <ClipboardIcon className="mr-4 h-8 w-8 animate-bounce" />
-              Assigned Applications
-            </h2>
-          </div>
-          <div className="p-8">
-            {warishApplications.length === 0 ? (
-              <div className="text-center py-20 bg-gray-50 rounded-2xl">
-                <FileTextIcon className="mx-auto h-16 w-16 text-gray-400 mb-6 animate-pulse" />
-                <p className="text-2xl font-semibold text-gray-700 mb-2">No assigned applications</p>
-                <p className="text-gray-500 text-lg">New applications will appear here when assigned.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table className="min-w-[800px]">
-                  <TableHeader>
-                    <TableRow className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b-2 border-purple-100">
-                      <TableHead className="py-6 px-6 text-left text-sm font-bold text-purple-800 uppercase tracking-wider">
-                        Application ID
-                      </TableHead>
-                      <TableHead className="py-6 px-6 text-left text-sm font-bold text-purple-800 uppercase tracking-wider">
-                        Applicant Name
-                      </TableHead>
-                      <TableHead className="py-6 px-6 text-left text-sm font-bold text-purple-800 uppercase tracking-wider">
-                        Status
-                      </TableHead>
-                      <TableHead className="py-6 px-6 text-left text-sm font-bold text-purple-800 uppercase tracking-wider">
-                        Application Date
-                      </TableHead>
-                      <TableHead className="py-6 px-6 text-left text-sm font-bold text-purple-800 uppercase tracking-wider">
-                        Actions
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {warishApplications.map((application, index) => (
-                      <TableRow
-                        key={application.id}
-                        className={`transition-all duration-200 ${
-                          index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                        } hover:bg-indigo-50 hover:shadow-inner`}
+    <ScrollArea className="h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 to-indigo-50">
+      <div className="container mx-auto py-10 px-4">
+
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+            <ClipboardListIcon className="w-8 h-8 text-indigo-600" />
+            Staff Dashboard
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Manage and review your assigned applications.
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <StatCard title="Total" value={total} icon={<FileTextIcon />} />
+          <StatCard title="Processing" value={processing} icon={<Loader2Icon />} />
+          <StatCard title="Approved" value={approved} icon={<CheckCircle2Icon />} />
+          <StatCard title="Rejected" value={rejected} icon={<XCircleIcon />} />
+        </div>
+
+        {/* Table Section */}
+        <div className="bg-white shadow-lg rounded-2xl border overflow-hidden">
+          {total === 0 ? (
+            <div className="text-center py-20">
+              <FileTextIcon className="mx-auto h-14 w-14 text-gray-400 mb-4" />
+              <p className="text-xl font-semibold text-gray-700">
+                No applications assigned
+              </p>
+              <p className="text-gray-500 text-sm">
+                Assigned applications will appear here.
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Application ID</TableHead>
+                  <TableHead>Applicant</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Action</TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {warishApplications.map((application) => (
+                  <TableRow key={application.id}>
+                    <TableCell>
+                      <CopyApplicationId
+                        applicationId={application.acknowlegment}
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <UserIcon className="h-5 w-5 text-indigo-600" />
+                        <span className="text-sm font-medium">
+                          {application.applicantName}
+                        </span>
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge
+                        variant={getStatusVariant(
+                          application.warishApplicationStatus
+                        )}
+                        className="capitalize"
                       >
-                        <TableCell className="py-5 px-6">
-                          <CopyApplicationId applicationId={application.acknowlegment} />
-                        </TableCell>
-                        <TableCell className="py-5 px-6">
-                          <div className="flex items-center space-x-3">
-                            <div className="bg-indigo-100 p-2 rounded-full">
-                              <UserIcon className="h-6 w-6 text-indigo-600" />
-                            </div>
-                            <span className="font-medium text-gray-800 text-sm">{application.applicantName}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-5 px-6">
-                          <Badge
-                            variant={
-                              application.warishApplicationStatus === "approved"
-                                ? "success"
-                                : application.warishApplicationStatus === "rejected"
-                                  ? "destructive"
-                                  : "default"
-                            }
-                            className="text-xs px-3 py-1 rounded-full shadow-sm"
-                          >
-                            {application.warishApplicationStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-5 px-6">
-                          <div className="flex items-center text-gray-600 space-x-2">
-                            <div className="bg-indigo-100 p-2 rounded-full">
-                              <CalendarIcon className="h-5 w-5 text-indigo-600" />
-                            </div>
-                            <span className="text-sm font-medium">{formatDate(application.createdAt)}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-5 px-6">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 rounded-full"
-                            asChild
-                          >
-                            <Link href={`/employeedashboard/warish/view-assigned/${application.id}`}>
-                              <div className="flex items-center space-x-2">
-                                <EyeIcon className="h-4 w-4" />
-                                <span>View Details</span>
-                              </div>
-                            </Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
+                        {application.warishApplicationStatus}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <CalendarIcon className="h-4 w-4" />
+                        {formatDate(application.createdAt)}
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link
+                          href={`/employeedashboard/warish/view-assigned/${application.id}`}
+                        >
+                          <EyeIcon className="h-4 w-4 mr-1" />
+                          View
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </div>
     </ScrollArea>
@@ -150,3 +181,28 @@ const StaffDashboard = async () => {
 }
 
 export default StaffDashboard
+
+// 📌 Reusable Stat Card
+function StatCard({
+  title,
+  value,
+  icon,
+}: {
+  title: string
+  value: number
+  icon: React.ReactNode
+}) {
+  return (
+    <div className="bg-white border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-500">{title}</p>
+          <h3 className="text-2xl font-bold text-gray-800 mt-1">{value}</h3>
+        </div>
+        <div className="bg-indigo-100 text-indigo-600 p-3 rounded-full">
+          {icon}
+        </div>
+      </div>
+    </div>
+  )
+}

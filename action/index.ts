@@ -107,7 +107,7 @@ export async function fetchWorkData(workIds: string[]) {
           paymentDetails.map((p) => p.grossBillAmount)
         ),
         netbill: formatPaymentValues(paymentDetails.map((p) => p.netAmt)),
-        qrcode: `https://example.com/work-verification/${work.id}`,
+        qrcode: `https://www.dhalparagp.in/work-verification/${work.id}`,
         certificateno: `Certificate No: ${work.completionDate?.getFullYear()}${work.completionDate?.getMonth()}-${
           work.AwardofContract?.workodermenonumber
         }-${work.nitDetails.memoNumber}`,

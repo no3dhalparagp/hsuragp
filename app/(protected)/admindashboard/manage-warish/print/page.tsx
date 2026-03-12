@@ -11,11 +11,13 @@ export default async function Page() {
 
   const items = docs.map((d) => ({
     id: d.id,
+    acknowlegment:d.warish.acknowlegment,
     applicantName: d.warish.applicantName,
     nameOfDeceased: d.warish.nameOfDeceased,
     warishRefNo: d.warish.warishRefNo,
     warishRefDate: d.warish.warishRefDate,
     documentUrl: d.cloudinaryUrl,
+    digitallySigned: d.digitallySigned,
   }))
 
   return <WarishPrintListClient items={items} />

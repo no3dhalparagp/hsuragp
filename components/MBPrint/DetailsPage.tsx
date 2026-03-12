@@ -42,7 +42,7 @@ export const DetailsPage: React.FC<DetailsPageProps> = ({ workDetails }) => {
   const workId = w.activityCode || "";
   const location = w.locationofAsset || "";
   const fund = w.schemeName || "";
-  const estimatedCost = w.estimatedCost || "";
+  const estimatedCost = workDetails?.finalEstimateAmount  || "";
   const tenderedAmount = bidAgency?.biddingAmount || "";
   const agreement = w.AggrementModel?.[0] || {};
   const aggrementno = agreement.aggrementno || "";

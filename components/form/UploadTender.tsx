@@ -3,7 +3,6 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -16,7 +15,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { uploadNITDocument } from "@/action/uploadNITDocument";
 import {
   nitDocumentSchema,
   NITDocumentSchema,
@@ -24,31 +22,16 @@ import {
 import { useRouter } from "next/navigation";
 import { Loader2, File, X } from "lucide-react";
 
+
 interface UploadNITDocumentProps {
   nitId: string;
-}
-
-function SubmitButton({ isDisabled }: { isDisabled: boolean }) {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button type="submit" disabled={isDisabled || pending}>
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Uploading...
-        </>
-      ) : (
-        "Upload NIT Document"
-      )}
-    </Button>
-  );
 }
 
 export default function UploadNITDocument({ nitId }: UploadNITDocumentProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
 
   const form = useForm<NITDocumentSchema>({
     resolver: zodResolver(nitDocumentSchema),
@@ -59,27 +42,42 @@ export default function UploadNITDocument({ nitId }: UploadNITDocumentProps) {
   });
 
   async function onSubmit(data: NITDocumentSchema) {
+    if (!data.file) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a file to upload",
+      });
+      return;
+    }
+
     try {
-      if (!data.file) {
-        throw new Error("Please select a file to upload");
-      }
+      setIsUploading(true);
 
       const formData = new FormData();
       formData.append("file", data.file);
+      formData.append("nitId", nitId);
+      formData.append("fileName", data.file.name);
+      formData.append("fileType", data.file.type);
 
-      const result = await uploadNITDocument(nitId, formData);
+      const uploadRes = await fetch("/api/upload-nit", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (result.success) {
-        toast({
-          title: "Success!",
-          description: "NIT document uploaded successfully",
-        });
-        form.reset();
-        setSelectedFile(null);
-        router.back();
-      } else {
-        throw new Error(result.message);
+      const uploadData = await uploadRes.json();
+
+      if (!uploadRes.ok || !uploadData.success) {
+        throw new Error(uploadData.message ?? "File upload failed");
       }
+
+      toast({
+        title: "Success!",
+        description: "NIT document uploaded successfully",
+      });
+      form.reset();
+      setSelectedFile(null);
+      router.back();
     } catch (error) {
       toast({
         variant: "destructive",
@@ -87,6 +85,8 @@ export default function UploadNITDocument({ nitId }: UploadNITDocumentProps) {
         description:
           error instanceof Error ? error.message : "Failed to upload document",
       });
+    } finally {
+      setIsUploading(false);
     }
   }
 
@@ -181,7 +181,18 @@ export default function UploadNITDocument({ nitId }: UploadNITDocumentProps) {
             </FormItem>
           )}
         />
-        <SubmitButton isDisabled={!selectedFile} />
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isUploading || !selectedFile}>
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              "Upload"
+            )}
+          </Button>
+        </div>
       </form>
     </Form>
   );

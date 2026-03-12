@@ -28,9 +28,11 @@ import {
   XCircle,
   Search,
   Filter,
+  SlidersHorizontal,
 } from "lucide-react";
 import { StatsCard } from "./components/stats-card";
 import type { CorrectionRequest } from "./types";
+import { cn } from "@/lib/utils";
 
 interface ClientPageProps {
   initialPendingRequests: CorrectionRequest[];
@@ -81,7 +83,7 @@ export default function AdminCorrectionRequestsClientPage({
       router.refresh();
     } catch (error) {
       console.error("Failed to refresh data:", error);
-      router.refresh();
+      router.refresh(); // Fallback to full page reload
     } finally {
       setIsRefreshing(false);
     }
@@ -117,116 +119,133 @@ export default function AdminCorrectionRequestsClientPage({
   }, [allRequests, statusFilter, targetTypeFilter, searchQuery]);
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-500">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/40 pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Correction Requests
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Correction Management
           </h1>
-          <p className="text-muted-foreground mt-2">
-            Review and manage all data correction requests
+          <p className="text-muted-foreground mt-1 text-sm">
+            Review, approve, or reject data correction requests.
           </p>
         </div>
 
-        <Button variant="outline" onClick={refreshData} disabled={isRefreshing}>
+        <Button 
+          variant="outline" 
+          onClick={refreshData} 
+          disabled={isRefreshing}
+          className="shadow-sm hover:bg-muted/50"
+        >
           {isRefreshing ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Refreshing...
-            </>
+            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
           ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh Data
-            </>
+            <RefreshCw className="mr-2 h-4 w-4" />
           )}
+          {isRefreshing ? "Refreshing..." : "Refresh Data"}
         </Button>
       </div>
 
       {/* Stats Cards - Interactive */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div onClick={() => setStatusFilter("all")} className="cursor-pointer transition-transform hover:scale-[1.02]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div onClick={() => setStatusFilter("all")} className="cursor-pointer group">
           <StatsCard
             title="Total Requests"
             value={
               (stats.pending || 0) + (stats.approved || 0) + (stats.rejected || 0)
             }
-            description="All-time requests"
-            icon={<FileText className="h-[18px] w-[18px]" />}
+            description="All-time submissions"
+            icon={<FileText className="h-5 w-5 text-primary" />}
+            borderColorClass="border-primary/20 group-hover:border-primary/50"
+            iconBgClass="bg-primary/10 group-hover:bg-primary/20"
           />
         </div>
 
-        <div onClick={() => setStatusFilter("pending")} className="cursor-pointer transition-transform hover:scale-[1.02]">
+        <div onClick={() => setStatusFilter("pending")} className="cursor-pointer group">
           <StatsCard
-            title="Pending"
+            title="Pending Review"
             value={stats.pending || 0}
-            description="Awaiting review"
-            icon={<Clock className="h-[18px] w-[18px]" />}
-            iconBgClass="bg-yellow-100 dark:bg-yellow-900/30"
-            valueColorClass="text-yellow-600 dark:text-yellow-400"
-            borderColorClass={`border-l-4 border-yellow-500 ${statusFilter === 'pending' ? 'ring-2 ring-yellow-500 ring-offset-2' : ''}`}
+            description="Awaiting action"
+            icon={<Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />}
+            iconBgClass="bg-yellow-100 dark:bg-yellow-900/40 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-900/60"
+            valueColorClass="text-yellow-600 dark:text-yellow-500"
+            borderColorClass={cn(
+              "border-yellow-200 dark:border-yellow-900/50 group-hover:border-yellow-400 dark:group-hover:border-yellow-700",
+              statusFilter === 'pending' && "ring-2 ring-yellow-500/20 shadow-md transform scale-[1.02]"
+            )}
           />
         </div>
 
-        <div onClick={() => setStatusFilter("approved")} className="cursor-pointer transition-transform hover:scale-[1.02]">
+        <div onClick={() => setStatusFilter("approved")} className="cursor-pointer group">
           <StatsCard
             title="Approved"
             value={stats.approved || 0}
-            description="Approved changes"
-            icon={<CheckCircle className="h-[18px] w-[18px]" />}
-            iconBgClass="bg-green-100 dark:bg-green-900/30"
-            valueColorClass="text-green-600 dark:text-green-400"
-            borderColorClass={`border-l-4 border-green-500 ${statusFilter === 'approved' ? 'ring-2 ring-green-500 ring-offset-2' : ''}`}
+            description="Successfully updated"
+            icon={<CheckCircle className="h-5 w-5 text-green-600 dark:text-green-500" />}
+            iconBgClass="bg-green-100 dark:bg-green-900/40 group-hover:bg-green-200 dark:group-hover:bg-green-900/60"
+            valueColorClass="text-green-600 dark:text-green-500"
+            borderColorClass={cn(
+              "border-green-200 dark:border-green-900/50 group-hover:border-green-400 dark:group-hover:border-green-700",
+              statusFilter === 'approved' && "ring-2 ring-green-500/20 shadow-md transform scale-[1.02]"
+            )}
           />
         </div>
 
-        <div onClick={() => setStatusFilter("rejected")} className="cursor-pointer transition-transform hover:scale-[1.02]">
+        <div onClick={() => setStatusFilter("rejected")} className="cursor-pointer group">
           <StatsCard
             title="Rejected"
             value={stats.rejected || 0}
-            description="Rejected requests"
-            icon={<XCircle className="h-[18px] w-[18px]" />}
-            iconBgClass="bg-red-100 dark:bg-red-900/30"
-            valueColorClass="text-red-600 dark:text-red-400"
-            borderColorClass={`border-l-4 border-red-500 ${statusFilter === 'rejected' ? 'ring-2 ring-red-500 ring-offset-2' : ''}`}
+            description="Denied requests"
+            icon={<XCircle className="h-5 w-5 text-red-600 dark:text-red-500" />}
+            iconBgClass="bg-red-100 dark:bg-red-900/40 group-hover:bg-red-200 dark:group-hover:bg-red-900/60"
+            valueColorClass="text-red-600 dark:text-red-500"
+            borderColorClass={cn(
+              "border-red-200 dark:border-red-900/50 group-hover:border-red-400 dark:group-hover:border-red-700",
+              statusFilter === 'rejected' && "ring-2 ring-red-500/20 shadow-md transform scale-[1.02]"
+            )}
           />
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="space-y-4">
-        {/* Filters Toolbar */}
-        <div className="flex flex-col md:flex-row gap-4 items-center bg-white dark:bg-gray-900 p-4 rounded-lg border shadow-sm">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="space-y-6">
+        {/* Filters and Search */}
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-card p-4 rounded-xl border shadow-sm">
+           <div className="relative flex-1 w-full md:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search requests..."
-              className="pl-9"
+              placeholder="Search by name, field, or ID..."
+              className="pl-9 bg-muted/30 border-muted-foreground/20 focus-visible:bg-background transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           
-          <div className="flex gap-2 w-full md:w-auto">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Status" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+             <div className="flex items-center gap-2">
+                 <SlidersHorizontal className="w-4 h-4 text-muted-foreground hidden sm:block" />
+                 <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-[160px] bg-muted/30 border-muted-foreground/20">
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Status:</span>
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Requests</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+             </div>
 
-            <Select value={targetTypeFilter} onValueChange={setTargetTypeFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Type" />
+             <Select value={targetTypeFilter} onValueChange={setTargetTypeFilter}>
+              <SelectTrigger className="w-full sm:w-[160px] bg-muted/30 border-muted-foreground/20">
+                 <div className="flex items-center gap-2 truncate">
+                    <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Type:</span>
+                    <SelectValue />
+                 </div>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
@@ -237,19 +256,30 @@ export default function AdminCorrectionRequestsClientPage({
           </div>
         </div>
 
-        {/* Results */}
+        {/* Results List */}
         <Card className="border-0 shadow-none bg-transparent">
-          <CardHeader className="px-0 pt-0">
-            <div className="flex justify-between items-center">
+          <CardHeader className="px-1 pt-0 pb-4">
+            <div className="flex justify-between items-end">
               <div>
-                <CardTitle>Request List</CardTitle>
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  Requests
+                  <Badge variant="secondary" className="px-2 py-0.5 text-xs font-normal">
+                    {filteredRequests.length}
+                  </Badge>
+                </CardTitle>
                 <CardDescription>
-                  Showing {filteredRequests.length} results
+                  {statusFilter === 'all' 
+                    ? "Showing all correction requests sorted by date" 
+                    : `Showing ${statusFilter} requests`
+                  }
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="px-0">
+             {/* We can re-use the list view or table view here based on preference. 
+                 Start with table view for density, or list view for detail. 
+                 Using table view as it was default for admin. */}
             <CorrectionRequestReview
               requests={filteredRequests}
               onRequestReviewed={handleRequestReviewed}

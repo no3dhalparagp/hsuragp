@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import WorkSearchAndSelect from "@/components/WorkSearchAndSelect";
 import { numberToWords } from "@/lib/utils";
+import { gpaddress, gpname } from "@/constants/gpinfor";
 
 interface BillAbstract {
   id: string;
@@ -53,7 +54,9 @@ export default function BillDeductionClientPage() {
   const [billAbstract, setBillAbstract] = useState<BillAbstract | null>(null);
   const [loading, setLoading] = useState(false);
   const [generatingPDF, setGeneratingPDF] = useState(false);
-  const [existingDeductionId, setExistingDeductionId] = useState<string | null>(null);
+  const [existingDeductionId, setExistingDeductionId] = useState<string | null>(
+    null,
+  );
 
   const [deductions, setDeductions] = useState<Deductions>({
     incomeTaxPercentage: "1.00",
@@ -75,7 +78,7 @@ export default function BillDeductionClientPage() {
   });
 
   // ... (rest of component)
-  
+
   const getWorkLabel = (work: any) => {
     const title =
       work?.ApprovedActionPlanDetails?.activityDescription ||
@@ -117,21 +120,34 @@ export default function BillDeductionClientPage() {
           if (data?.id) {
             setExistingDeductionId(data.id);
             setFormData({
-              billPaymentDate: data.billPaymentDate ? new Date(data.billPaymentDate).toISOString().slice(0, 10) : "",
+              billPaymentDate: data.billPaymentDate
+                ? new Date(data.billPaymentDate).toISOString().slice(0, 10)
+                : "",
               eGramVoucher: data.eGramVoucher || "",
-              eGramVoucherDate: data.eGramVoucherDate ? new Date(data.eGramVoucherDate).toISOString().slice(0, 10) : "",
+              eGramVoucherDate: data.eGramVoucherDate
+                ? new Date(data.eGramVoucherDate).toISOString().slice(0, 10)
+                : "",
               gpmsVoucherNumber: data.gpmsVoucherNumber || "",
-              gpmsVoucherDate: data.gpmsVoucherDate ? new Date(data.gpmsVoucherDate).toISOString().slice(0, 10) : "",
+              gpmsVoucherDate: data.gpmsVoucherDate
+                ? new Date(data.gpmsVoucherDate).toISOString().slice(0, 10)
+                : "",
             });
             setDeductions((prev) => ({
               ...prev,
-              incomeTaxPercentage: data.lessIncomeTaxPercentage?.toString() ?? prev.incomeTaxPercentage,
+              incomeTaxPercentage:
+                data.lessIncomeTaxPercentage?.toString() ??
+                prev.incomeTaxPercentage,
               incomeTaxAmount: data.lessIncomeTaxAmount ?? 0,
-              gstTdsPercentage: data.lessGstTdsPercentage?.toString() ?? prev.gstTdsPercentage,
+              gstTdsPercentage:
+                data.lessGstTdsPercentage?.toString() ?? prev.gstTdsPercentage,
               gstTdsAmount: data.lessGstTdsAmount ?? 0,
-              labourWelfareCessPercentage: data.lessLabourWelfareCessPercentage?.toString() ?? prev.labourWelfareCessPercentage,
+              labourWelfareCessPercentage:
+                data.lessLabourWelfareCessPercentage?.toString() ??
+                prev.labourWelfareCessPercentage,
               labourWelfareCessAmount: data.lessLabourWelfareCessAmount ?? 0,
-              securityDepositPercentage: data.lessSecurityDepositPercentage?.toString() ?? prev.securityDepositPercentage,
+              securityDepositPercentage:
+                data.lessSecurityDepositPercentage?.toString() ??
+                prev.securityDepositPercentage,
               securityDepositAmount: data.lessSecurityDepositAmount ?? 0,
             }));
           } else {
@@ -186,24 +202,27 @@ export default function BillDeductionClientPage() {
 
   const fetchMBDate = async (workId: string) => {
     try {
-        const response = await fetch(`/api/work-measurement-books?workId=${workId}`);
-        if (response.ok) {
-            const data = await response.json();
-            if (data && data.length > 0) {
-                 const sorted = data.sort(
-                    (a: any, b: any) =>
-                    new Date(b.measuredDate).getTime() - new Date(a.measuredDate).getTime(),
-                );
-                if(sorted[0]?.measuredDate){
-                    setMbDate(new Date(sorted[0].measuredDate).toLocaleDateString());
-                }
-            }
+      const response = await fetch(
+        `/api/work-measurement-books?workId=${workId}`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const sorted = data.sort(
+            (a: any, b: any) =>
+              new Date(b.measuredDate).getTime() -
+              new Date(a.measuredDate).getTime(),
+          );
+          if (sorted[0]?.measuredDate) {
+            setMbDate(new Date(sorted[0].measuredDate).toLocaleDateString());
+          }
         }
+      }
     } catch (error) {
-        console.error("Error fetching MB entries:", error);
+      console.error("Error fetching MB entries:", error);
     }
   };
-  
+
   const getCalculatedGrossBillAmount = () => {
     if (!billAbstract) return 0;
     const actualValue = billAbstract.actualValue || 0;
@@ -220,28 +239,39 @@ export default function BillDeductionClientPage() {
 
     const actualValue = billAbstract.actualValue || 0;
     const sayAmount = Math.round(actualValue);
-    
+
     // Calculate Gross Bill Amount consistent with Abstract
     const grossBillAmount = getCalculatedGrossBillAmount();
-    const labourCess = Math.round((Math.round(sayAmount + Math.round((sayAmount * 9) / 100) + Math.round((sayAmount * 9) / 100)) * 1) / 100);
-    
+    const labourCess = Math.round(
+      (Math.round(
+        sayAmount +
+          Math.round((sayAmount * 9) / 100) +
+          Math.round((sayAmount * 9) / 100),
+      ) *
+        1) /
+        100,
+    );
+
     const incomeTaxPct = parseFloat(deductions.incomeTaxPercentage) || 0;
     const gstTdsPct = parseFloat(deductions.gstTdsPercentage) || 0;
-    const securityDepositPct = parseFloat(deductions.securityDepositPercentage) || 0;
+    const securityDepositPct =
+      parseFloat(deductions.securityDepositPercentage) || 0;
 
     // Income Tax & GST TDS based on Actual Value (sayAmount)
     const incomeTax = Math.round((sayAmount * incomeTaxPct) / 100);
     const gstTds = Math.round((sayAmount * gstTdsPct) / 100);
-    
+
     // Security Deposit based on Gross Bill Amount
-    const securityDeposit = Math.round((grossBillAmount * securityDepositPct) / 100);
+    const securityDeposit = Math.round(
+      (grossBillAmount * securityDepositPct) / 100,
+    );
 
     setDeductions((prev) => ({
       ...prev,
       incomeTaxAmount: incomeTax,
       gstTdsAmount: gstTds,
       labourWelfareCessAmount: labourCess,
-      securityDepositPercentage: prev.securityDepositPercentage, 
+      securityDepositPercentage: prev.securityDepositPercentage,
       securityDepositAmount: securityDeposit,
     }));
   };
@@ -249,9 +279,9 @@ export default function BillDeductionClientPage() {
   const calculateTotalDeduction = () => {
     return Math.round(
       deductions.incomeTaxAmount +
-      deductions.gstTdsAmount +
-      deductions.labourWelfareCessAmount +
-      deductions.securityDepositAmount
+        deductions.gstTdsAmount +
+        deductions.labourWelfareCessAmount +
+        deductions.securityDepositAmount,
     );
   };
 
@@ -292,7 +322,7 @@ export default function BillDeductionClientPage() {
             amount: deductions.gstTdsAmount,
           },
           labourWelfareCess: {
-            percentage: 1.00,
+            percentage: 1.0,
             amount: deductions.labourWelfareCessAmount,
           },
           securityDeposit: {
@@ -312,16 +342,30 @@ export default function BillDeductionClientPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(
-          isUpdate ? { id: existingDeductionId, ...payload } : { workId: selectedWorkId, billAbstractId: billAbstract.id, ...payload }
+          isUpdate
+            ? { id: existingDeductionId, ...payload }
+            : {
+                workId: selectedWorkId,
+                billAbstractId: billAbstract.id,
+                ...payload,
+              },
         ),
       });
 
       if (response.ok) {
-        toast.success(isUpdate ? "Bill deduction updated successfully" : "Bill deduction saved successfully");
+        toast.success(
+          isUpdate
+            ? "Bill deduction updated successfully"
+            : "Bill deduction saved successfully",
+        );
         const data = await response.json();
         if (data?.data?.id) setExistingDeductionId(data.data.id);
       } else {
-        toast.error(isUpdate ? "Failed to update bill deduction" : "Failed to save bill deduction");
+        toast.error(
+          isUpdate
+            ? "Failed to update bill deduction"
+            : "Failed to save bill deduction",
+        );
       }
     } catch (error) {
       console.error("Error saving bill deduction:", error);
@@ -340,41 +384,61 @@ export default function BillDeductionClientPage() {
     setGeneratingPDF(true);
     try {
       const work = works.find((w) => w.id === selectedWorkId);
-      
-      const workName = work?.ApprovedActionPlanDetails?.activityDescription || `Work ${work?.workslno}`;
+
+      const workName =
+        work?.ApprovedActionPlanDetails?.activityDescription ||
+        `Work ${work?.workslno}`;
       const activityCode = work?.ApprovedActionPlanDetails?.activityCode || "";
       const fund = work?.ApprovedActionPlanDetails?.schemeName || "";
-      const estimatedAmount = Math.round(work?.finalEstimateAmount || 0).toFixed(2); // Display as .00 even if rounded to int? User said "all amount will be rounded". Usually implies integer or .00. Let's send number, handle formatting in PDF or keep .00 here. 
+      const estimatedAmount = Math.round(
+        work?.finalEstimateAmount || 0,
+      ).toFixed(2); // Display as .00 even if rounded to int? User said "all amount will be rounded". Usually implies integer or .00. Let's send number, handle formatting in PDF or keep .00 here.
       // User: "all amount will be rounded" -> 1005.00 is rounded? or 1005?
       // In PDF image: "Rs. 1005.04". Wait.
       // User PREVIOUSLY said "all amount will be rounded".
       // Let's assume Integer for now based on "rounded".
-      
-      const nitNoRaw = work?.nitDetails?.memoNumber ? `${work?.nitDetails?.memoNumber}` : "";
-      const nitDateObj = work?.nitDetails?.memoDate ? new Date(work.nitDetails.memoDate) : null;
+
+      const nitNoRaw = work?.nitDetails?.memoNumber
+        ? `${work?.nitDetails?.memoNumber}`
+        : "";
+      const nitDateObj = work?.nitDetails?.memoDate
+        ? new Date(work.nitDetails.memoDate)
+        : null;
       const nitDateYear = nitDateObj ? nitDateObj.getFullYear() : "";
-      const nitNo = nitNoRaw && nitDateYear ? `${nitNoRaw}/DGP/${nitDateYear}` : nitNoRaw;
+      const nitNo =
+        nitNoRaw && nitDateYear ? `${nitNoRaw}/DGP/${nitDateYear}` : nitNoRaw;
       const nitDate = nitDateObj ? nitDateObj.toLocaleDateString() : "";
-      
+
       const workSlNo = work?.workslno?.toString() || "";
-      
+
       const aoc = work?.AwardofContract;
-      const woNoRaw = aoc?.workodermenonumber ? `${aoc.workodermenonumber}` : "";
-      const woDateObj = aoc?.workordeermemodate ? new Date(aoc.workordeermemodate) : null;
+      const woNoRaw = aoc?.workodermenonumber
+        ? `${aoc.workodermenonumber}`
+        : "";
+      const woDateObj = aoc?.workordeermemodate
+        ? new Date(aoc.workordeermemodate)
+        : null;
       const woDateYear = woDateObj ? woDateObj.getFullYear() : "";
-      const woMemoNo = woNoRaw && woDateYear ? `${woNoRaw}/DGP/${woDateYear}` : woNoRaw; // PREVIOUSLY WO-xxx. Now custom format.
+      const woMemoNo =
+        woNoRaw && woDateYear ? `${woNoRaw}/DGP/${woDateYear}` : woNoRaw; // PREVIOUSLY WO-xxx. Now custom format.
       const woDate = woDateObj ? woDateObj.toLocaleDateString() : "";
-      
-      const agreementNo = ""; 
-      const agreementDate = ""; 
-      
-      const commencementDate = work?.workCommencementDate ? new Date(work.workCommencementDate).toLocaleDateString() : "";
-      const completionDate = work?.completionDate ? new Date(work.completionDate).toLocaleDateString() : "";
-      const finalMeasurementDate =  mbDate || ""; 
-      
+
+      const agreementNo = "";
+      const agreementDate = "";
+
+      const commencementDate = work?.workCommencementDate
+        ? new Date(work.workCommencementDate).toLocaleDateString()
+        : "";
+      const completionDate = work?.completionDate
+        ? new Date(work.completionDate).toLocaleDateString()
+        : "";
+      const finalMeasurementDate = mbDate || "";
+
       const woDetails = aoc?.workorderdetails?.[0];
       const agencyName = woDetails?.Bidagency?.agencydetails?.name || "N/A";
-      const agencyAddress = woDetails?.Bidagency?.agencydetails?.contactDetails || "Address not available"; 
+      const agencyAddress =
+        woDetails?.Bidagency?.agencydetails?.contactDetails ||
+        "Address not available";
 
       // Calculate Gross again to be sure - ROUNDED
       const actualValue = billAbstract.actualValue || 0;
@@ -389,22 +453,21 @@ export default function BillDeductionClientPage() {
       let percentage = 0;
       let isLess = false;
 
-       if (estCost > 0 && tendAmount > 0) {
-    if (tendAmount < estCost) {
-      percentage = ((estCost - tendAmount) / estCost) * 100;
-      isLess = true;
-    } else if (tendAmount > estCost) {
-      percentage = ((tendAmount - estCost) / estCost) * 100;
-      isLess = false;
-    } else {
-      percentage = 0;
-    }
-  }
-
+      if (estCost > 0 && tendAmount > 0) {
+        if (tendAmount < estCost) {
+          percentage = ((estCost - tendAmount) / estCost) * 100;
+          isLess = true;
+        } else if (tendAmount > estCost) {
+          percentage = ((tendAmount - estCost) / estCost) * 100;
+          isLess = false;
+        } else {
+          percentage = 0;
+        }
+      }
 
       const pdfData = {
-        gpName: "NO.3 DHALPARA GRAM PANCHAYAT",
-        blockName: "HILI DEVELOPMENT BLOCK, DAKSHIN DINAJPUR",
+        gpName: gpname,
+        blockName: gpaddress,
         workName: workName,
         activityCode: activityCode,
         fund: fund,
@@ -423,31 +486,43 @@ export default function BillDeductionClientPage() {
         agencyAddress: agencyAddress,
         grossBillAmount: grossBillAmount,
         deductions: {
-             incomeTax: { percent: deductions.incomeTaxPercentage, amount: Math.round(deductions.incomeTaxAmount) },
-             gstTds: { percent: deductions.gstTdsPercentage, amount: Math.round(deductions.gstTdsAmount) },
-             labourCess: { percent: "1.00", amount: Math.round(deductions.labourWelfareCessAmount) },
-             securityDeposit: { percent: deductions.securityDepositPercentage, amount: Math.round(deductions.securityDepositAmount) },
+          incomeTax: {
+            percent: deductions.incomeTaxPercentage,
+            amount: Math.round(deductions.incomeTaxAmount),
+          },
+          gstTds: {
+            percent: deductions.gstTdsPercentage,
+            amount: Math.round(deductions.gstTdsAmount),
+          },
+          labourCess: {
+            percent: "1.00",
+            amount: Math.round(deductions.labourWelfareCessAmount),
+          },
+          securityDeposit: {
+            percent: deductions.securityDepositPercentage,
+            amount: Math.round(deductions.securityDepositAmount),
+          },
         },
         totalDeduction: calculateTotalDeduction(),
         netPayable: calculateNetPayable(),
-        amountInWords: numberToWords(Math.round(calculateNetPayable())), 
+        amountInWords: numberToWords(Math.round(calculateNetPayable())),
         voucherNo: formData.eGramVoucher,
         voucherDate: formData.eGramVoucherDate,
         paymentDate: formData.billPaymentDate,
       };
 
       const pdfBytes = await generateBillDeductionPDF(pdfData);
-       // ... existing download code
-       const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
-       const url = URL.createObjectURL(blob);
-       const link = document.createElement("a");
-       link.href = url;
-       link.download = `Bill_Deduction_${workName.substring(0, 20)}.pdf`;
-       document.body.appendChild(link);
-       link.click();
-       document.body.removeChild(link);
-       URL.revokeObjectURL(url);
-       toast.success("PDF downloaded successfully");
+      // ... existing download code
+      const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Bill_Deduction_${workName.substring(0, 20)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("PDF downloaded successfully");
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF");
@@ -457,7 +532,6 @@ export default function BillDeductionClientPage() {
   };
 
   // ... (numberToWords)
-
 
   const formatNumberToWords = (num: number): string => {
     // Simple implementation - can be enhanced
@@ -561,7 +635,6 @@ export default function BillDeductionClientPage() {
                 works={works}
                 selectedWorkId={selectedWorkId}
                 onSelect={setSelectedWorkId}
-                
               />
             </div>
 
@@ -597,7 +670,6 @@ export default function BillDeductionClientPage() {
                       </div>
                     </div>
                     <div>
-                     
                       <Label className="text-muted-foreground">
                         Contractual Deduction
                       </Label>
@@ -714,7 +786,7 @@ export default function BillDeductionClientPage() {
                           onValueChange={(value) =>
                             handlePercentageChange(
                               "labourWelfareCessPercentage",
-                              value
+                              value,
                             )
                           }
                         >
@@ -723,7 +795,6 @@ export default function BillDeductionClientPage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="1.00">1.00%</SelectItem>
-                            
                           </SelectContent>
                         </Select>
                       </div>
@@ -933,7 +1004,9 @@ export default function BillDeductionClientPage() {
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              <span>{existingDeductionId ? "Update Deduction" : "Save Deduction"}</span>
+              <span>
+                {existingDeductionId ? "Update Deduction" : "Save Deduction"}
+              </span>
             </Button>
           </CardFooter>
         </Card>

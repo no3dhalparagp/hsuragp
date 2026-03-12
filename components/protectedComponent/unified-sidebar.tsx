@@ -21,7 +21,6 @@ import type { RootState } from "@/redux/store"
 import { toggleMenu } from "@/redux/slices/menuSlice"
 import ImprovedFooter from "@/components/improved-footer"
 
-// Types
 type Role = "user" | "admin" | "staff" | "superadmin"
 
 interface DashboardConfig {
@@ -29,107 +28,96 @@ interface DashboardConfig {
   items: MenuItemProps[]
 }
 
-// Configuration
 const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
-  user: {
-    title: "User Dashboard",
-    items: publicUserMenuItems,
-  },
-  admin: {
-    title: "Admin Portal",
-    items: adminMenuItems,
-  },
-  staff: {
-    title: "Staff Portal",
-    items: employeeMenuItems,
-  },
-  superadmin: {
-    title: "Super Admin Portal",
-    items: superAdminMenuItems,
-  },
+  user: { title: "User Dashboard", items: publicUserMenuItems },
+  admin: { title: "Admin Portal", items: adminMenuItems },
+  staff: { title: "Staff Portal", items: employeeMenuItems },
+  superadmin: { title: "Super Admin Portal", items: superAdminMenuItems },
 }
 
-// Helper function to check if a path is active
 function isActivePath(pathname: string, link?: string): boolean {
   if (!link || link === "#") return false
   return pathname === link || pathname.startsWith(link + "/")
 }
 
-// Components
-function MenuItem({ item, pathname, level = 0 }: { item: MenuItemProps; pathname: string; level?: number }) {
+/* ===========================
+   Menu Item Component
+=========================== */
+function MenuItem({
+  item,
+  pathname,
+  level = 0,
+}: {
+  item: MenuItemProps
+  pathname: string
+  level?: number
+}) {
   const [isOpen, setIsOpen] = useState(false)
-  const isActive = isActivePath(pathname, item.menuItemLink)
-  const hasActiveChild = item.subMenuItems.some(subItem => 
-    isActivePath(pathname, subItem.menuItemLink) || 
-    subItem.subMenuItems.some(subSubItem => isActivePath(pathname, subSubItem.menuItemLink))
-  )
 
-  // Auto-expand if has active child
+  const isActive = isActivePath(pathname, item.menuItemLink)
+
+  const hasActiveChild =
+    item.subMenuItems?.some(
+      (sub) =>
+        isActivePath(pathname, sub.menuItemLink) ||
+        sub.subMenuItems?.some((subSub) =>
+          isActivePath(pathname, subSub.menuItemLink)
+        )
+    ) || false
+
   useEffect(() => {
-    if (hasActiveChild) {
-      setIsOpen(true)
-    }
+    if (hasActiveChild) setIsOpen(true)
   }, [hasActiveChild])
 
   const toggleSubMenu = () => setIsOpen(!isOpen)
 
   return (
-    <div className="mb-1 relative group">
+    <div className="mb-1">
       <Button
         variant="ghost"
-        className={cn(
-          "w-full justify-start px-3 py-2.5 rounded-lg transition-all duration-200",
-          "hover:bg-primary/10 hover:text-primary",
-          "active:scale-[0.98]",
-          isActive && "bg-primary/15 text-primary font-semibold shadow-sm border-l-2 border-primary",
-          level > 0 && "ml-2 text-sm"
-        )}
         onClick={item.submenu ? toggleSubMenu : undefined}
+        className={cn(
+          "w-full justify-start px-4 py-2 text-sm rounded-none transition-colors",
+          "hover:bg-blue-50 hover:text-blue-800",
+          isActive &&
+            "bg-blue-100 text-blue-900 font-semibold border-l-4 border-blue-700",
+          level > 0 && "pl-8"
+        )}
       >
         <Link
           href={item.menuItemLink || "#"}
-          className="flex items-center w-full text-foreground min-w-0 gap-3"
+          className="flex items-center w-full gap-2 text-left"
           onClick={(e) => item.submenu && e.preventDefault()}
         >
           {item.Icon && (
-            <div
+            <item.Icon
               className={cn(
-                "p-1.5 rounded-lg flex-shrink-0 transition-all",
-                isActive 
-                  ? "bg-primary/20 text-primary" 
-                  : "bg-muted/50 group-hover:bg-primary/10"
+                "w-4 h-4",
+                isActive ? "text-blue-700" : "text-gray-600"
               )}
-            >
-              <item.Icon className={cn("w-4 h-4", item.color, isActive && "text-primary")} />
-            </div>
+            />
           )}
-          <span className={cn(
-            "font-medium text-sm truncate flex-1 text-left",
-            isActive && "text-primary"
-          )}>
-            {item.menuItemText}
-          </span>
-          {item.submenu && (
-            <span className="ml-auto transform transition-transform duration-200 flex-shrink-0">
-              {isOpen ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              )}
-            </span>
-          )}
+
+          <span className="flex-1">{item.menuItemText}</span>
+
+          {item.submenu &&
+            (isOpen ? (
+              <ChevronUp className="w-4 h-4 text-gray-600" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-600" />
+            ))}
         </Link>
       </Button>
 
-      {item.submenu && (
-        <div
-          className={cn(
-            "ml-6 space-y-1 overflow-hidden transition-all duration-300 ease-in-out",
-            isOpen ? "max-h-[1000px] opacity-100 mt-1" : "max-h-0 opacity-0"
-          )}
-        >
+      {item.submenu && isOpen && (
+        <div className="ml-4 border-l border-gray-200 pl-3 mt-1">
           {item.subMenuItems.map((subItem) => (
-            <MenuItem key={subItem.menuItemText} item={subItem} pathname={pathname} level={level + 1} />
+            <MenuItem
+              key={subItem.menuItemText}
+              item={subItem}
+              pathname={pathname}
+              level={level + 1}
+            />
           ))}
         </div>
       )}
@@ -137,111 +125,137 @@ function MenuItem({ item, pathname, level = 0 }: { item: MenuItemProps; pathname
   )
 }
 
-function SidebarContent({ role, pathname, onClose }: { role: Role; pathname: string; onClose?: () => void }) {
+/* ===========================
+   Sidebar Content
+=========================== */
+function SidebarContent({
+  role,
+  pathname,
+  onClose,
+}: {
+  role: Role
+  pathname: string
+  onClose?: () => void
+}) {
   const config = DASHBOARD_CONFIG[role]
 
   return (
-    <div
-      className="w-full sm:w-64 md:w-72 lg:w-64 xl:w-72 flex-shrink-0 border-r border-border/40 
-                    bg-gradient-to-br from-background via-background to-muted/20 
-                    backdrop-blur-sm h-screen flex flex-col shadow-lg fixed left-0 top-0 z-30"
-    >
-      <header
-        className="h-16 border-b border-border/40 p-4 flex items-center justify-between 
-                       bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 
-                       relative overflow-hidden"
-      >
-        <h1 className="text-base md:text-lg font-bold tracking-tight text-foreground relative z-10 truncate pr-2">
-          {config.title}
-        </h1>
+    <div className="w-72 h-screen flex flex-col bg-white border-r border-gray-300 fixed left-0 top-0 z-30">
+      {/* Header */}
+      <header className="h-16 bg-blue-700 border-b border-gray-300 px-4 flex items-center justify-between">
+        <div className="flex flex-col">
+          <h1 className="text-sm font-semibold text-white">
+            {config.title}
+          </h1>
+          <span className="text-xs text-blue-100">
+            Government Management System
+          </span>
+        </div>
+
         <div className="flex items-center gap-2">
-          <Avatar
-            className="w-8 h-8 border-2 border-primary/20 shadow-sm 
-                         hover:border-primary/40 transition-all hover:scale-105 flex-shrink-0"
-          >
-            <AvatarImage src="/placeholder-avatar.jpg" alt="User" />
-            <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-xs font-semibold">
+          <Avatar className="w-8 h-8 border border-white">
+            <AvatarImage src="/placeholder-avatar.jpg" />
+            <AvatarFallback className="bg-white text-blue-700 text-xs">
               <User className="w-4 h-4" />
             </AvatarFallback>
           </Avatar>
+
           {onClose && (
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden h-8 w-8"
+              className="lg:hidden text-white hover:bg-blue-600"
               onClick={onClose}
             >
-              <X className="h-4 w-4" />
+              <X className="w-4 h-4" />
             </Button>
           )}
         </div>
       </header>
 
-      <ScrollArea className="flex-1 min-h-0 px-3 py-4">
-        <nav className="space-y-1" aria-label={`${role} navigation`}>
+      {/* Navigation */}
+      <ScrollArea className="flex-1 px-2 py-4">
+        <nav className="space-y-1">
           {config.items.map((item) => (
-            <MenuItem key={item.menuItemText} item={item} pathname={pathname} />
+            <MenuItem
+              key={item.menuItemText}
+              item={item}
+              pathname={pathname}
+            />
           ))}
         </nav>
       </ScrollArea>
 
-      <ImprovedFooter />
+      {/* Footer */}
+      <div className="border-t border-gray-200 text-xs text-gray-600 p-3">
+        <p>© {new Date().getFullYear()} Government Portal</p>
+        <p>Designed & Developed by NIC</p>
+      </div>
     </div>
   )
 }
 
-export default function UnifiedSidebar({ role = "user" }: { role?: Role }) {
+/* ===========================
+   Main Export
+=========================== */
+export default function UnifiedSidebar({
+  role = "user",
+}: {
+  role?: Role
+}) {
   const isMenuOpen = useSelector((state: RootState) => state.menu.isOpen)
   const dispatch = useDispatch()
   const [isMounted, setIsMounted] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
-  const handleToggleMenu = () => {
-    dispatch(toggleMenu())
-    setIsMobileMenuOpen(!isMobileMenuOpen)
-  }
-
-  const handleCloseMobileMenu = () => {
-    setIsMobileMenuOpen(false)
-    dispatch(toggleMenu())
-  }
-
   if (!isMounted) return null
+
+  const handleToggle = () => {
+    dispatch(toggleMenu())
+    setIsMobileOpen(!isMobileOpen)
+  }
+
+  const handleClose = () => {
+    setIsMobileOpen(false)
+    dispatch(toggleMenu())
+  }
 
   return (
     <>
-      {/* Mobile Menu */}
+      {/* Mobile */}
       <div className="lg:hidden">
-        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
           <SheetTrigger asChild>
             <Button
               variant="outline"
               size="icon"
-              className="fixed top-3 left-3 sm:top-4 sm:left-4 z-50 bg-background/95 backdrop-blur-md shadow-lg 
-                        rounded-lg w-10 h-10 hover:bg-primary/10 hover:border-primary/50 
-                        transition-all border-2"
-              onClick={handleToggleMenu}
+              onClick={handleToggle}
+              className="fixed top-4 left-4 z-50 bg-white border border-gray-300 rounded-md w-10 h-10 hover:bg-gray-100"
             >
               <Menu className="w-5 h-5" />
-              <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent 
-            side="left" 
-            className="p-0 w-[280px] sm:w-[320px] md:w-[360px] shadow-2xl border-r"
+
+          <SheetContent
+            side="left"
+            className="p-0 w-[280px] bg-white border-r border-gray-300"
           >
-            <SidebarContent role={role} pathname={pathname} onClose={handleCloseMobileMenu} />
+            <SidebarContent
+              role={role}
+              pathname={pathname}
+              onClose={handleClose}
+            />
           </SheetContent>
         </Sheet>
       </div>
 
-      {/* Desktop Menu */}
-      <div className="hidden lg:block fixed left-0 top-0 z-30">
+      {/* Desktop */}
+      <div className="hidden lg:block">
         <SidebarContent role={role} pathname={pathname} />
       </div>
     </>

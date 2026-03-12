@@ -15,7 +15,13 @@ import {
 } from "@/components/ui/table";
 import { formatDateTime, formatDate } from "@/utils/utils";
 import { ShowNitDetails } from "@/components/ShowNitDetails";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 // Define types based on the data structure used in page.tsx
@@ -47,10 +53,11 @@ export const NitDetailsClient = ({ data }: NitDetailsClientProps) => {
   // Filter logic
   const filteredData = data.filter((item) => {
     const searchLower = searchTerm.toLowerCase();
-    
+
     // Check Memo Number
-    if (item.memoNumber.toString().toLowerCase().includes(searchLower)) return true;
-    
+    if (item.memoNumber.toString().toLowerCase().includes(searchLower))
+      return true;
+
     // Check Work Details
     const hasMatchingWork = item.WorksDetail.some((work) => {
       // Check Work Description
@@ -60,10 +67,11 @@ export const NitDetailsClient = ({ data }: NitDetailsClientProps) => {
           .includes(searchLower)
       )
         return true;
-      
+
       // Check Work Serial Number
-      if (work.workslno.toString().toLowerCase().includes(searchLower)) return true;
-      
+      if (work.workslno.toString().toLowerCase().includes(searchLower))
+        return true;
+
       return false;
     });
 
@@ -93,12 +101,20 @@ export const NitDetailsClient = ({ data }: NitDetailsClientProps) => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => window.location.reload()}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-2"
+              onClick={() => window.location.reload()}
+            >
               <RefreshCw className="h-3.5 w-3.5" />
               Refresh
             </Button>
             <Link href="/admindashboard/manage-tender/create-nit">
-              <Button size="sm" className="h-9 gap-2 bg-[#0f172a] hover:bg-[#1e293b]">
+              <Button
+                size="sm"
+                className="h-9 gap-2 bg-[#0f172a] hover:bg-[#1e293b]"
+              >
                 <Plus className="h-3.5 w-3.5" />
                 Create New NIT
               </Button>
@@ -121,7 +137,10 @@ export const NitDetailsClient = ({ data }: NitDetailsClientProps) => {
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-500 whitespace-nowrap">
                 <Filter className="h-4 w-4" />
-                <span>Showing {filteredData.flatMap(d => d.WorksDetail).length} works from {filteredData.length} NITs</span>
+                <span>
+                  Showing {filteredData.flatMap((d) => d.WorksDetail).length}{" "}
+                  works from {filteredData.length} NITs
+                </span>
               </div>
             </div>
           </CardContent>
@@ -133,11 +152,21 @@ export const NitDetailsClient = ({ data }: NitDetailsClientProps) => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-[#1e40af] hover:bg-[#1e40af] border-b border-gray-300">
-                  <TableHead className="w-[250px] text-white font-semibold h-12 border-r border-blue-800/30">NIT Information</TableHead>
-                  <TableHead className="min-w-[400px] text-white font-semibold h-12 border-r border-blue-800/30">Work Description</TableHead>
-                  <TableHead className="w-[180px] text-white font-semibold h-12 border-r border-blue-800/30">Important Dates</TableHead>
-                  <TableHead className="w-[150px] text-white font-semibold text-center h-12 border-r border-blue-800/30">Status</TableHead>
-                  <TableHead className="w-[150px] text-white font-semibold text-right h-12">Action</TableHead>
+                  <TableHead className="w-[250px] text-white font-semibold h-12 border-r border-blue-800/30">
+                    NIT Information
+                  </TableHead>
+                  <TableHead className="min-w-[400px] text-white font-semibold h-12 border-r border-blue-800/30">
+                    Work Description
+                  </TableHead>
+                  <TableHead className="w-[180px] text-white font-semibold h-12 border-r border-blue-800/30">
+                    Important Dates
+                  </TableHead>
+                  <TableHead className="w-[150px] text-white font-semibold text-center h-12 border-r border-blue-800/30">
+                    Status
+                  </TableHead>
+                  <TableHead className="w-[150px] text-white font-semibold text-right h-12">
+                    Action
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -158,31 +187,41 @@ export const NitDetailsClient = ({ data }: NitDetailsClientProps) => {
                         <TableCell className="align-top py-4 border-r border-gray-100 max-w-[400px]">
                           <div className="space-y-1">
                             <p className="text-sm text-gray-900 leading-relaxed line-clamp-2 group-hover:line-clamp-none transition-all">
-                              {worklist.ApprovedActionPlanDetails?.activityDescription || "N/A"}
+                              {worklist.ApprovedActionPlanDetails
+                                ?.activityDescription || "N/A"}
                             </p>
                           </div>
                         </TableCell>
                         <TableCell className="align-top py-4 border-r border-gray-100">
                           <div className="flex flex-col gap-1.5 text-xs">
                             <div className="flex flex-col">
-                              <span className="text-gray-500 font-medium">Bid Opening</span>
+                              <span className="text-gray-500 font-medium">
+                                Bid Opening
+                              </span>
                               <span className="text-gray-900">
                                 {item.technicalBidOpeningDate
-                                  ? formatDateTime(new Date(item.technicalBidOpeningDate)).dateOnly
+                                  ? formatDateTime(
+                                      new Date(item.technicalBidOpeningDate),
+                                    ).dateOnly
                                   : "N/A"}
                               </span>
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-gray-500 font-medium">Created</span>
+                              <span className="text-gray-500 font-medium">
+                                Created
+                              </span>
                               <span className="text-gray-900">
-                                {formatDateTime(new Date(item.createdAt)).dateOnly}
+                                {
+                                  formatDateTime(new Date(item.createdAt))
+                                    .dateOnly
+                                }
                               </span>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell className="align-top py-4 text-center border-r border-gray-100">
-                          <Badge 
-                            variant="secondary" 
+                          <Badge
+                            variant="secondary"
                             className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200"
                           >
                             In Progress
@@ -192,8 +231,8 @@ export const NitDetailsClient = ({ data }: NitDetailsClientProps) => {
                           <Link
                             href={`/admindashboard/manage-tender/addbidderdetails/${worklist.id}`}
                           >
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               className="bg-white text-blue-700 border-2 border-blue-600 hover:bg-blue-50 shadow-sm font-semibold"
                             >
                               <Plus className="mr-1.5 h-4 w-4" />
@@ -202,7 +241,7 @@ export const NitDetailsClient = ({ data }: NitDetailsClientProps) => {
                           </Link>
                         </TableCell>
                       </TableRow>
-                    ))
+                    )),
                   )
                 ) : (
                   <TableRow>
@@ -211,12 +250,14 @@ export const NitDetailsClient = ({ data }: NitDetailsClientProps) => {
                         <div className="p-4 rounded-full bg-gray-100">
                           <Search className="h-8 w-8 text-gray-400" />
                         </div>
-                        <p className="text-lg font-medium text-gray-900">No results found</p>
+                        <p className="text-lg font-medium text-gray-900">
+                          No results found
+                        </p>
                         <p className="text-sm">
                           Try adjusting your search terms or filters
                         </p>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           onClick={() => setSearchTerm("")}
                           className="mt-2"
                         >
@@ -229,10 +270,6 @@ export const NitDetailsClient = ({ data }: NitDetailsClientProps) => {
               </TableBody>
             </Table>
           </div>
-        </div>
-        
-        <div className="text-xs text-center text-gray-400 mt-8">
-          Designed and Developed by Dhalpara GP
         </div>
       </div>
     </div>

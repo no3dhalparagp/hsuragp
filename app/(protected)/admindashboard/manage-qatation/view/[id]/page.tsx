@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { gpaddress, gpname } from "@/constants/gpinfor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
@@ -52,19 +53,17 @@ export default async function ViewQuotationPage({
                   </div>
                   <div>
                     <h1 className="text-2xl font-bold text-gray-800">
-                      No 3 Dhalpara Gram Panchayat
+                      {gpname}
                     </h1>
-                    <p className="text-gray-600">
-                      Hili Block, Dakshin Dinajpur, West Bengal - 733126
-                    </p>
+                    <p className="text-gray-600">{gpaddress}</p>
                   </div>
                 </div>
                 <h2 className="text-xl font-bold text-red-600 mb-2">
                   {quotation.quotationType === "WORK"
                     ? "NOTICE INVITING QUOTATION FOR WORK"
                     : quotation.quotationType === "SUPPLY"
-                    ? "NOTICE INVITING QUOTATION FOR SUPPLY"
-                    : "NOTICE INVITING QUOTATION FOR SALE OF ITEMS"}
+                      ? "NOTICE INVITING QUOTATION FOR SUPPLY"
+                      : "NOTICE INVITING QUOTATION FOR SALE OF ITEMS"}
                 </h2>
                 <p className="text-gray-700">
                   NIT/NIQ No:{" "}
@@ -84,8 +83,8 @@ export default async function ViewQuotationPage({
                 <div>
                   <p className="text-justify leading-relaxed">
                     {quotation.quotationType === "SALE"
-                      ? `No 3 Dhalpara Gram Panchayat invites sealed quotations from interested buyers for the sale of the following items:`
-                      : `No 3 Dhalpara Gram Panchayat invites sealed quotations from eligible ${
+                      ? `${gpname} invites sealed quotations from interested buyers for the sale of the following items:`
+                      : `${gpname} invites sealed quotations from eligible ${
                           quotation.quotationType === "WORK"
                             ? "contractors"
                             : "suppliers"
@@ -106,8 +105,8 @@ export default async function ViewQuotationPage({
                           {quotation.quotationType === "WORK"
                             ? "Name of Work"
                             : quotation.quotationType === "SUPPLY"
-                            ? "Name of Material/Item"
-                            : "Name of Item for Sale"}
+                              ? "Name of Material/Item"
+                              : "Name of Item for Sale"}
                         </td>
                         <td className="p-3">{quotation.workName}</td>
                       </tr>
@@ -212,8 +211,8 @@ export default async function ViewQuotationPage({
                         {quotation.quotationType === "WORK"
                           ? "Work should be completed within the stipulated time period."
                           : quotation.quotationType === "SUPPLY"
-                          ? "Supply should be made within the specified delivery period."
-                          : "Items are sold on 'as-is-where-is' basis without any warranty."}
+                            ? "Supply should be made within the specified delivery period."
+                            : "Items are sold on 'as-is-where-is' basis without any warranty."}
                       </li>
                       <li>
                         The Gram Panchayat reserves the right to accept or
@@ -237,14 +236,12 @@ export default async function ViewQuotationPage({
                       <p className="text-sm text-gray-600">
                         Date: {formatDate(quotation.nitDate)}
                       </p>
-                      <p className="text-sm text-gray-600">
-                        Place: No 3 Dhalpara Gram Panchayat
-                      </p>
+                      <p className="text-sm text-gray-600">Place: {gpname}</p>
                     </div>
                     <div className="text-right">
                       <div className="border-t border-gray-400 pt-2 mt-12 w-48">
                         <p className="text-sm">Prodhan</p>
-                        <p className="text-sm">No 3 Dhalpara Gram Panchayat</p>
+                        <p className="text-sm">{gpname}</p>
                       </div>
                     </div>
                   </div>

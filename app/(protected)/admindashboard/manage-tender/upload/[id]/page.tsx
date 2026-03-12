@@ -2,23 +2,35 @@ import UploadTender from "@/components/form/UploadTender";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatDate } from "@/utils/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ArrowLeft, FileText, Calendar, Hash } from "lucide-react";
 import Link from "next/link";
 import { gpcode } from "@/constants/gpinfor";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
+
   return {
-    title: `Upload Tender - NIT ID: ${id}`,
-    description: "Upload a new tender document for the specified NIT.",
+    title: `Upload Tender - ${id}`,
   };
 }
 
 async function getTenderDetails(id: string) {
-  // This is a placeholder function. Replace with actual database query.
-  const tender = await db.nitDetails.findUnique({ where: { id } });
+  const tender = await db.nitDetails.findUnique({
+    where: { id },
+  });
+
   if (!tender) notFound();
+
   return tender;
 }
 
@@ -31,44 +43,108 @@ export default async function UploadTenderPage({
   const tender = await getTenderDetails(id);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
-      <Link
-        href="/admindashboard/manage-tender/upload"
-        className="flex items-center text-muted-foreground hover:text-primary mb-6"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to NIT List
-      </Link>
+    <div className="min-h-screen bg-muted/30">
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Upload NIT Document</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-4 p-4 bg-muted/50 rounded-lg">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">NIT Memo Number</p>
-              <p className="font-semibold text-primary text-lg">
-                {tender.memoNumber}/${gpcode}/{tender.memoDate.getFullYear()}
-              </p>
+      {/* Header */}
+      <div className="bg-primary text-primary-foreground shadow">
+        <div className="container mx-auto px-4 py-4">
+
+          <h1 className="text-xl md:text-2xl font-bold">
+            Notice Inviting Tender (NIT) Document Upload
+          </h1>
+
+        
+
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
+
+        {/* Back button */}
+        <Link
+          href="/admindashboard/manage-tender/upload"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to NIT List
+        </Link>
+
+        {/* NIT Information Card */}
+        <Card className="border shadow-sm">
+
+          <CardHeader className="bg-muted/40 border-b">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              NIT Details
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent className="pt-6">
+
+            <div className="grid md:grid-cols-3 gap-6">
+
+              {/* Memo Number */}
+              <div>
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <Hash className="h-4 w-4" />
+                  Memo Number
+                </div>
+
+                <div className="font-semibold text-lg text-primary">
+                  {tender.memoNumber}/{gpcode}/{tender.memoDate.getFullYear()}
+                </div>
+              </div>
+
+              {/* Memo Date */}
+              <div>
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <Calendar className="h-4 w-4" />
+                  Memo Date
+                </div>
+
+                <div className="font-medium">
+                  {formatDate(tender.memoDate)}
+                </div>
+              </div>
+
+              {/* NIT ID */}
+              <div>
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <Hash className="h-4 w-4" />
+                  NIT ID
+                </div>
+
+                <div className="font-mono text-sm bg-muted px-2 py-1 rounded">
+                  {tender.id}
+                </div>
+              </div>
+
             </div>
 
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">NIT Date</p>
-              <p className="font-medium">{formatDate(tender.memoDate)}</p>
-            </div>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">NIT ID</p>
-              <p className="font-mono text-sm">{tender.id}</p>
-            </div>
-          </div>
 
-          <div className="pt-4">
+        {/* Upload Section */}
+        <Card className="mt-6 shadow-sm border">
+
+          <CardHeader className="bg-muted/40 border-b">
+            <CardTitle className="text-lg font-semibold">
+              Upload Tender Document
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent className="pt-6">
+
             <UploadTender nitId={tender.id} />
-          </div>
-        </CardContent>
-      </Card>
+
+          </CardContent>
+
+        </Card>
+
+      </div>
+
     </div>
   );
 }

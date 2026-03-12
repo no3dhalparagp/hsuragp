@@ -1,5 +1,4 @@
-// Convert numbers to words
-// This is a utility function for converting numeric amounts to their word equivalents
+// Indian number system converter (Thousand, Lakh, Crore)
 
 const ones = [
   '',
@@ -40,33 +39,24 @@ const tens = [
   'Ninety',
 ];
 
-const scales = ['', 'Thousand', 'Lakh', 'Crore'];
-
-function convertGroupToWords(num: number): string {
-  if (num === 0) return '';
-
+function convertBelowThousand(num: number): string {
   let result = '';
 
-  const hundreds = Math.floor(num / 100);
-  if (hundreds > 0) {
-    result += ones[hundreds] + ' Hundred ';
+  const hundred = Math.floor(num / 100);
+  const remainder = num % 100;
+
+  if (hundred) {
+    result += ones[hundred] + ' Hundred ';
   }
 
-  const remainder = num % 100;
   if (remainder >= 10 && remainder < 20) {
     result += teens[remainder - 10];
   } else {
-    const tenDigit = Math.floor(remainder / 10);
-    const oneDigit = remainder % 10;
+    const ten = Math.floor(remainder / 10);
+    const one = remainder % 10;
 
-    if (tenDigit > 0) {
-      result += tens[tenDigit];
-    }
-
-    if (oneDigit > 0) {
-      if (tenDigit > 0) result += ' ';
-      result += ones[oneDigit];
-    }
+    if (ten) result += tens[ten] + ' ';
+    if (one) result += ones[one];
   }
 
   return result.trim();
@@ -75,27 +65,37 @@ function convertGroupToWords(num: number): string {
 export function convertToWords(num: number | string): string {
   let number = typeof num === 'string' ? parseInt(num, 10) : num;
 
-  if (number === 0) return 'Zero';
   if (isNaN(number)) return '';
+  if (number === 0) return 'Zero';
 
   if (number < 0) {
     return 'Minus ' + convertToWords(-number);
   }
 
   let result = '';
-  let scaleIndex = 0;
 
-  while (number > 0) {
-    if (number % 1000 !== 0) {
-      const groupWords = convertGroupToWords(number % 1000);
-      if (groupWords) {
-        result =
-          groupWords + (scales[scaleIndex] ? ' ' + scales[scaleIndex] : '') + (result ? ' ' + result : '');
-      }
-    }
-    number = Math.floor(number / 1000);
-    scaleIndex++;
-  }
+  const crore = Math.floor(number / 10000000);
+  number %= 10000000;
+
+  const lakh = Math.floor(number / 100000);
+  number %= 100000;
+
+  const thousand = Math.floor(number / 1000);
+  number %= 1000;
+
+  const remainder = number;
+
+  if (crore)
+    result += convertBelowThousand(crore) + ' Crore ';
+
+  if (lakh)
+    result += convertBelowThousand(lakh) + ' Lakh ';
+
+  if (thousand)
+    result += convertBelowThousand(thousand) + ' Thousand ';
+
+  if (remainder)
+    result += convertBelowThousand(remainder);
 
   return result.trim();
 }

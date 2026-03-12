@@ -82,22 +82,6 @@ interface BudgetReportData {
   }[];
 }
 
-interface EarnestMoneyReportData {
-  earnestMoneyRecords: any[];
-  summary: {
-    totalAmount: number;
-    paidAmount: number;
-    pendingAmount: number;
-    refundedAmount: number;
-    forfeitedAmount: number;
-  };
-  statusBreakdown: {
-    paid: number;
-    pending: number;
-    refunded: number;
-    forfeited: number;
-  };
-}
 
 interface TechnicalComplianceReportData {
   technicalEvaluations: any[];
@@ -504,67 +488,146 @@ export async function getBudgetReport(
 }
 
 // Fixed Earnest Money Report
-export async function getEarnestMoneyReport(
-  status?: EarnestMoneyStatus,
-  startDate?: Date,
-  endDate?: Date
-): Promise<BaseReportResponse & { data?: EarnestMoneyReportData }> {
+// ================= EARNEST MONEY REPORT TYPES =================
+
+interface EarnestMoneyReportData {
+  earnestMoneyRecords: any[];
+  summary: {
+    totalAmount: number;
+    paidAmount: number;
+    pendingAmount: number;
+    refundedAmount: number;
+    forfeitedAmount: number;
+  };
+  statusBreakdown: {
+    paid: number;
+    pending: number;
+    refunded: number;
+    forfeited: number;
+  };
+  agingSummary: {
+    days0to30: number;
+    days31to60: number;
+    days61to90: number;
+    above90: number;
+  };
+}
+
+// ================= EARNEST MONEY REPORT FUNCTION =================
+
+export async function getEarnestMoneyReport(options?: {
+  status?: EarnestMoneyStatus;
+  startDate?: Date;
+  endDate?: Date;
+}): Promise<BaseReportResponse & { data?: EarnestMoneyReportData }> {
   try {
+    const { status, startDate, endDate } = options || {};
+
     const where: any = {};
-    if (status) where.paymentstatus = status;
+
+    if (status) {
+      where.paymentstatus = status;
+    }
+
     if (startDate && endDate) {
-      where.createdAt = { gte: startDate, lte: endDate };
+      where.createdAt = {
+        gte: startDate,
+        lte: endDate,
+      };
     }
 
     const earnestMoneyRecords = await db.earnestMoneyRegister.findMany({
       where,
       include: {
         bidderName: {
-          include: { agencydetails: true }
-        }
+          include: {
+            agencydetails: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
-    // Status breakdown counts
+    // ============= STATUS GROUPING =============
+
     const statusCounts = await db.earnestMoneyRegister.groupBy({
-      by: ['paymentstatus'],
+      by: ["paymentstatus"],
+      where,
       _count: { _all: true },
       _sum: { earnestMoneyAmount: true },
-      where,
     });
 
     const statusMap = new Map(
-      statusCounts.map(item => [
-        item.paymentstatus, 
-        { count: item._count._all, sum: item._sum.earnestMoneyAmount || 0 }
+      statusCounts.map((item) => [
+        item.paymentstatus,
+        {
+          count: item._count._all,
+          sum: item._sum.earnestMoneyAmount || 0,
+        },
       ])
     );
+
+    // ============= AGING CALCULATION =============
+
+    const today = new Date();
+
+    const agingSummary = {
+      days0to30: 0,
+      days31to60: 0,
+      days61to90: 0,
+      above90: 0,
+    };
+
+    earnestMoneyRecords.forEach((record) => {
+      if (record.paymentstatus !== "pending") return;
+
+      const createdDate = new Date(record.createdAt);
+
+      const diffInDays = Math.floor(
+        (today.getTime() - createdDate.getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      if (diffInDays <= 30) agingSummary.days0to30++;
+      else if (diffInDays <= 60) agingSummary.days31to60++;
+      else if (diffInDays <= 90) agingSummary.days61to90++;
+      else agingSummary.above90++;
+    });
+
+    // ============= RETURN DATA =============
 
     return {
       success: true,
       data: {
         earnestMoneyRecords,
         summary: {
-          totalAmount: statusCounts.reduce((sum, item) => sum + (item._sum.earnestMoneyAmount || 0), 0),
-          paidAmount: statusMap.get('paid')?.sum || 0,
-          pendingAmount: statusMap.get('pending')?.sum || 0,
-          refundedAmount: statusMap.get('refunded')?.sum || 0,
-          forfeitedAmount: statusMap.get('forfeited')?.sum || 0
+          totalAmount: statusCounts.reduce(
+            (sum, item) =>
+              sum + (item._sum.earnestMoneyAmount || 0),
+            0
+          ),
+          paidAmount: statusMap.get("paid")?.sum || 0,
+          pendingAmount: statusMap.get("pending")?.sum || 0,
+          refundedAmount: statusMap.get("refunded")?.sum || 0,
+          forfeitedAmount: statusMap.get("forfeited")?.sum || 0,
         },
         statusBreakdown: {
-          paid: statusMap.get('paid')?.count || 0,
-          pending: statusMap.get('pending')?.count || 0,
-          refunded: statusMap.get('refunded')?.count || 0,
-          forfeited: statusMap.get('forfeited')?.count || 0
-        }
-      }
+          paid: statusMap.get("paid")?.count || 0,
+          pending: statusMap.get("pending")?.count || 0,
+          refunded: statusMap.get("refunded")?.count || 0,
+          forfeited: statusMap.get("forfeited")?.count || 0,
+        },
+        agingSummary,
+      },
     };
   } catch (error) {
-    console.error('Error fetching earnest money report:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Failed to fetch earnest money report" 
+    console.error("Error fetching earnest money report:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch earnest money report",
     };
   }
 }

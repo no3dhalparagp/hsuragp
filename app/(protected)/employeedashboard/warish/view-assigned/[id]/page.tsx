@@ -4,43 +4,45 @@ import LegalHeirrApplicationDetails from "@/components/LegalHeirrApplicationDeta
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 
 import {
   FileText,
   Users,
   Clipboard,
   Calendar,
-  Phone,
   User,
   MapPin,
   File,
+  ExternalLink,
+  Hash,
 } from "lucide-react";
 
 import { WarishApplicationProps, WarishDetailProps } from "@/types";
 import { formatDate } from "@/utils/utils";
 import EnquiryReportForm from "@/components/form/WarishForm/EnquiryReportForm";
 
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
+
   const application = (await db.warishApplication.findUnique({
     where: { id },
-    include: {
-      warishDetails: true,
-    },
+    include: { warishDetails: true },
   })) as WarishApplicationProps | null;
-
-  const warishdocument = await db.warishDocument.findMany({
-    where: {
-      warishId: id,
-    },
-  });
 
   if (!application) {
     notFound();
   }
 
-  // Build the tree structure for warishDetails
+  const warishdocument = await db.warishDocument.findMany({
+    where: { warishId: id },
+  });
+
+  // Build tree
   const warishDetailsMap = new Map<string, WarishDetailProps>();
   application.warishDetails.forEach((detail) => {
     warishDetailsMap.set(detail.id, { ...detail, children: [] });
@@ -50,182 +52,173 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   warishDetailsMap.forEach((detail) => {
     if (detail.parentId) {
       const parent = warishDetailsMap.get(detail.parentId);
-      if (parent) {
-        parent.children = parent.children || [];
-        parent.children.push(detail);
-      }
+      parent?.children?.push(detail);
     } else {
       rootWarishDetails.push(detail);
     }
   });
 
+  const getStatusVariant = () => {
+    if (application.warishApplicationStatus === "approved") return "success";
+    if (application.warishApplicationStatus === "rejected") return "destructive";
+    if (application.warishApplicationStatus === "process") return "secondary";
+    return "default";
+  };
+
   return (
-    <div className="container mx-auto py-8 space-y-8 px-4 sm:px-6 lg:px-8">
-      <Card className="shadow-lg border-t-4 border-t-blue-500 rounded-lg transition-all duration-300 hover:shadow-xl">
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
-          <CardTitle className="text-3xl font-bold flex items-center gap-3">
-            <FileText className="h-8 w-8" />
-            Warish Application Details / ওয়ারিশ আবেদন বিবরণ
+    <div className="container mx-auto py-8 space-y-8 px-4">
+
+      {/* MAIN APPLICATION CARD */}
+      <Card className="shadow-xl border rounded-2xl">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+            <div className="flex items-center gap-3 text-2xl font-bold">
+              <FileText className="h-7 w-7" />
+              Warish Application Details
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Badge variant={getStatusVariant()} className="capitalize">
+                {application.warishApplicationStatus}
+              </Badge>
+              <div className="flex items-center gap-1 text-sm">
+                <Hash className="h-4 w-4" />
+                {application.acknowlegment}
+              </div>
+            </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-blue-700">
-                <Calendar className="h-6 w-6" />
-                1. Reporting Information / প্রতিবেদন তথ্য
-              </h2>
-              <p className="flex items-center gap-2 text-gray-700">
-                <span className="font-medium">
-                  Reporting Date / প্রতিবেদন তারিখ:
-                </span>
-                {formatDate(application.reportingDate)}
-              </p>
-            </div>
 
-            <Separator className="my-4" />
+        <CardContent className="p-8 space-y-10">
 
-            <div>
-              <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-blue-700">
-                <User className="h-6 w-6" />
-                2. Applicant Details / আবেদনকারীর বিবরণ
-              </h2>
-              <div className="space-y-2 text-gray-700">
-                <p className="flex items-center gap-2">
-                  <span className="font-medium">
-                    Applicant Name / আবেদনকারীর নাম:
-                  </span>
-                  {application.applicantName}
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="font-medium">Mobile No / মোবাইল নম্বর:</span>
-                  {application.applicantMobileNumber}
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="font-medium">
-                    Relation with Deceased / মৃত ব্যক্তির সাথে সম্পর্ক:
-                  </span>
-                  {application.relationwithdeceased}
-                </p>
+          {/* Reporting Info */}
+          <Section title="Reporting Information" icon={<Calendar />}>
+            <Info label="Reporting Date" value={formatDate(application.reportingDate)} />
+          </Section>
+
+          <Separator />
+
+          {/* Applicant */}
+          <Section title="Applicant Details" icon={<User />}>
+            <Info label="Applicant Name" value={application.applicantName} />
+            <Info label="Mobile No" value={application.applicantMobileNumber} />
+            <Info label="Relation With Deceased" value={application.relationwithdeceased} />
+          </Section>
+
+          <Separator />
+
+          {/* Deceased */}
+          <Section title="Deceased Details" icon={<Users />}>
+            <Info label="Name" value={application.nameOfDeceased} />
+            <Info label="Date of Death" value={formatDate(application.dateOfDeath)} />
+            <Info label="Gender" value={application.gender} />
+            <Info label="Marital Status" value={application.maritialStatus} />
+            <Info label="Father's Name" value={application.fatherName} />
+            {application.spouseName && (
+              <Info label="Spouse Name" value={application.spouseName} />
+            )}
+          </Section>
+
+          <Separator />
+
+          {/* Address */}
+          <Section title="Address" icon={<MapPin />}>
+            <Info label="Village" value={application.villageName} />
+            <Info label="Post Office" value={application.postOffice} />
+            <Info label="Police Station" value="Hili" />
+            <Info label="District" value="Dakshin Dinajpur" />
+          </Section>
+
+          <Separator />
+
+          {/* Legal Heir Tree */}
+          <LegalHeirrApplicationDetails
+            application={application}
+            rootWarishDetails={rootWarishDetails}
+          />
+
+          <Separator />
+
+          {/* Documents */}
+          <Section title="Uploaded Documents" icon={<FileText />}>
+            {warishdocument.length === 0 ? (
+              <p className="text-gray-500 text-sm">No documents uploaded.</p>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {warishdocument.map((document) => (
+                  <div
+                    key={document.id}
+                    className="border rounded-xl p-4 flex items-center justify-between hover:shadow-md transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <File className="h-5 w-5 text-indigo-600" />
+                      <span className="text-sm font-medium">
+                        {document.documentType}
+                      </span>
+                    </div>
+
+                    <Button size="sm" variant="outline" asChild>
+                      <a
+                        href={document.cloudinaryUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        View
+                      </a>
+                    </Button>
+                  </div>
+                ))}
               </div>
-            </div>
-
-            <Separator className="my-4" />
-
-            <div>
-              <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-blue-700">
-                <Users className="h-6 w-6" />
-                3. Deceased Details / মৃত ব্যক্তির বিবরণ
-              </h2>
-              <div className="space-y-2 text-gray-700">
-                <p className="flex items-center gap-2">
-                  <span className="font-medium">
-                    Name of Deceased / মৃত ব্যক্তির নাম:
-                  </span>
-                  {application.nameOfDeceased}
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="font-medium">
-                    Date of Death / মৃত্যুর তারিখ:
-                  </span>
-                  {formatDate(application.dateOfDeath)}
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="font-medium">Gender / লিঙ্গ:</span>
-                  <Badge variant="secondary">{application.gender}</Badge>
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="font-medium">
-                    Marital Status / বৈবাহিক অবস্থা:
-                  </span>
-                  <Badge variant="secondary">
-                    {application.maritialStatus}
-                  </Badge>
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="font-medium">
-                    Father&apos;s Name / পিতার নাম:
-                  </span>
-                  {application.fatherName}
-                </p>
-                {application.spouseName && (
-                  <p className="flex items-center gap-2">
-                    <span className="font-medium">
-                      Spouse&apos; Name / স্বামী/স্ত্রীর নাম:
-                    </span>
-                    {application.spouseName}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-semibold mb-2 flex items-center gap-2 text-blue-600">
-                <MapPin className="h-5 w-5" />
-                Address / ঠিকানা
-              </h3>
-              <div className="space-y-1 ml-6 text-gray-700">
-                <p>
-                  <span className="font-medium">Village / গ্রাম:</span>{" "}
-                  {application.villageName}
-                </p>
-                <p>
-                  <span className="font-medium">Post Office / ডাকঘর:</span>{" "}
-                  {application.postOffice}
-                </p>
-                <p>
-                  <span className="font-medium">Police Station / থানা:</span>{" "}
-                  Hili
-                </p>
-                <p>
-                  <span className="font-medium">District / জেলা:</span> Dakshin
-                  Dinajpur
-                </p>
-              </div>
-            </div>
-
-            <Separator className="my-4" />
-
-            <LegalHeirrApplicationDetails
-              application={application}
-              rootWarishDetails={rootWarishDetails}
-            />
-
-            <Separator className="my-4" />
-
-            {/* // upload document */}
-            <div>
-              <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-blue-700">
-                <FileText className="h-6 w-6" />
-                4. Upload Document / ডকুমেন্ট আপলোড
-              </h2>
-              {warishdocument.map((document) => (
-                <div key={document.id}>
-                  <p>{document.documentType}</p>
-
-                  {/* // link to cloudinary url */}
-                  {/* // show icon */}
-                  <a href={document.cloudinaryUrl} target="_blank">
-                    <File className="h-6 w-6" />
-                  </a>
-                </div>
-              ))}
-            </div>
-          </div>
+            )}
+          </Section>
         </CardContent>
       </Card>
 
-      <Card className="shadow-lg border-t-4 border-t-green-500 rounded-lg transition-all duration-300 hover:shadow-xl">
-        <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-lg">
-          <CardTitle className="text-2xl font-bold flex items-center gap-3">
+      {/* ENQUIRY REPORT */}
+      <Card className="shadow-xl border rounded-2xl">
+        <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-2xl">
+          <CardTitle className="flex items-center gap-3 text-xl font-bold">
             <Clipboard className="h-6 w-6" />
-            Enquiry Report Form / তদন্ত প্রতিবেদন ফর্ম
+            Enquiry Report Form
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-8">
           <EnquiryReportForm applicationId={application.id} />
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/* ---------------- REUSABLE COMPONENTS ---------------- */
+
+function Section({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold flex items-center gap-2 text-blue-700">
+        {icon}
+        {title}
+      </h2>
+      <div className="grid sm:grid-cols-2 gap-4">{children}</div>
+    </div>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="bg-gray-50 rounded-lg p-3 border">
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-sm font-medium text-gray-800">{value || "-"}</p>
     </div>
   );
 }

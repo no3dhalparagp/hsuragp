@@ -22,21 +22,34 @@ import {
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 
+// 使用字符串字面量联合类型代替枚举
+type TenderStatus = 
+  | "publish"
+  | "published"
+  | "ToBeOpened"
+  | "TechnicalBidOpening"
+  | "TechnicalEvaluation"
+  | "FinancialBidOpening"
+  | "FinancialEvaluation"
+  | "AOC"
+  | "Retender"
+  | "Cancelled";
+
 interface WorkDetailsListProps {
   workDetails: {
     id: string;
     WorksDetail: Array<{
       id: string;
       finalEstimateAmount: number;
-      estimateValue?: number; // Add new field
+      estimateValue?: number;
       participationFee: number;
       earnestMoneyFee: number;
-      tenderStatus: string;
+      tenderStatus: TenderStatus;
       ApprovedActionPlanDetails: {
         id: string;
         financialYear: string;
         themeName: string;
-        activityCode: number;
+        activityCode: string;
         activityName: string;
         activityDescription: string;
         activityFor: string;
@@ -47,6 +60,62 @@ interface WorkDetailsListProps {
     }>;
   };
 }
+
+// 辅助函数：获取招标状态显示名称
+const getTenderStatusDisplayName = (status: TenderStatus): string => {
+  const statusMap: Record<TenderStatus, string> = {
+    "publish": "Publish",
+    "published": "Published",
+    "ToBeOpened": "To Be Opened",
+    "TechnicalBidOpening": "Technical Bid Opening",
+    "TechnicalEvaluation": "Technical Evaluation",
+    "FinancialBidOpening": "Financial Bid Opening",
+    "FinancialEvaluation": "Financial Evaluation",
+    "AOC": "AOC",
+    "Retender": "Retender",
+    "Cancelled": "Cancelled",
+  };
+  return statusMap[status] || status;
+};
+
+// 辅助函数：根据招标状态获取徽章样式变体
+const getTenderStatusVariant = (status: TenderStatus) => {
+  switch (status) {
+    case "published":
+    case "publish":
+      return "default";
+    case "ToBeOpened":
+    case "TechnicalBidOpening":
+    case "TechnicalEvaluation":
+    case "FinancialBidOpening":
+    case "FinancialEvaluation":
+      return "outline";
+    case "AOC":
+      return "secondary";
+    case "Retender":
+    case "Cancelled":
+      return "destructive";
+    default:
+      return "outline";
+  }
+};
+
+// 辅助函数：获取招标状态描述
+const getTenderStatusDescription = (status: TenderStatus): string => {
+  const descriptions: Record<TenderStatus, string> = {
+    "publish": "Tender is ready to be published",
+    "published": "Tender has been published",
+    "ToBeOpened": "Tender is scheduled to be opened",
+    "TechnicalBidOpening": "Technical bids are being opened",
+    "TechnicalEvaluation": "Technical evaluation in progress",
+    "FinancialBidOpening": "Financial bids are being opened",
+    "FinancialEvaluation": "Financial evaluation in progress",
+    "AOC": "Award of Contract",
+    "Retender": "Tender is being re-tendered",
+    "Cancelled": "Tender has been cancelled",
+  };
+  return descriptions[status] || "";
+};
 
 const WorkDetailItem = memo(
   ({
@@ -64,7 +133,7 @@ const WorkDetailItem = memo(
     onDelete: (id: string) => void;
     isPending: boolean;
   }) => {
-    // Use finalEstimateAmount as estimateValue if not provided
+    // 如果没有提供estimateValue，使用finalEstimateAmount
     const estimateValue = item.estimateValue || item.finalEstimateAmount;
     
     return (
@@ -82,10 +151,18 @@ const WorkDetailItem = memo(
                 <p className="font-medium min-w-[180px]">
                   Activity Code: {item.ApprovedActionPlanDetails.activityCode}
                 </p>
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant={getTenderStatusVariant(item.tenderStatus)}
+                    className="capitalize"
+                  >
+                    {getTenderStatusDisplayName(item.tenderStatus)}
+                  </Badge>
+                </div>
                 <p>
                   Estimate Cost: ₹{item.finalEstimateAmount.toLocaleString()}
                 </p>
-                {/* Display estimate value */}
+                {/* 显示估算值 */}
                 <p className="text-sm text-gray-600">
                   Est. Value: ₹{estimateValue.toLocaleString()}
                 </p>
@@ -116,11 +193,33 @@ const WorkDetailItem = memo(
                 label="Estimated Cost"
                 value={`₹${item.finalEstimateAmount.toLocaleString()}`}
               />
-              {/* Add estimate value display */}
+              {/* 添加估算值显示 */}
               <DetailItem
                 label="Estimate Value"
                 value={`₹${estimateValue.toLocaleString()}`}
               />
+              {/* 添加招标状态显示 */}
+              <div>
+                <p className="text-sm font-medium text-gray-600">Tender Status</p>
+                <div className="flex flex-col gap-1 mt-1">
+                  <Badge 
+                    variant={getTenderStatusVariant(item.tenderStatus)}
+                    className="capitalize w-fit"
+                  >
+                    {getTenderStatusDisplayName(item.tenderStatus)}
+                  </Badge>
+                  <p className="text-xs text-gray-500">
+                    {getTenderStatusDescription(item.tenderStatus)}
+                  </p>
+                </div>
+              </div>
+              {/* 添加保证金费用显示 */}
+              {item.earnestMoneyFee > 0 && (
+                <DetailItem
+                  label="Earnest Money Fee"
+                  value={`₹${item.earnestMoneyFee.toLocaleString()}`}
+                />
+              )}
             </div>
             <DetailItem
               label="Description"
@@ -128,7 +227,7 @@ const WorkDetailItem = memo(
               fullWidth
             />
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-gray-600">Status</p>
+              <p className="text-sm font-medium text-gray-600">Publication Status</p>
               <Badge
                 variant={
                   item.ApprovedActionPlanDetails.isPublish
@@ -195,7 +294,7 @@ function WorkDetailsList({ workDetails }: WorkDetailsListProps) {
   const [editFields, setEditFields] = useState({
     finalEstimateAmount: "",
     participationFee: "",
-    estimateValue: "", // Add new field
+    estimateValue: "",
   });
 
   const router = useRouter();
@@ -203,13 +302,13 @@ function WorkDetailsList({ workDetails }: WorkDetailsListProps) {
     (work) => work.ApprovedActionPlanDetails.isPublish
   );
 
-  // Calculate total estimated amount
+  // 计算总估算金额
   const totalEstimatedAmount = workDetails.WorksDetail.reduce(
     (sum, item) => sum + item.finalEstimateAmount,
     0
   );
 
-  // Calculate total estimate value (use estimateValue if available, otherwise use finalEstimateAmount)
+  // 计算总估算值（如果可用则使用estimateValue，否则使用finalEstimateAmount）
   const totalEstimateValue = workDetails.WorksDetail.reduce(
     (sum, item) => sum + (item.estimateValue || item.finalEstimateAmount),
     0
@@ -278,7 +377,7 @@ function WorkDetailsList({ workDetails }: WorkDetailsListProps) {
       setEditFields({
         finalEstimateAmount: item.finalEstimateAmount.toString(),
         participationFee: item.participationFee.toString(),
-        // Use estimateValue if available, otherwise use finalEstimateAmount
+        // 如果可用则使用estimateValue，否则使用finalEstimateAmount
         estimateValue: (item.estimateValue || item.finalEstimateAmount).toString(),
       });
       setShowEditModal(true);
@@ -286,7 +385,7 @@ function WorkDetailsList({ workDetails }: WorkDetailsListProps) {
     [setEditWork, setEditFields, setShowEditModal]
   );
 
-  // Auto-update estimateValue when finalEstimateAmount changes in the form
+  // 当表单中的finalEstimateAmount更改时自动更新estimateValue
   useEffect(() => {
     if (showEditModal) {
       const finalEstimateAmount = Number(editFields.finalEstimateAmount) || 0;
@@ -310,7 +409,7 @@ function WorkDetailsList({ workDetails }: WorkDetailsListProps) {
             body: JSON.stringify({
               finalEstimateAmount: Number(editFields.finalEstimateAmount),
               participationFee: Number(editFields.participationFee),
-              estimateValue: Number(editFields.estimateValue), // Send estimateValue
+              estimateValue: Number(editFields.estimateValue), // 发送estimateValue
             }),
           });
           const data = await res.json();
@@ -356,7 +455,7 @@ function WorkDetailsList({ workDetails }: WorkDetailsListProps) {
   return (
     <Card className="w-full max-w-3xl mx-auto">
       <CardContent className="py-6">
-        {/* Display both totals */}
+        {/* 显示两个总计 */}
         <div className="mb-6 space-y-4">
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
             <div className="flex justify-between items-center">
@@ -421,6 +520,7 @@ function WorkDetailsList({ workDetails }: WorkDetailsListProps) {
         setEditFields={setEditFields}
         onSubmit={handleEditSubmit}
         isPending={isPending}
+        tenderStatus={editWork?.tenderStatus}
       />
     </Card>
   );
@@ -434,23 +534,25 @@ const EditWorkModal = memo(
     setEditFields,
     onSubmit,
     isPending,
+    tenderStatus,
   }: {
     open: boolean;
     onClose: () => void;
     editFields: { 
       finalEstimateAmount: string; 
       participationFee: string;
-      estimateValue: string; // Add new field
+      estimateValue: string;
     };
     setEditFields: React.Dispatch<
       React.SetStateAction<{
         finalEstimateAmount: string;
         participationFee: string;
-        estimateValue: string; // Add new field
+        estimateValue: string;
       }>
     >;
     onSubmit: (e: React.FormEvent) => void;
     isPending: boolean;
+    tenderStatus?: TenderStatus;
   }) => (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
@@ -478,7 +580,7 @@ const EditWorkModal = memo(
             />
           </div>
           
-          {/* Estimate Value field (auto-populated and read-only) */}
+          {/* 估算值字段（自动填充且只读） */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Estimate Value (₹) <span className="text-xs text-gray-500">(auto-calculated)</span>
@@ -514,6 +616,30 @@ const EditWorkModal = memo(
               step="0.01"
             />
           </div>
+          
+          {/* 显示招标状态（只读） */}
+          {tenderStatus && (
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Tender Status
+              </label>
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
+                <Badge 
+                  variant={getTenderStatusVariant(tenderStatus)}
+                  className="capitalize"
+                >
+                  {getTenderStatusDisplayName(tenderStatus)}
+                </Badge>
+                <span className="text-sm text-gray-600">
+                  {getTenderStatusDescription(tenderStatus)}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Tender status cannot be changed here. Contact administrator for status updates.
+              </p>
+            </div>
+          )}
+          
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
@@ -530,3 +656,4 @@ const EditWorkModal = memo(
 EditWorkModal.displayName = "EditWorkModal";
 
 export default memo(WorkDetailsList);
+export type { TenderStatus };

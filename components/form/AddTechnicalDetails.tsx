@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useCallback } from "react"
+import { useState, useTransition, useCallback, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -28,7 +28,11 @@ interface AddTechnicalDetailsProps {
   afterSubmit?: () => void
 }
 
-export default function AddTechnicalDetails({ agencyid, isDialogMode = false, afterSubmit }: AddTechnicalDetailsProps) {
+export default function AddTechnicalDetails({
+  agencyid,
+  isDialogMode = false,
+  afterSubmit,
+}: AddTechnicalDetailsProps) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -59,6 +63,73 @@ export default function AddTechnicalDetails({ agencyid, isDialogMode = false, af
     },
   })
 
+  /* ---------------------------
+     WATCH VALUES (Reactive)
+  ---------------------------- */
+
+  const credencialValues = form.watch("credencial")
+  const validityValues = form.watch("validityofdocument")
+  const qualify = form.watch("qualify")
+
+  const allCredencialChecked = useMemo(
+    () => Object.values(credencialValues).every(Boolean),
+    [credencialValues]
+  )
+
+  const allValidityChecked = useMemo(
+    () => Object.values(validityValues).every(Boolean),
+    [validityValues]
+  )
+
+  const includedFieldPaths = [
+    "credencial.sixtyperamtput",
+    "credencial.workorder",
+    "credencial.paymentcertificate",
+    "credencial.comcertificat",
+    "validityofdocument.itreturn",
+    "validityofdocument.gst",
+    "validityofdocument.ptax",
+    "validityofdocument.tradelicence",
+    "declaration",
+    "qualify",
+  ] as const
+
+  const includedValues = form.watch(includedFieldPaths)
+
+  const allIncludedChecked = useMemo(
+    () => includedValues.every(Boolean),
+    [includedValues]
+  )
+
+  /* ---------------------------
+     AUTO QUALIFY LOGIC
+  ---------------------------- */
+
+  useEffect(() => {
+    if (allIncludedChecked) {
+      form.setValue("qualify", true)
+    }
+  }, [allIncludedChecked, form])
+
+  /* ---------------------------
+     TOGGLE ALL CHECKBOXES
+  ---------------------------- */
+
+  const toggleAllCheckboxes = (field: "credencial" | "validityofdocument") => {
+    const currentValues = form.getValues(field)
+    const allChecked = Object.values(currentValues).every(Boolean)
+
+    Object.keys(currentValues).forEach((key) => {
+      form.setValue(`${field}.${key}` as any, !allChecked, {
+        shouldValidate: true,
+      })
+    })
+  }
+
+  /* ---------------------------
+     SUBMIT HANDLER
+  ---------------------------- */
+
   const onSubmit = useCallback(
     async (data: AddTechnicalDetailsSchemaType) => {
       setError(null)
@@ -68,6 +139,7 @@ export default function AddTechnicalDetails({ agencyid, isDialogMode = false, af
       startTransition(async () => {
         try {
           const result = await addtechnicaldetailsofagency(data, agencyid)
+
           if (result.error) {
             setError(result.error)
           } else if (result.success) {
@@ -80,24 +152,17 @@ export default function AddTechnicalDetails({ agencyid, isDialogMode = false, af
               setTimeout(() => router.back(), 1500)
             }
           }
-        } catch (error) {
-          setError(error instanceof Error ? error.message : "An unexpected error occurred.")
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Unexpected error occurred.")
         }
       })
     },
-    [agencyid, router, form, isDialogMode, afterSubmit],
+    [agencyid, router, form, isDialogMode, afterSubmit]
   )
 
-  const handleSubmitClick = async () => {
-    const isValid = await form.trigger()
-    if (isValid) {
-      if (isDialogMode) {
-        onSubmit(form.getValues())
-      } else {
-        setIsDialogOpen(true)
-      }
-    }
-  }
+  /* ---------------------------
+     RESET
+  ---------------------------- */
 
   const resetForm = () => {
     form.reset()
@@ -105,39 +170,9 @@ export default function AddTechnicalDetails({ agencyid, isDialogMode = false, af
     setSuccess(null)
   }
 
-  const toggleAllCheckboxes = (field: "credencial" | "validityofdocument") => {
-    const currentValues = form.getValues(field)
-    const allChecked = Object.values(currentValues).every(Boolean)
-    const newValues = Object.keys(currentValues).reduce(
-      (acc, key) => {
-        return { ...acc, [key]: !allChecked }
-      },
-      {} as typeof currentValues,
-    )
-    form.setValue(field, newValues)
-  }
-
-  const qualify = form.watch("qualify")
-
-  const tooltips = {
-    credencial: {
-      sixtyperamtput: "60% of the payment amount put forward",
-      workorder: "Official work order documentation",
-      paymentcertificate: "Certificate confirming payment",
-      comcertificat: "Completion certificate for previous projects",
-    },
-    validityofdocument: {
-      itreturn: "Income Tax Return documents",
-      gst: "Goods and Services Tax registration",
-      ptax: "Professional Tax registration",
-      tradelicence: "Valid trade license",
-    },
-    byelow: "Organization's bye-laws and regulations",
-    pfregistrationupdatechalan: "Provident Fund registration documents",
-    declaration: "Signed declaration of compliance",
-    machinary: "List of machinery and equipment owned",
-    qualify: "Agency qualifies based on technical criteria",
-  }
+  /* ---------------------------
+     UI
+  ---------------------------- */
 
   return (
     <Form {...form}>
@@ -145,11 +180,10 @@ export default function AddTechnicalDetails({ agencyid, isDialogMode = false, af
         <CardHeader className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/10 rounded-lg">
-                <FileCheck className="h-6 w-6" />
-              </div>
+              <FileCheck className="h-6 w-6" />
               <h2 className="text-2xl font-bold">Technical Details</h2>
             </div>
+
             {!isDialogMode && (
               <Button
                 variant="outline"
@@ -157,170 +191,156 @@ export default function AddTechnicalDetails({ agencyid, isDialogMode = false, af
                 onClick={() => router.back()}
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
               </Button>
             )}
           </div>
         </CardHeader>
+
         <CardContent className="p-8">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleSubmitClick()
-            }}
-            className="space-y-8"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {error && (
-              <div
-                className="bg-red-50 text-red-900 p-4 rounded-lg flex items-center space-x-3 border border-red-200 shadow-sm"
-                role="alert"
-              >
-                <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-600" />
+              <div className="bg-red-50 text-red-900 p-4 rounded-lg flex items-center space-x-3 border border-red-200">
+                <AlertCircle className="h-5 w-5 text-red-600" />
                 <p className="text-sm font-medium">{error}</p>
               </div>
             )}
+
             {success && (
-              <div
-                className="bg-emerald-50 text-emerald-900 p-4 rounded-lg flex items-center space-x-3 border border-emerald-200 shadow-sm"
-                role="alert"
-              >
-                <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-600" />
+              <div className="bg-emerald-50 text-emerald-900 p-4 rounded-lg flex items-center space-x-3 border border-emerald-200">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                 <p className="text-sm font-medium">{success}</p>
               </div>
             )}
 
-            <div className="space-y-8">
-              <fieldset className="p-6 border border-slate-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-semibold text-sm">
-                    1
-                  </div>
-                  <legend className="text-lg font-bold text-slate-900">Credentials</legend>
-                </div>
+            {/* ---------------- Credentials ---------------- */}
 
-                <div className="flex items-center space-x-3 mb-6 p-3 bg-slate-50 rounded-lg">
-                  <Checkbox
-                    id="selectCredencialDocuments"
-                    onClick={() => toggleAllCheckboxes("credencial")}
-                    className="h-5 w-5"
-                  />
-                  <label
-                    htmlFor="selectCredencialDocuments"
-                    className="text-sm font-semibold text-slate-700 cursor-pointer"
-                  >
-                    Select All Credential Documents
-                  </label>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {Object.entries(form.getValues("credencial")).map(([key]) => (
-                    <CustomFormField
-                      key={key}
-                      fieldType={FormFieldType.CHECKBOX}
-                      control={form.control}
-                      name={`credencial.${key}`}
-                      label={key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (str) => str.toUpperCase())}
-                      tooltip={tooltips.credencial[key as keyof typeof tooltips.credencial]}
-                    />
-                  ))}
-                </div>
-              </fieldset>
+            <fieldset className="p-6 border rounded-lg bg-white shadow-sm">
+              <legend className="text-lg font-bold mb-4">Credentials</legend>
 
-              <Separator className="bg-slate-200" />
+              <div className="flex items-center space-x-3 mb-6">
+                <Checkbox
+                  checked={allCredencialChecked}
+                  onCheckedChange={() => toggleAllCheckboxes("credencial")}
+                />
+                <label className="text-sm font-semibold">
+                  Select All Credential Documents
+                </label>
+              </div>
 
-              <fieldset className="p-6 border border-slate-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-semibold text-sm">
-                    2
-                  </div>
-                  <legend className="text-lg font-bold text-slate-900">Validity of Documents</legend>
-                </div>
-                <div className="flex items-center space-x-3 mb-6 p-3 bg-slate-50 rounded-lg">
-                  <Checkbox
-                    id="selectValidityDocuments"
-                    onClick={() => toggleAllCheckboxes("validityofdocument")}
-                    className="h-5 w-5"
-                  />
-                  <label
-                    htmlFor="selectValidityDocuments"
-                    className="text-sm font-semibold text-slate-700 cursor-pointer"
-                  >
-                    Select All Validity Documents
-                  </label>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(form.getValues("validityofdocument")).map(([key]) => (
-                    <CustomFormField
-                      key={key}
-                      fieldType={FormFieldType.CHECKBOX}
-                      control={form.control}
-                      name={`validityofdocument.${key}`}
-                      label={key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (str) => str.toUpperCase())}
-                      tooltip={tooltips.validityofdocument[key as keyof typeof tooltips.validityofdocument]}
-                    />
-                  ))}
-                </div>
-              </fieldset>
-
-              <Separator className="bg-slate-200" />
-
-              <fieldset className="p-6 border border-slate-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 text-amber-700 font-semibold text-sm">
-                    3
-                  </div>
-                  <legend className="text-lg font-bold text-slate-900">Other Details</legend>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {Object.keys(credencialValues).map((key) => (
                   <CustomFormField
+                    key={key}
                     fieldType={FormFieldType.CHECKBOX}
                     control={form.control}
-                    name="byelow"
-                    label="Bye-laws"
-                    tooltip={tooltips.byelow}
+                    name={`credencial.${key}`}
+                    label={key}
                   />
-                  <CustomFormField
-                    fieldType={FormFieldType.CHECKBOX}
-                    control={form.control}
-                    name="pfregistrationupdatechalan"
-                    label="PF Registration"
-                    tooltip={tooltips.pfregistrationupdatechalan}
-                  />
-                  <CustomFormField
-                    fieldType={FormFieldType.CHECKBOX}
-                    control={form.control}
-                    name="declaration"
-                    label="Declaration"
-                    tooltip={tooltips.declaration}
-                  />
-                  <CustomFormField
-                    fieldType={FormFieldType.CHECKBOX}
-                    control={form.control}
-                    name="machinary"
-                    label="Machinery"
-                    tooltip={tooltips.machinary}
-                  />
-                  <CustomFormField
-                    fieldType={FormFieldType.CHECKBOX}
-                    control={form.control}
-                    name="qualify"
-                    label="Qualifies"
-                    tooltip={tooltips.qualify}
-                  />
-                </div>
-              </fieldset>
+                ))}
+              </div>
+            </fieldset>
 
-              {!qualify && (
-                <div className="p-6 border border-slate-200 rounded-lg bg-white shadow-sm">
+            <Separator />
+
+            {/* ---------------- Validity ---------------- */}
+
+            <fieldset className="p-6 border rounded-lg bg-white shadow-sm">
+              <legend className="text-lg font-bold mb-4">
+                Validity of Documents
+              </legend>
+
+              <div className="flex items-center space-x-3 mb-6">
+                <Checkbox
+                  checked={allValidityChecked}
+                  onCheckedChange={() =>
+                    toggleAllCheckboxes("validityofdocument")
+                  }
+                />
+                <label className="text-sm font-semibold">
+                  Select All Validity Documents
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                {Object.keys(validityValues).map((key) => (
                   <CustomFormField
-                    fieldType={FormFieldType.TEXTAREA}
+                    key={key}
+                    fieldType={FormFieldType.CHECKBOX}
                     control={form.control}
-                    name="remarks"
-                    label="Remarks"
-                    placeholder="Enter your remarks here..."
+                    name={`validityofdocument.${key}`}
+                    label={key}
                   />
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            </fieldset>
+
+            <Separator />
+
+            {/* ---------------- Other Details ---------------- */}
+
+            <fieldset className="p-6 border rounded-lg bg-white shadow-sm">
+              <legend className="text-lg font-bold mb-4">Other Details</legend>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <CustomFormField
+                  fieldType={FormFieldType.CHECKBOX}
+                  control={form.control}
+                  name="byelow"
+                  label="Bye-laws"
+                />
+                <CustomFormField
+                  fieldType={FormFieldType.CHECKBOX}
+                  control={form.control}
+                  name="pfregistrationupdatechalan"
+                  label="PF Registration"
+                />
+                <CustomFormField
+                  fieldType={FormFieldType.CHECKBOX}
+                  control={form.control}
+                  name="declaration"
+                  label="Declaration"
+                />
+                <CustomFormField
+                  fieldType={FormFieldType.CHECKBOX}
+                  control={form.control}
+                  name="machinary"
+                  label="Machinery"
+                />
+                <CustomFormField
+                  fieldType={FormFieldType.CHECKBOX}
+                  control={form.control}
+                  name="qualify"
+                  label="Qualifies"
+                />
+              </div>
+
+              <div className="mt-6 flex items-center space-x-3">
+                <Checkbox
+                  checked={allIncludedChecked}
+                  onCheckedChange={(checked) => {
+                    includedFieldPaths.forEach((path) =>
+                      form.setValue(path, checked === true, {
+                        shouldValidate: true,
+                      })
+                    )
+                  }}
+                />
+                <label className="text-sm font-semibold">
+                  Select All (except Bye-laws, PF Registration, Machinery)
+                </label>
+              </div>
+            </fieldset>
+
+            {!qualify && (
+              <CustomFormField
+                fieldType={FormFieldType.TEXTAREA}
+                control={form.control}
+                name="remarks"
+                label="Remarks"
+              />
+            )}
 
             <CardFooter className="flex justify-between px-0 pt-6 gap-4">
               <Button
@@ -328,53 +348,47 @@ export default function AddTechnicalDetails({ agencyid, isDialogMode = false, af
                 variant="outline"
                 onClick={resetForm}
                 disabled={isPending}
-                className="border-slate-300 text-slate-700 hover:bg-slate-50 bg-transparent"
               >
                 Reset Form
               </Button>
-              <Button
-                type="submit"
-                className="relative bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-8"
-                disabled={isPending}
-              >
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {isPending ? "Submitting..." : "Submit"}
+
+              <Button type="submit" disabled={isPending}>
+                {isPending && (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                )}
+                Submit
               </Button>
             </CardFooter>
           </form>
         </CardContent>
-      </Card>
 
-      {!isDialogMode && (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="border-slate-200 shadow-xl">
-            <DialogHeader>
-              <DialogTitle className="text-slate-900">Confirm Submission</DialogTitle>
-              <DialogDescription className="text-slate-600">
-                Are you sure you want to submit the technical details? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-                disabled={isPending}
-                className="border-slate-300 text-slate-700 hover:bg-slate-50"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => onSubmit(form.getValues())}
-                disabled={isPending}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-              >
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Confirm
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+        {/* Confirmation Dialog (Page Mode Only) */}
+        {!isDialogMode && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirm Submission</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to submit?
+                </DialogDescription>
+              </DialogHeader>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+
+                <Button onClick={form.handleSubmit(onSubmit)}>
+                  Confirm
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </Card>
     </Form>
   )
 }

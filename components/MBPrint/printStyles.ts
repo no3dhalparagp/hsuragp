@@ -8,93 +8,146 @@ export const printStyles = `
   box-sizing: border-box;
 }
 
-body {
-  font-family: "Times New Roman", serif;
-  color: #000;
+html, body {
   margin: 0;
   padding: 0;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
+  font-family: "Times New Roman", serif;
+  font-size: 11px;
+  color: #000;
+  background: #e5e7eb;
 }
 
-/* One physical sheet = two logical pages side by side */
+.print-root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+@media print {
+  html, body, .print-root {
+    background: #fff !important;
+  }
+  .sheet {
+    page-break-after: always;
+    break-after: page;
+  }
+  .page-container {
+    overflow: hidden;
+  }
+}
+
+/* Sheet = one A4 landscape sheet holding two pages side-by-side */
 .sheet {
   width: 297mm;
   height: 210mm;
   display: flex;
+  gap: 4mm;
+  padding: 0 4mm;
   page-break-after: always;
-  break-after: page;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* Logical page container used by all MB print components */
+/* Each page occupies exactly half the landscape sheet */
 .page-container {
-  width: 50%;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 210mm;
+  max-height: 210mm;
   padding: 5mm;
   display: flex;
-  flex-direction: column;
-  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* Inner bordered area to mimic MB register page */
+/* Border */
 .page-border {
   border: 1px solid #000;
-  padding: 5mm;
+  padding: 4mm;
+  width: 100%;
+  min-width: 0;
   height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
+/* Header */
 .page-header {
+  height: 10mm;
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
-  margin-bottom: 6mm;
 }
 
-.page-number {
-  font-size: 10px;
-  text-align: right;
-}
-
+/* Content – fills remaining space, clips at boundary */
 .content {
-  flex: 1;
-  font-size: 11px;
+  flex: 1 1 0;
+  overflow: hidden;
+  min-height: 0;
 }
 
+/* Table */
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  table-layout: fixed;
 }
 
-td, th {
+thead {
+  display: table-header-group;
+}
+
+tr {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+th, td {
   border: 1px solid #000;
-  padding: 3px;
+  padding: 3px 4px;
   vertical-align: top;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.text-left { text-align: left; }
-.bold { font-weight: bold; }
-
-.total-row td {
-  border-top: 2px solid #000;
-  font-weight: bold;
+td.cell-description,
+th.cell-description {
+  max-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
+.cell-description-wide {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+tbody tr td {
+  min-height: 1.35em;
+}
+
+/* Footer */
 .signature-block {
+  height: 16mm;
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
-  margin-top: 8mm;
-  font-size: 10px;
+  margin-top: auto;
 }
 
 .signature-line {
-  text-align: center;
   min-width: 35mm;
+  text-align: center;
 }
 
 .signature-line::before {
@@ -104,7 +157,28 @@ td, th {
   margin-bottom: 2mm;
 }
 
-.no-print {
-  display: none;
+.total-row td {
+  font-weight: bold;
+}
+
+.group-header td {
+  font-weight: bold;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.page-number {
+  font-weight: bold;
+  font-size: 11px;
 }
 `;

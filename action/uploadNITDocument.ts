@@ -1,88 +1,40 @@
 "use server";
 
-import { nitDocumentSchema } from "@/schema/nitDocumentSchema";
 import { revalidatePath } from "next/cache";
-import { v2 as cloudinary } from "cloudinary";
 import { db } from "@/lib/db";
 import { gpcode } from "@/constants/gpinfor";
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
-export async function uploadNITDocument(nitId: string, formData: FormData) {
-  const file = formData.get("file") as File;
-
+export async function uploadNITDocument(
+  nitId: string,
+  fileUrl: string,
+  fileName: string,
+  fileType: string
+) {
   try {
-    nitDocumentSchema.parse({ file });
-  } catch (error) {
-    return {
-      success: false,
-      message: "Invalid file. Please upload a PDF file less than 5MB.",
-    };
-  }
-
-  try {
-    // Convert File to Buffer
-    const buffer = await file.arrayBuffer();
-
-    // Upload file to Cloudinary
-    const result = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: "nit-documents",
-          resource_type: "raw",
-          format: "pdf",
-          type: "upload",
-          access_mode: "public",
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-
-      uploadStream.end(Buffer.from(buffer));
-    });
-
-    // Type assertion for TypeScript
-    const uploadResult = result as { secure_url: string };
-
-    // Update the database with the new URL
-    const newnitdetails =await db.nitDetails.update({
+    const newnitdetails = await db.nitDetails.update({
       where: { id: nitId },
-      data: { publishhardcopy: uploadResult.secure_url, isPublished: true },
-      
-      
+      data: { publishhardcopy: fileUrl, isPublished: true },
     });
 
-    const newnotice = await db.notice.create({
+    await db.notice.create({
       data: {
         title: `${newnitdetails.memoNumber}/${gpcode}/${newnitdetails.memoDate.getFullYear()}`,
         description: "Dhalpara Gram Panchayat",
         department: "P&rd",
         type: "Tender",
-        reference: `${newnitdetails.memoNumber}/${gpcode}/${newnitdetails.memoDate.getFullYear()}` ,
+        reference: `${newnitdetails.memoNumber}/${gpcode}/${newnitdetails.memoDate.getFullYear()}`,
         files: {
           create: {
-            name: file.name,
-            url: uploadResult.secure_url,
-            type: file.type,
-            // cloudinaryId: (add if you have it from upload result)
-          }
-        }
+            name: fileName,
+            url: fileUrl,
+            type: fileType,
+          },
+        },
       },
       include: { files: true },
-    })
+    });
 
-   
-
-   
-
-    // nit is publish
-    revalidatePath("/nit-documents"); // Adjust this path as needed
+    revalidatePath("/nit-documents");
 
     return { success: true, message: "NIT document uploaded successfully" };
   } catch (error) {

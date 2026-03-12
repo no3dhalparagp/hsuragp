@@ -1,11 +1,12 @@
-import type { Metadata } from "next"
-import { PollingStationTable } from "./polling-station-table"
-import { AddPollingStationDialog } from "./add-polling-station-dialog"
+import type { Metadata } from "next";
+import { PollingStationTable } from "./polling-station-table";
+import { AddPollingStationDialog } from "./add-polling-station-dialog";
+import { gpnameinshort } from "@/constants/gpinfor";
 
 export const metadata: Metadata = {
-  title: "Polling Station Management | Dhalpara Gram Panchayat",
-  description: "Manage polling stations and gram sansad member assignments for elections in Dhalpara Gram Panchayat",
-}
+  title: `Polling Station Management | ${gpnameinshort} Gram Panchayat`,
+  description: `Manage polling stations and gram sansad member assignments for elections in ${gpnameinshort} Gram Panchayat`,
+};
 
 export default function PollingStationsPage() {
   return (
@@ -16,6 +17,5 @@ export default function PollingStationsPage() {
       </div>
       <PollingStationTable />
     </div>
-  )
+  );
 }
-

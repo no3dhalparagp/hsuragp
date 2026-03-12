@@ -1,4 +1,3 @@
-
 "use client";
 
 import type React from "react";
@@ -42,7 +41,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox"; // Added Checkbox import
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Loader2,
   Search,
@@ -109,7 +108,7 @@ const formSchema = z
     final_Estimate_Amount: z
       .string()
       .nonempty("Final estimate amount is required"),
-    useSameAsEstimatedCost: z.boolean().default(false), // Added checkbox field
+    useSameAsEstimatedCost: z.boolean().default(false),
   })
   .superRefine((data, ctx) => {
     if (data.participation_fee_type === "Other" && !data.participation_fee) {
@@ -119,8 +118,7 @@ const formSchema = z
         message: "Please enter participation fee amount",
       });
     }
-    
-    // Only validate final estimate amount if checkbox is NOT checked
+
     if (!data.useSameAsEstimatedCost) {
       if (
         data.final_Estimate_Amount_type === "Other" &&
@@ -145,7 +143,6 @@ const formSchema = z
       }
     }
 
-    // Validate participation fee numeric value
     if (data.participation_fee && isNaN(Number(data.participation_fee))) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -172,7 +169,7 @@ interface SelectWithOtherProps {
   onValueChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   error?: string;
   placeholder?: string;
-  disabled?: boolean; // Added disabled prop
+  disabled?: boolean;
 }
 
 const SelectWithOther = ({
@@ -186,7 +183,7 @@ const SelectWithOther = ({
   onValueChange,
   error,
   placeholder = "Enter custom amount",
-  disabled = false, // Added disabled with default false
+  disabled = false,
 }: SelectWithOtherProps) => {
   const form = useFormContext<FormValues>();
 
@@ -211,11 +208,7 @@ const SelectWithOther = ({
       </Label>
 
       <div className="space-y-3">
-        <Select 
-          value={selectedType} 
-          onValueChange={handleTypeChange}
-          disabled={disabled}
-        >
+        <Select value={selectedType} onValueChange={handleTypeChange} disabled={disabled}>
           <SelectTrigger className="h-12 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-50 disabled:cursor-not-allowed">
             <SelectValue placeholder={`Select ${label}`} />
           </SelectTrigger>
@@ -268,15 +261,11 @@ const SelectWithOther = ({
   );
 };
 
-export default function AddWorkDetailsForm({
-  tenderId,
-}: AddWorkDetailsFormProps) {
+export default function AddWorkDetailsForm({ tenderId }: AddWorkDetailsFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedWork, setSelectedWork] =
-    useState<ApprovedActionPlanDetails | null>(null);
-  const [selectedFinancialYear, setSelectedFinancialYear] =
-    useState<string>("");
+  const [selectedWork, setSelectedWork] = useState<ApprovedActionPlanDetails | null>(null);
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState<string>("");
   const [page, setPage] = useState(1);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -299,55 +288,67 @@ export default function AddWorkDetailsForm({
   // Watch for checkbox changes
   const useSameAsEstimatedCost = form.watch("useSameAsEstimatedCost");
 
-  // Effect to handle checkbox changes
+  // Effect to handle checkbox changes (copy estimated cost to final estimate)
   useEffect(() => {
     if (useSameAsEstimatedCost && selectedWork) {
       const workEstimatedCost = selectedWork.estimatedCost.toString();
-      
-      // Check if the work's estimated cost is in the predefined list
       const isPredefinedValue = predefinedFinalEstimates.includes(workEstimatedCost);
-      
+
       if (isPredefinedValue) {
         form.setValue("final_Estimate_Amount_type", workEstimatedCost);
       } else {
         form.setValue("final_Estimate_Amount_type", "Other");
       }
-      
+
       form.setValue("final_Estimate_Amount", workEstimatedCost);
-      
-      // Clear any validation errors for final estimate amount
       form.clearErrors("final_Estimate_Amount");
       form.clearErrors("final_Estimate_Amount_type");
     } else if (!useSameAsEstimatedCost) {
-      // Clear the values when checkbox is unchecked
       form.setValue("final_Estimate_Amount_type", "");
       form.setValue("final_Estimate_Amount", "");
     }
   }, [useSameAsEstimatedCost, selectedWork, form]);
 
+  // ------------------------------------------------------------------------
+  // NEW: Auto-calculate participation fee based on final estimate amount
+  // ------------------------------------------------------------------------
+  const getParticipationFeeFromFinalEstimate = (amount: number): { type: string; value: string } | null => {
+    if (isNaN(amount) || amount <= 0) return null;
+    if (amount <= 50000) return { type: "Other", value: "250" };
+    if (amount <= 150000) return { type: "500", value: "500" };
+    if (amount <= 200000) return { type: "600", value: "600" };
+    if (amount <= 300000) return { type: "800", value: "800" };
+    return { type: "1000", value: "1000" };
+  };
+
+  const finalEstimateAmount = form.watch("final_Estimate_Amount");
+
+  useEffect(() => {
+    const parsed = parseFloat(finalEstimateAmount);
+    const computed = getParticipationFeeFromFinalEstimate(parsed);
+
+    // Only auto-fill if participation fee field hasn't been manually touched
+    if (computed && !form.formState.touchedFields.participation_fee) {
+      const currentType = form.getValues("participation_fee_type");
+      const currentValue = form.getValues("participation_fee");
+      if (currentType !== computed.type || currentValue !== computed.value) {
+        form.setValue("participation_fee_type", computed.type, { shouldValidate: true });
+        form.setValue("participation_fee", computed.value, { shouldValidate: true });
+      }
+    }
+  }, [finalEstimateAmount, form.formState.touchedFields.participation_fee, form]);
+
   // Fetch financial years
   const { data: financialYears } = useQuery({
     queryKey: ["financialYears"],
     queryFn: fetchFinancialYears,
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000,
   });
 
   // Fetch approved action plans
   const { data, error, isLoading, isFetching } = useQuery({
-    queryKey: [
-      "approvedActionPlans",
-      page,
-      pageSize,
-      searchTerm,
-      selectedFinancialYear,
-    ],
-    queryFn: () =>
-      fetchApprovedActionPlans(
-        page,
-        pageSize,
-        searchTerm,
-        selectedFinancialYear
-      ),
+    queryKey: ["approvedActionPlans", page, pageSize, searchTerm, selectedFinancialYear],
+    queryFn: () => fetchApprovedActionPlans(page, pageSize, searchTerm, selectedFinancialYear),
     staleTime: 5 * 60 * 1000,
     enabled: searchTerm.length > 0 || selectedFinancialYear.length > 0,
   });
@@ -358,10 +359,7 @@ export default function AddWorkDetailsForm({
       const queryKey: QueryKey = ["tenderDetails", tenderId];
       await queryClient.cancelQueries({ queryKey });
       const previousTenderDetails = queryClient.getQueryData(queryKey);
-      queryClient.setQueryData(queryKey, (old: any[] = []) => [
-        ...old,
-        newTenderDetails,
-      ]);
+      queryClient.setQueryData(queryKey, (old: any[] = []) => [...old, newTenderDetails]);
       return { previousTenderDetails };
     },
     onError: (err, newTenderDetails, context) => {
@@ -388,7 +386,6 @@ export default function AddWorkDetailsForm({
     try {
       await mutation.mutateAsync(values);
     } catch (error) {
-      // Error is handled in mutation.onError
       console.error("Failed to submit form:", error);
     }
   };
@@ -397,18 +394,17 @@ export default function AddWorkDetailsForm({
     setSelectedWork(work);
     form.setValue("approvedActionPlanId", work.id);
     form.clearErrors("approvedActionPlanId");
-    
-    // If checkbox was already checked, update the final estimate with new work's cost
+
     if (useSameAsEstimatedCost) {
       const workEstimatedCost = work.estimatedCost.toString();
       const isPredefinedValue = predefinedFinalEstimates.includes(workEstimatedCost);
-      
+
       if (isPredefinedValue) {
         form.setValue("final_Estimate_Amount_type", workEstimatedCost);
       } else {
         form.setValue("final_Estimate_Amount_type", "Other");
       }
-      
+
       form.setValue("final_Estimate_Amount", workEstimatedCost);
     }
   };
@@ -450,7 +446,6 @@ export default function AddWorkDetailsForm({
     setCurrentStep(1);
   };
 
-  // Combined loading state - use mutation's isPending instead of formState.isSubmitting
   const isSubmitting = mutation.isPending;
 
   return (
@@ -492,7 +487,6 @@ export default function AddWorkDetailsForm({
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {/* Search Input */}
                     <div className="lg:col-span-2 relative">
                       <Search className="absolute left-3 top-3.5 h-5 w-5 text-gray-400 z-10" />
                       <Input
@@ -520,7 +514,6 @@ export default function AddWorkDetailsForm({
                       )}
                     </div>
 
-                    {/* Financial Year Filter */}
                     <Select
                       value={selectedFinancialYear}
                       onValueChange={(value) => {
@@ -534,10 +527,7 @@ export default function AddWorkDetailsForm({
                       <SelectContent>
                         <SelectItem value="all">All Years</SelectItem>
                         {financialYears?.map((year) => (
-                          <SelectItem
-                            key={year.financialYear}
-                            value={year.financialYear}
-                          >
+                          <SelectItem key={year.financialYear} value={year.financialYear}>
                             {year.financialYear}
                           </SelectItem>
                         ))}
@@ -545,17 +535,11 @@ export default function AddWorkDetailsForm({
                     </Select>
                   </div>
 
-                  {/* Active Filters */}
                   {(searchTerm || selectedFinancialYear) && (
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm text-gray-600">
-                        Active filters:
-                      </span>
+                      <span className="text-sm text-gray-600">Active filters:</span>
                       {searchTerm && (
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
+                        <Badge variant="secondary" className="flex items-center gap-1">
                           Search: {searchTerm}
                           <X
                             className="h-3 w-3 cursor-pointer"
@@ -567,10 +551,7 @@ export default function AddWorkDetailsForm({
                         </Badge>
                       )}
                       {selectedFinancialYear && (
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
+                        <Badge variant="secondary" className="flex items-center gap-1">
                           Year: {selectedFinancialYear}
                           <X
                             className="h-3 w-3 cursor-pointer"
@@ -581,13 +562,7 @@ export default function AddWorkDetailsForm({
                           />
                         </Badge>
                       )}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearAllFilters}
-                        className="text-xs"
-                      >
+                      <Button type="button" variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs">
                         Clear all
                       </Button>
                     </div>
@@ -604,14 +579,11 @@ export default function AddWorkDetailsForm({
                       transition={{ duration: 0.3 }}
                     >
                       <Card className="border-2 border-gray-100 shadow-sm rounded-xl overflow-hidden bg-white/90 backdrop-blur-sm">
-                        {/* Results Header */}
                         <div className="p-4 bg-gray-50/50 border-b flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <ClipboardList className="h-5 w-5 text-blue-500" />
                             <span className="font-medium text-gray-700">
-                              {isLoading
-                                ? "Searching..."
-                                : `${data?.totalCount || 0} plans found`}
+                              {isLoading ? "Searching..." : `${data?.totalCount || 0} plans found`}
                             </span>
                           </div>
                           {data && data.totalCount > pageSize && (
@@ -632,9 +604,7 @@ export default function AddWorkDetailsForm({
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() =>
-                                  setPage(Math.min(totalPages, page + 1))
-                                }
+                                onClick={() => setPage(Math.min(totalPages, page + 1))}
                                 disabled={page === totalPages || isLoading}
                               >
                                 <ChevronRight className="h-4 w-4" />
@@ -649,27 +619,21 @@ export default function AddWorkDetailsForm({
                               <div className="flex items-center justify-center h-32">
                                 <div className="flex flex-col items-center gap-2">
                                   <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                                  <p className="text-sm text-gray-600">
-                                    Loading plans...
-                                  </p>
+                                  <p className="text-sm text-gray-600">Loading plans...</p>
                                 </div>
                               </div>
                             ) : error ? (
                               <div className="flex items-center justify-center h-32">
                                 <div className="flex flex-col items-center gap-2 text-red-600">
                                   <AlertCircle className="h-8 w-8" />
-                                  <p className="text-sm">
-                                    Failed to load plans. Please try again.
-                                  </p>
+                                  <p className="text-sm">Failed to load plans. Please try again.</p>
                                 </div>
                               </div>
                             ) : data && data.plans.length > 0 ? (
                               <RadioGroup
                                 value={selectedWork?.id}
                                 onValueChange={(value) => {
-                                  const work = data.plans.find(
-                                    (p: any) => p.id === value
-                                  );
+                                  const work = data.plans.find((p: any) => p.id === value);
                                   if (work) handleWorkSelect(work);
                                 }}
                               >
@@ -679,16 +643,9 @@ export default function AddWorkDetailsForm({
                                       key={work.id}
                                       initial={{ opacity: 0, y: 20 }}
                                       animate={{ opacity: 1, y: 0 }}
-                                      transition={{
-                                        duration: 0.2,
-                                        delay: index * 0.05,
-                                      }}
+                                      transition={{ duration: 0.2, delay: index * 0.05 }}
                                     >
-                                      <RadioGroupItem
-                                        value={work.id}
-                                        id={work.id}
-                                        className="peer sr-only"
-                                      />
+                                      <RadioGroupItem value={work.id} id={work.id} className="peer sr-only" />
                                       <Label
                                         htmlFor={work.id}
                                         className="flex flex-col p-6 border-2 rounded-xl cursor-pointer transition-all 
@@ -704,15 +661,10 @@ export default function AddWorkDetailsForm({
                                               <h3 className="font-semibold text-gray-800 text-lg leading-tight">
                                                 {work.activityDescription}
                                               </h3>
-                                              <p className="text-sm text-gray-600 mt-1">
-                                                {work.schemeName}
-                                              </p>
+                                              <p className="text-sm text-gray-600 mt-1">{work.schemeName}</p>
                                             </div>
                                           </div>
-                                          <Badge
-                                            variant="outline"
-                                            className="text-xs"
-                                          >
+                                          <Badge variant="outline" className="text-xs">
                                             Code: {work.activityCode}
                                           </Badge>
                                         </div>
@@ -722,38 +674,27 @@ export default function AddWorkDetailsForm({
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                           <div className="flex items-center gap-2 text-gray-600">
                                             <CalendarDays className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                                            <span className="truncate">
-                                              {work.financialYear}
-                                            </span>
+                                            <span className="truncate">{work.financialYear}</span>
                                           </div>
                                           <div className="flex items-center gap-2 text-gray-600">
                                             <IndianRupee className="h-4 w-4 text-green-500 flex-shrink-0" />
                                             <span className="truncate">
-                                              ₹
-                                              {Number(
-                                                work.estimatedCost
-                                              ).toLocaleString()}
+                                              ₹{Number(work.estimatedCost).toLocaleString()}
                                             </span>
                                           </div>
                                           <div className="flex items-center gap-2 text-gray-600">
                                             <MapPin className="h-4 w-4 text-red-500 flex-shrink-0" />
-                                            <span className="truncate">
-                                              {work.locationofAsset}
-                                            </span>
+                                            <span className="truncate">{work.locationofAsset}</span>
                                           </div>
                                           <div className="flex items-center gap-2 text-gray-600">
                                             <Landmark className="h-4 w-4 text-purple-500 flex-shrink-0" />
-                                            <span className="truncate">
-                                              {work.schemeName}
-                                            </span>
+                                            <span className="truncate">{work.schemeName}</span>
                                           </div>
                                         </div>
 
                                         {work.activityDescription && (
                                           <div className="mt-3 pt-3 border-t border-gray-100">
-                                            <p className="text-sm text-gray-600 line-clamp-2">
-                                              {work.activityDescription}
-                                            </p>
+                                            <p className="text-sm text-gray-600 line-clamp-2">{work.activityDescription}</p>
                                           </div>
                                         )}
                                       </Label>
@@ -765,12 +706,8 @@ export default function AddWorkDetailsForm({
                               <div className="flex items-center justify-center h-32">
                                 <div className="flex flex-col items-center gap-2 text-gray-500">
                                   <Search className="h-8 w-8" />
-                                  <p className="text-sm">
-                                    No matching plans found
-                                  </p>
-                                  <p className="text-xs">
-                                    Try adjusting your search criteria
-                                  </p>
+                                  <p className="text-sm">No matching plans found</p>
+                                  <p className="text-xs">Try adjusting your search criteria</p>
                                 </div>
                               </div>
                             )}
@@ -781,7 +718,6 @@ export default function AddWorkDetailsForm({
                   )}
                 </AnimatePresence>
 
-                {/* Form Validation Error */}
                 {form.formState.errors.approvedActionPlanId && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
@@ -822,39 +758,28 @@ export default function AddWorkDetailsForm({
                               <CalendarDays className="h-4 w-4" />
                               Financial Year
                             </Label>
-                            <p className="font-medium">
-                              {selectedWork.financialYear}
-                            </p>
+                            <p className="font-medium">{selectedWork.financialYear}</p>
                           </div>
                           <div className="space-y-1">
                             <Label className="text-sm text-gray-600 flex items-center gap-2">
                               <ClipboardList className="h-4 w-4" />
                               Activity Code
                             </Label>
-                            <p className="font-medium">
-                              {selectedWork.activityCode}
-                            </p>
+                            <p className="font-medium">{selectedWork.activityCode}</p>
                           </div>
                           <div className="space-y-1">
                             <Label className="text-sm text-gray-600 flex items-center gap-2">
                               <MapPin className="h-4 w-4" />
                               Location
                             </Label>
-                            <p className="font-medium">
-                              {selectedWork.locationofAsset}
-                            </p>
+                            <p className="font-medium">{selectedWork.locationofAsset}</p>
                           </div>
                           <div className="space-y-1">
                             <Label className="text-sm text-gray-600 flex items-center gap-2">
                               <IndianRupee className="h-4 w-4" />
                               Estimated Cost
                             </Label>
-                            <p className="font-medium">
-                              ₹
-                              {Number(
-                                selectedWork.estimatedCost
-                              ).toLocaleString()}
-                            </p>
+                            <p className="font-medium">₹{Number(selectedWork.estimatedCost).toLocaleString()}</p>
                           </div>
                         </CardContent>
                       </Card>
@@ -866,9 +791,7 @@ export default function AddWorkDetailsForm({
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <IndianRupee className="h-6 w-6 text-blue-500" />
-                    <h3 className="text-xl font-semibold text-gray-800">
-                      Financial Details
-                    </h3>
+                    <h3 className="text-xl font-semibold text-gray-800">Financial Details</h3>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -879,18 +802,13 @@ export default function AddWorkDetailsForm({
                       label="Participation Fee"
                       selectedType={form.watch("participation_fee_type")}
                       selectedValue={form.watch("participation_fee")}
-                      onTypeChange={(value) =>
-                        form.setValue("participation_fee_type", value)
-                      }
-                      onValueChange={(e) =>
-                        form.setValue("participation_fee", e.target.value)
-                      }
+                      onTypeChange={(value) => form.setValue("participation_fee_type", value)}
+                      onValueChange={(e) => form.setValue("participation_fee", e.target.value)}
                       error={form.formState.errors.participation_fee?.message}
                       placeholder="Enter participation fee amount"
                     />
 
                     <div className="space-y-4">
-                      {/* Checkbox for using same as estimated cost */}
                       {selectedWork && (
                         <div className="flex items-center space-x-2 mb-4 p-3 bg-blue-50 rounded-lg">
                           <Checkbox
@@ -917,28 +835,20 @@ export default function AddWorkDetailsForm({
                         label="Final Estimate Amount"
                         selectedType={form.watch("final_Estimate_Amount_type")}
                         selectedValue={form.watch("final_Estimate_Amount")}
-                        onTypeChange={(value) =>
-                          form.setValue("final_Estimate_Amount_type", value)
-                        }
-                        onValueChange={(e) =>
-                          form.setValue("final_Estimate_Amount", e.target.value)
-                        }
-                        error={
-                          form.formState.errors.final_Estimate_Amount?.message
-                        }
+                        onTypeChange={(value) => form.setValue("final_Estimate_Amount_type", value)}
+                        onValueChange={(e) => form.setValue("final_Estimate_Amount", e.target.value)}
+                        error={form.formState.errors.final_Estimate_Amount?.message}
                         placeholder="Enter final estimate amount"
                         disabled={useSameAsEstimatedCost}
                       />
                     </div>
                   </div>
                 </div>
-                
-                {/* Warning message when manually entered amount differs from selected work's cost */}
+
                 {selectedWork &&
                   !useSameAsEstimatedCost &&
                   form.watch("final_Estimate_Amount") &&
-                  Number(form.watch("final_Estimate_Amount")) !==
-                    Number(selectedWork.estimatedCost) && (
+                  Number(form.watch("final_Estimate_Amount")) !== Number(selectedWork.estimatedCost) && (
                     <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-lg mb-4">
                       <AlertCircle className="h-4 w-4" />
                       <span>
@@ -953,12 +863,7 @@ export default function AddWorkDetailsForm({
             {/* Navigation Buttons */}
             <div className="pt-6 flex justify-between">
               {currentStep === 2 && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={handleBack}
-                  disabled={isSubmitting}
-                >
+                <Button type="button" variant="outline" onClick={handleBack} disabled={isSubmitting}>
                   <ChevronLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
               )}
@@ -1016,8 +921,7 @@ export default function AddWorkDetailsForm({
               Details Added Successfully!
             </DialogTitle>
             <DialogDescription className="text-gray-600 mb-6 text-center">
-              The work details have been successfully linked to the tender with
-              the specified financial parameters.
+              The work details have been successfully linked to the tender with the specified financial parameters.
             </DialogDescription>
             <div className="flex gap-4 w-full">
               <Button

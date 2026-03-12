@@ -211,7 +211,7 @@ export default function SummaryCard({
                       <Badge variant="outline">{data.financialYear}</Badge>
                     </TableCell>
                     <TableCell className="font-mono text-sm">
-                      {data.formattedNit}/${gpcode}/{data.nitDate.getFullYear()}
+                      {data.formattedNit}/{gpcode}/{data.nitDate.getFullYear()}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {data.nitDate.toLocaleDateString("en-IN", {

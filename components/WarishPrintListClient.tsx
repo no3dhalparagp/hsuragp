@@ -1,243 +1,248 @@
-"use client"
+"use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Search, Download, FileText, ChevronLeft, ChevronRight, User, Users } from "lucide-react"
-import { useEffect, useState } from "react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+
+import {
+  Search,
+  Download,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  FileSignature,
+} from "lucide-react";
+
+import { useEffect, useState } from "react";
 
 type CertificateItem = {
-  id: string
-  applicantName: string
-  nameOfDeceased: string
-  warishRefNo: string | null
-  warishRefDate: Date | null
-  documentUrl: string
-}
+  id: string;
+  acknowlegment: string;
+  applicantName: string;
+  nameOfDeceased: string;
+  warishRefNo: string | null;
+  warishRefDate: Date | null;
+  documentUrl: string;
+  digitallySigned: boolean;
+};
 
-export default function WarishPrintListClient({ items: initial }: { items: CertificateItem[] }) {
-  const [q, setQ] = useState("")
-  const [page, setPage] = useState(1)
-  const [pageSize] = useState(10)
-  const [total, setTotal] = useState(initial.length)
-  const [items, setItems] = useState<CertificateItem[]>(initial)
-  const [isLoading, setIsLoading] = useState(false)
+export default function WarishPrintListClient({
+  items: initial,
+}: {
+  items: CertificateItem[];
+}) {
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  const [items, setItems] = useState(initial);
+  const [total, setTotal] = useState(initial.length);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const controller = new AbortController()
-    const run = async () => {
-      setIsLoading(true)
+    const controller = new AbortController();
+
+    async function load() {
+      setLoading(true);
+
       try {
-        const url = `/api/warish/certificates?q=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`
-        const res = await fetch(url, { signal: controller.signal })
+        const res = await fetch(
+          `/api/warish/certificates?q=${q}&page=${page}&pageSize=${pageSize}`,
+          { signal: controller.signal },
+        );
+
         if (res.ok) {
-          const data = await res.json()
-          setItems(data.items)
-          setTotal(data.total)
+          const data = await res.json();
+          setItems(data.items);
+          setTotal(data.total);
         }
-      } catch (error) {
-        // Handle fetch cancellation
       } finally {
-        setIsLoading(false)
+        setLoading(false);
       }
     }
-    run()
-    return () => controller.abort()
-  }, [q, page, pageSize])
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const startItem = (page - 1) * pageSize + 1
-  const endItem = Math.min(page * pageSize, total)
+    load();
+    return () => controller.abort();
+  }, [q, page]);
 
-  const handleDownload = (url: string, applicantName: string) => {
-    const link = document.createElement('a')
-    link.href = url
-    link.target = '_blank'
-    link.rel = 'noopener noreferrer'
-    link.download = `warish-certificate-${applicantName.replace(/\s+/g, '-').toLowerCase()}.pdf`
-    link.click()
-  }
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
 
-  const formatCertificateNumber = (refNo: string | null) => {
-    if (!refNo) return 'N/A'
-    return `#${refNo}`
+  function download(url: string, name: string) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.download = `warish-${name}.pdf`;
+    a.click();
   }
 
   return (
-    <Card className="shadow-xl border-gray-200 dark:border-gray-800 overflow-hidden transition-all duration-200 hover:shadow-2xl">
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-              <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-                Warish Certificates
-              </CardTitle>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Manage and download inheritance certificates
-              </p>
-            </div>
+    <Card className="border shadow-md rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-800 to-blue-700 text-white px-6 py-4 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <FileText className="h-6 w-6" />
+          <div>
+            <h2 className="text-lg font-semibold">
+              Warish Certificate Print List
+            </h2>
+            <p className="text-xs text-blue-100">
+              Government of West Bengal Portal
+            </p>
           </div>
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        </div>
+
+        <Badge className="bg-white text-blue-800 font-semibold px-3 py-1">
+          Total: {total}
+        </Badge>
+      </div>
+
+      <CardContent className="p-0">
+        {/* Search */}
+        <div className="p-4 border-b bg-gray-50">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
             <Input
-              placeholder="Search certificates..."
               value={q}
-              onChange={(e) => { setPage(1); setQ(e.target.value) }}
-              className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              onChange={(e) => {
+                setPage(1);
+                setQ(e.target.value);
+              }}
+              placeholder="Search by applicant name..."
+              className="pl-9 bg-white"
             />
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="border-t border-gray-100 dark:border-gray-800 overflow-x-auto bg-white dark:bg-gray-900">
+
+        {/* Table */}
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-gray-50 dark:bg-gray-800/60">
-              <TableRow className="hover:bg-gray-50 dark:hover:bg-gray-800/60">
-                <TableHead className="w-12 text-center font-semibold text-gray-700 dark:text-gray-300">
-                  #
-                </TableHead>
-                <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Applicant
-                  </div>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Deceased
-                  </div>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-700 dark:text-gray-300">
-                  Certificate No
-                </TableHead>
-                <TableHead className="font-semibold text-gray-700 dark:text-gray-300 text-center">
-                  Action
-                </TableHead>
+            <TableHeader className="bg-gray-100">
+              <TableRow>
+                <TableHead className="w-12">Sl</TableHead>
+                <TableHead>Acknowledgment</TableHead>
+                <TableHead>Applicant</TableHead>
+                <TableHead>Deceased</TableHead>
+                <TableHead>Certificate No</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-center">DSC</TableHead>
+                <TableHead className="text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {items.map((item, index) => (
-                <TableRow 
-                  key={item.id} 
-                  className="border-b border-gray-100 dark:border-gray-800 transition-colors hover:bg-blue-50/30 dark:hover:bg-gray-800/50 group"
-                >
-                  <TableCell className="text-center text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {startItem + index}
+                <TableRow key={item.id} className="hover:bg-gray-50">
+                  <TableCell>{start + index}</TableCell>
+
+                  <TableCell className="font-semibold text-green-600 bg-green-50">
+                    {item.acknowlegment}
                   </TableCell>
+
+                  <TableCell className="font-medium">
+                    {item.applicantName}
+                  </TableCell>
+
+                  <TableCell>{item.nameOfDeceased}</TableCell>
+
                   <TableCell>
-                    <div className="space-y-1">
-                      <div className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
-                        {item.applicantName}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-gray-700 dark:text-gray-300">
-                    {item.nameOfDeceased}
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={item.warishRefNo ? "default" : "secondary"}
-                      className="font-mono text-xs"
-                    >
-                      {formatCertificateNumber(item.warishRefNo)}
+                    <Badge className="bg-blue-700 text-white">
+                      {item.warishRefNo || "N/A"}
                     </Badge>
                   </TableCell>
+
                   <TableCell>
-                    <div className="flex justify-center">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleDownload(item.documentUrl, item.applicantName)}
-                        className="flex items-center gap-2 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200"
+                    {item.warishRefDate
+                      ? new Date(item.warishRefDate).toLocaleDateString()
+                      : "—"}
+                  </TableCell>
+
+                  <TableCell className="text-center">
+                    {item.digitallySigned ? (
+                      <Badge className="bg-green-100 text-green-800 border border-green-200">
+                        <FileSignature className="h-3 w-3 mr-1 inline" />
+                        Signed
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-gray-400 border-gray-300"
                       >
-                        <Download className="h-4 w-4" />
-                        Download
-                      </Button>
-                    </div>
+                        Not Signed
+                      </Badge>
+                    )}
+                  </TableCell>
+
+                  <TableCell className="text-center">
+                    <Button
+                      size="sm"
+                      className="bg-blue-700 hover:bg-blue-800 text-white"
+                      onClick={() =>
+                        download(item.documentUrl, item.applicantName)
+                      }
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          
-          {items.length === 0 && !isLoading && (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                No certificates found
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400">
-                {q ? "Try adjusting your search terms" : "No warish certificates have been generated yet"}
-              </p>
-            </div>
-          )}
-
-          {isLoading && (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-500 dark:text-gray-400 mt-4">Loading certificates...</p>
-            </div>
-          )}
         </div>
-        
-        {/* Enhanced Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between p-6 bg-gray-50 dark:bg-gray-800/40 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-0">
-            Showing <span className="font-semibold text-gray-900 dark:text-white">{startItem}-{endItem}</span> of{" "}
-            <span className="font-semibold text-gray-900 dark:text-white">{total}</span> results
+
+        {/* Loading */}
+        {loading && (
+          <div className="text-center py-6 text-sm text-gray-600">
+            Loading certificates...
           </div>
-          <div className="flex items-center gap-2">
+        )}
+
+        {/* Empty */}
+        {!loading && items.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No certificates found
+          </div>
+        )}
+
+        {/* Pagination */}
+        <div className="flex justify-between items-center p-4 border-t bg-gray-50">
+          <div className="text-sm text-gray-600">
+            Showing {start} to {end} of {total}
+          </div>
+
+          <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              disabled={page <= 1 || isLoading}
-              onClick={() => setPage((p) => p - 1)}
-              className="flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={page <= 1}
+              onClick={() => setPage(page - 1)}
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
             </Button>
-            
-            <div className="flex items-center gap-1 mx-2">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNumber = i + 1
-                return (
-                  <Button
-                    key={pageNumber}
-                    variant={page === pageNumber ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setPage(pageNumber)}
-                    disabled={isLoading}
-                    className="w-8 h-8 p-0 disabled:opacity-50"
-                  >
-                    {pageNumber}
-                  </Button>
-                )
-              })}
-              {totalPages > 5 && (
-                <span className="text-gray-500 dark:text-gray-400 px-2">...</span>
-              )}
-            </div>
-            
+
             <Button
               variant="outline"
               size="sm"
-              disabled={page >= totalPages || isLoading}
-              onClick={() => setPage((p) => p + 1)}
-              className="flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={page >= totalPages}
+              onClick={() => setPage(page + 1)}
             >
-              Next
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

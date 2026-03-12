@@ -1,16 +1,62 @@
 
 'use server'
-
-
-
-
-
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { utapi } from "@/server/uploadthings";
 import { revalidatePath ,revalidateTag} from 'next/cache'
 
 import { redirect } from 'next/navigation'
+import * as z from "zod";
+import { CreateUserSchema } from "@/schema";
+import bcrypt from "bcryptjs";
+
+export const createUser = async (values: z.infer<typeof CreateUserSchema>) => {
+  const currentUsers = await currentUser();
+
+  if (!currentUsers || currentUsers.role !== "admin") {
+    return { error: "Unauthorized. Only admins can create users." };
+  }
+
+  const parseResult = CreateUserSchema.safeParse(values);
+
+  if (!parseResult.success) {
+    return { error: "Invalid fields!" };
+  }
+
+  const { email, password, name, role, mobileNumber, designation } = parseResult.data;
+
+  try {
+    const normalizedEmail = email.toLowerCase();
+    const existingUser = await db.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existingUser) {
+      return { error: "Email is already in use!" };
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await db.user.create({
+      data: {
+        name,
+        email: normalizedEmail,
+        password: hashedPassword,
+        role,
+        mobileNumber,
+        designation: role === "staff" ? designation : null,
+        emailVerified: new Date(), // Admins creating users skip verification
+      },
+    });
+
+    revalidatePath("/admindashboard/user");
+    return { success: "User created successfully", user };
+  } catch (error) {
+    console.error("User creation error:", error);
+    return { error: "An unexpected error occurred. Please try again." };
+  }
+};
+
 export const userProfileUpdate = async (
   id: string | undefined,
   name: string | undefined
@@ -103,6 +149,7 @@ export async function getUsers() {
         isTwoFactorEnabled: true,
         role: true,
         image: true,
+        designation: true,
       },
       orderBy: {
         name: 'asc'

@@ -130,6 +130,7 @@ export type WarishApplicationProps = {
   userId: string | null;
   warishApplicationStatus: WarishApplicationStatus;
   warishdocumentverified: boolean;
+  digitallySigned: boolean;
   createdAt: Date;
   updatedAt: Date;
  

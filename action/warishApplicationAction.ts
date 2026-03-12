@@ -51,124 +51,141 @@ async function generateAcknowledgmentNumber() {
   return acknowledgmentNumber;
 }
 
-export async function createNestedWarishDetails(
+
+    export async function createNestedWarishDetails(
   data: WarishFormValuesType
 ): Promise<{
   success: boolean;
   message: string;
   data?: Prisma.WarishApplicationGetPayload<{
-    include: { warishDetails: { include: { children: true } } };
+    include: { warishDetails: true };
   }>;
   errors?: { [key: string]: string[] };
 }> {
   const user = await currentUser();
-  if (!user || !user.id) {
-    throw new Error("User not authenticated");
-  }
+  if (!user?.id) throw new Error("User not authenticated");
 
+  const userId = user.id; // 🔥 SAFE NARROWING
   try {
-    // Validate the input data
+    // Validate input
     const acknowlegment = await generateAcknowledgmentNumber();
     const validatedData = warishFormSchema.parse(data);
 
-    // Create the main WarishApplication
-    const application = await db.warishApplication.create({
-      data: {
-        reportingDate: validatedData.reportingDate,
-        applicantName: validatedData.applicantName,
-        acknowlegment: acknowlegment,
-        applicantMobileNumber: validatedData.applicantMobileNumber,
-        nameOfDeceased: validatedData.nameOfDeceased,
-        dateOfDeath: validatedData.dateOfDeath,
-        gender: validatedData.gender,
-        relationwithdeceased: validatedData.relationwithdeceased,
-        maritialStatus: validatedData.maritialStatus,
-        fatherName: validatedData.fatherName,
-        spouseName: validatedData.spouseName,
-        villageName: validatedData.villageName,
-        postOffice: validatedData.postOffice,
-        userId: user.id,
-      },
-    });
+    // Use transaction for safety
+    return await db.$transaction(async (tx) => {
+      /* ============================= */
+      /* CREATE MAIN APPLICATION       */
+      /* ============================= */
 
-    // Recursively create WarishDetails
-    const createWarishDetail = async (
-      detail: WarishDetailInput,
-      parentId?: string
-    ): Promise<void> => {
-      const createdDetail = await db.warishDetail.create({
+      const application = await tx.warishApplication.create({
         data: {
-          name: detail.name,
-          gender: detail.gender,
-          relation: detail.relation,
-          livingStatus: detail.livingStatus,
-          maritialStatus: detail.maritialStatus,
-          hasbandName: detail.husbandName,
-          warishApplication: { connect: { id: application.id } },
-          parent: parentId ? { connect: { id: parentId } } : undefined,
-        },
-      });
-      console.log(createWarishDetail);
-      // Recursively create children
-      if (detail.children && Array.isArray(detail.children)) {
-        await Promise.all(
-          detail.children.map((child: WarishDetailInput) =>
-            createWarishDetail(child, createdDetail.id)
-          )
-        );
-      }
-    };
-
-    // Create top-level WarishDetails
-    await Promise.all(
-      validatedData.warishDetails.map((detail) => createWarishDetail(detail))
-    );
-
-    // Fetch the created application with all its details
-    const warishApplication = await db.warishApplication.findUnique({
-      where: { id: application.id },
-      include: {
-        warishDetails: {
-          include: {
-            children: true,
+          reportingDate: validatedData.reportingDate,
+          applicantName: validatedData.applicantName,
+          acknowlegment,
+          applicantMobileNumber: validatedData.applicantMobileNumber,
+          nameOfDeceased: validatedData.nameOfDeceased,
+          dateOfDeath: validatedData.dateOfDeath,
+          gender: validatedData.gender,
+          relationwithdeceased: validatedData.relationwithdeceased,
+          maritialStatus: validatedData.maritialStatus,
+          fatherName: validatedData.fatherName,
+          spouseName: validatedData.spouseName,
+          villageName: validatedData.villageName,
+          postOffice: validatedData.postOffice,
+          User: {
+            connect: { id: user.id }, // 🔥 Correct relation write
           },
         },
-      },
+      });
+
+      /* ============================= */
+      /* RECURSIVE SAVE (ORDER SAFE)   */
+      /* ============================= */
+
+      const createWarishDetail = async (
+        detail: WarishDetailInput,
+        parentId?: string
+      ): Promise<void> => {
+
+        const createdDetail = await tx.warishDetail.create({
+          data: {
+            name: detail.name,
+            gender: detail.gender,
+            relation: detail.relation,
+            livingStatus: detail.livingStatus,
+            maritialStatus: detail.maritialStatus,
+            hasbandName: detail.husbandName,
+            parentId: parentId ?? null,
+            warishApplicationId: application.id,
+          },
+        });
+
+        // IMPORTANT: Sequential recursion (NO Promise.all)
+        if (detail.children?.length) {
+          for (const child of detail.children) {
+            await createWarishDetail(child, createdDetail.id);
+          }
+        }
+      };
+
+      // IMPORTANT: Sequential top-level insertion
+      for (const detail of validatedData.warishDetails) {
+        await createWarishDetail(detail);
+      }
+
+      /* ============================= */
+      /* FETCH CREATED DATA            */
+      /* ============================= */
+
+      const warishApplication = await tx.warishApplication.findUnique({
+        where: { id: application.id },
+        include: {
+          warishDetails: {
+            orderBy: { createdAt: "asc" }, // 🔥 Preserve form order
+          },
+        },
+      });
+
+      if (!warishApplication) {
+        throw new Error("Failed to create WarishApplication");
+      }
+
+      /* ============================= */
+      /* NOTIFICATION                  */
+      /* ============================= */
+
+      await createNotification(
+        userId,
+        `Your Warish application has been successfully created with acknowledgment number ${acknowlegment}.`
+      );
+
+      return {
+        success: true,
+        message: "WarishApplication created successfully",
+        data: warishApplication,
+      };
     });
 
-    if (!warishApplication) {
-      throw new Error("Failed to create WarishApplication");
-    }
-
-    // Create a notification for the current user
-    await createNotification(
-      user.id,
-      `Your Warish application has been successfully created with acknowledgment number ${warishApplication.acknowlegment}.`
-    );
-
-    return {
-      success: true,
-      message: "WarishApplication created successfully",
-      data: warishApplication,
-    };
   } catch (error) {
     console.error("Error creating WarishApplication:", error);
+
     if (error instanceof ZodError) {
       return {
         success: false,
         message: "Validation error",
       };
     }
+
     return {
       success: false,
       message:
         error instanceof Error ? error.message : "An unknown error occurred",
     };
-  } finally {
-    await db.$disconnect();
   }
 }
 
+    // Create top-level WarishDetails
+    
 export async function submitEnquiryReport(formData: FormData) {
   const user = await currentUser();
   if (!user || !user.id) {
@@ -559,60 +576,82 @@ import { WarishApplicationPayloadProps, WarishDetailProps } from "@/types";
 export async function updateWarishDetails() {}
 
 // Update the getWarishByAck function in warishApplicationAction.ts
+
 export async function getWarishByAck(
   id: string
 ): Promise<WarishFormValuesType | null> {
   try {
     const application = await db.warishApplication.findUnique({
-      where: { id: id },
+      where: { id },
       include: {
         warishDetails: {
-          include: {
-            children: {
-              include: {
-                children: true,
-              },
-            },
-          },
+          orderBy: { createdAt: "asc" }, // 🔥 Preserve insertion order
         },
       },
     });
 
     if (!application) return null;
 
-    const transformDetails = (details: any[]): any[] =>
-      details.map((d) => ({
-        id: d.id,
-        name: d.name,
-        gender: d.gender,
-        relation: d.relation,
-        livingStatus: d.livingStatus,
-        maritialStatus: d.maritialStatus,
-        husbandName: d.hasbandName ?? undefined, // Convert null to undefined
-        children: d.children ? transformDetails(d.children) : [],
-      }));
+    /* ============================= */
+    /* BUILD TREE FROM FLAT LIST     */
+    /* ============================= */
+
+    const map = new Map<string, any>();
+
+    // First create map
+    application.warishDetails.forEach((detail) => {
+      map.set(detail.id, {
+        id: detail.id,
+        name: detail.name,
+        gender: detail.gender,
+        relation: detail.relation,
+        livingStatus: detail.livingStatus,
+        maritialStatus: detail.maritialStatus,
+        husbandName: detail.hasbandName ?? undefined,
+        parentId: detail.parentId,
+        children: [],
+      });
+    });
+
+    // Build tree
+    const roots: any[] = [];
+
+    map.forEach((detail) => {
+      if (detail.parentId) {
+        const parent = map.get(detail.parentId);
+        if (parent) {
+          parent.children.push(detail);
+        }
+      } else {
+        roots.push(detail);
+      }
+    });
+
+    /* ============================= */
 
     return {
-      // Convert all nullable fields to undefined
       reportingDate: application.reportingDate,
       applicantName: application.applicantName,
-      applicantMobileNumber: application.applicantMobileNumber ?? undefined,
+      applicantMobileNumber:
+        application.applicantMobileNumber ?? undefined,
       relationwithdeceased: application.relationwithdeceased,
       nameOfDeceased: application.nameOfDeceased,
       dateOfDeath: application.dateOfDeath,
       gender: application.gender,
       maritialStatus: application.maritialStatus,
       fatherName: application.fatherName ?? undefined,
-      spouseName: application.spouseName ?? undefined, // Fix here
+      spouseName: application.spouseName ?? undefined,
       villageName: application.villageName ?? undefined,
       postOffice: application.postOffice ?? undefined,
-      warishDetails: transformDetails(application.warishDetails),
+      warishDetails: roots, // 🔥 Proper nested tree
     };
+
   } catch (error) {
     console.error("Error fetching application:", error);
     return null;
   }
 }
+    
 
 export async function updateNestedWarishDetails(
   ackNumber: string,

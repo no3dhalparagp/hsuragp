@@ -1,4 +1,4 @@
-"use server"
+"use server";
 
 import { createAgreement } from "@/action/create-agrement";
 import { register } from "@/lib/register";
@@ -8,10 +8,11 @@ import { sentAwardedNotification } from "@/lib/mail";
 import { CreateAgreementInput } from "@/types/agreement";
 import { z } from "zod";
 import { sendSms } from "@/action/sendSms";
-import { gpcode } from "@/constants/gpinfor";
+import { gpcode, gpnameinshort } from "@/constants/gpinfor";
 import { formatDate } from "@/utils/utils";
 
-// Validation schema
+/* ----------------------------- VALIDATION ----------------------------- */
+
 const AocSchema = z.object({
   workodermenonumber: z.string().min(1, "Memo number is required"),
   workordeermemodate: z.string().min(1, "Memo date is required"),
@@ -19,15 +20,21 @@ const AocSchema = z.object({
   bidagencyId: z.string().min(1, "Bid agency ID is required"),
 });
 
+/* ----------------------------- SERVER ACTION ----------------------------- */
+
 export const addAoCdetails = async (data: FormData) => {
   try {
-    // Extract and validate data
+
+    /* ----------------------------- EXTRACT FORM DATA ----------------------------- */
+
     const formData = {
       memono: data.get("memono") as string,
       memodate: data.get("memodate") as string,
       workId: data.get("workId") as string,
       acceptbidderId: data.get("acceptbidderId") as string,
     };
+
+    /* ----------------------------- VALIDATE INPUT ----------------------------- */
 
     const validation = AocSchema.safeParse({
       workodermenonumber: formData.memono,
@@ -38,15 +45,71 @@ export const addAoCdetails = async (data: FormData) => {
 
     if (!validation.success) {
       const errors = validation.error.flatten().fieldErrors;
-      return { error: "Validation failed", details: errors };
+
+      return {
+        error: "Validation failed",
+        details: errors,
+      };
     }
 
-    const { workodermenonumber, worksDetailId, bidagencyId } = validation.data;
+    const {
+      workodermenonumber,
+      worksDetailId,
+      bidagencyId,
+    } = validation.data;
+
     const workordeermemodate = new Date(validation.data.workordeermemodate);
 
-    // Use transaction for all database operations
+    /* ----------------------------- FUTURE DATE CHECK ----------------------------- */
+
+    if (workordeermemodate > new Date()) {
+      return {
+        error: "Memo date cannot be in the future",
+      };
+    }
+
+    /* ----------------------------- UNIQUE MEMO PER YEAR ----------------------------- */
+
+    const year = workordeermemodate.getFullYear();
+
+    const startOfYear = new Date(year, 0, 1);
+    const endOfYear = new Date(year, 11, 31, 23, 59, 59);
+
+    const existingAoc = await db.awardofContract.findFirst({
+      where: {
+        workodermenonumber,
+        workordeermemodate: {
+          gte: startOfYear,
+          lte: endOfYear,
+        },
+      },
+    });
+
+    if (existingAoc) {
+      return {
+        error: `Memo number already exists for year ${year}`,
+      };
+    }
+
+    /* ----------------------------- PREVENT DUPLICATE WORK ORDER ----------------------------- */
+
+    const existingWork = await db.worksDetail.findUnique({
+      where: { id: worksDetailId },
+      select: { tenderStatus: true },
+    });
+
+    if (existingWork?.tenderStatus === "AOC") {
+      return {
+        error: "Work order already created for this work",
+      };
+    }
+
+    /* ----------------------------- DATABASE TRANSACTION ----------------------------- */
+
     const result = await db.$transaction(async (tx) => {
-      // Create AoC
+
+      /* ----------------------------- CREATE AOC ----------------------------- */
+
       const aoc = await tx.awardofContract.create({
         data: {
           workodermenonumber,
@@ -54,7 +117,8 @@ export const addAoCdetails = async (data: FormData) => {
         },
       });
 
-      // Create work order details
+      /* ----------------------------- CREATE WORK ORDER DETAILS ----------------------------- */
+
       await tx.workorderdetails.create({
         data: {
           awardofContractId: aoc.id,
@@ -62,7 +126,8 @@ export const addAoCdetails = async (data: FormData) => {
         },
       });
 
-      // Update work details
+      /* ----------------------------- UPDATE WORK STATUS ----------------------------- */
+
       const work = await tx.worksDetail.update({
         where: { id: worksDetailId },
         data: {
@@ -83,17 +148,22 @@ export const addAoCdetails = async (data: FormData) => {
 
     const { aoc, work } = result;
 
-    // Create agreement
+    /* ----------------------------- CREATE AGREEMENT ----------------------------- */
+
     const inputdata: CreateAgreementInput = {
       aggrementno: `AGR-${aoc.workordeermemodate.getFullYear()}-${String(
         aoc.workodermenonumber
       ).padStart(4, "0")}/${work.workslno}`,
+
       aggrementdate: aoc.workordeermemodate.toISOString(),
-      approvedActionPlanDetailsId: work.approvedActionPlanDetailsId,
-      bidagencyId: bidagencyId,
+
+      approvedActionPlanDetailsId:
+        work.approvedActionPlanDetailsId,
+
+      bidagencyId,
     };
 
-    const [agrement, bidder] = await Promise.all([
+    const [agreement, bidder] = await Promise.all([
       createAgreement(inputdata),
       bidagencybyid(bidagencyId),
     ]);
@@ -102,66 +172,78 @@ export const addAoCdetails = async (data: FormData) => {
       throw new Error("Bidder not found");
     }
 
-    // Register bid agency and send notification
-    await Promise.all([
-      register(bidagencyId, work.earnestMoneyFee),
-      bidder.agencydetails.email
-        ? sentAwardedNotification(
-            bidder.agencydetails.email,
-            work.nitDetails?.memoNumber || 0,
-            work.nitDetails?.memoDate || new Date(),
-            work.workslno,
-            bidder.agencydetails.name
-          )
-        : Promise.resolve(),
-    ]);
-// sent SMS notification (assuming sendSms is properly imported)
-// if mobile available
-if(!bidder.agencydetails.mobileNumber){ 
-  throw new Error("Bidder mobile number not found"); 
+    /* ----------------------------- REGISTER BIDDER ----------------------------- */
 
-}
+    await register(bidagencyId, work.earnestMoneyFee);
 
-//bidder mobile no with add +91
+    /* ----------------------------- EMAIL NOTIFICATION ----------------------------- */
 
-const phoneWithCountryCode = `+91${bidder.agencydetails.mobileNumber}`;
-   const memoDate = work.nitDetails?.memoDate;
+    if (bidder.agencydetails.email) {
+      await sentAwardedNotification(
+        bidder.agencydetails.email,
+        work.nitDetails?.memoNumber || 0,
+        work.nitDetails?.memoDate || new Date(),
+        work.workslno,
+        bidder.agencydetails.name
+      );
+    }
 
-const sms = await sendSms(
-  phoneWithCountryCode,
-  `Congratulations! 🎉 You have been awarded the contract for work.
+    /* ----------------------------- SMS NOTIFICATION ----------------------------- */
+
+    const mobile = bidder.agencydetails.mobileNumber;
+
+    if (!mobile || mobile.length !== 10) {
+      throw new Error("Invalid bidder mobile number");
+    }
+
+    const phoneWithCountryCode = `+91${mobile}`;
+
+    const memoDate = work.nitDetails?.memoDate;
+
+    const smsMessage = `🎉 Congratulations!
+
+You have been awarded the contract.
+
 NIT No: ${work.nitDetails?.memoNumber ?? 0}/${gpcode}/${memoDate ? memoDate.getFullYear() : ""}
 Date: ${memoDate ? formatDate(memoDate) : "N/A"}
-Sl No: ${work.workslno}
-Dhalpara Gram Panchayat.
+Work Sl No: ${work.workslno}
 
-Please check your email for further details.`
-);
- 
+${gpnameinshort} GP
+Check your email for further details.`;
 
- if(!sms){
-  throw new Error("Failed to send SMS notification");
- } 
- 
- if (sms.MessageId) {
-    console.log("SMS sent successfully, Message ID:", sms.MessageId);
-  } else {
-    console.log("SMS sending failed.");
-  }
+    const sms = await sendSms(phoneWithCountryCode, smsMessage);
 
-    return { success: "Work order finalized successfully." };
-  } catch (error) {
-    console.error("Failed to create work order:", error);
-    
-    // Provide more specific error messages
-    if (error instanceof z.ZodError) {
-      return { error: "Invalid input data" };
+    if (!sms) {
+      throw new Error("Failed to send SMS notification");
     }
-    
-    return { 
-      error: error instanceof Error 
-        ? error.message 
-        : "Failed to create work order. Please try again later." 
+
+    if (sms.MessageId) {
+      console.log("SMS sent successfully:", sms.MessageId);
+    } else {
+      console.log("SMS sending failed.");
+    }
+
+    /* ----------------------------- SUCCESS ----------------------------- */
+
+    return {
+      success: "Work order finalized successfully",
+    };
+
+  } catch (error) {
+
+    console.error("Failed to create work order:", error);
+
+    if (error instanceof z.ZodError) {
+      return {
+        error: "Invalid input data",
+      };
+    }
+
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to create work order",
     };
   }
 };

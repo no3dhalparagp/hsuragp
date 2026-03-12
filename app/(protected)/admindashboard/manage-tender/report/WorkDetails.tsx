@@ -89,7 +89,13 @@ export async function WorkDetails({ nitNo }: WorkDetailsProps) {
                 </div>
               </div>
 
-              <VisibleDataTable data={work} columns={columns} />
+              <VisibleDataTable
+                data={work}
+                columns={columns}
+                title={`Work Details for NIT: ${nitNo}`}
+                pdfFileName={`work-details-${nitNo}.pdf`}
+                excelFileName={`work-details-${nitNo}.xlsx`}
+              />
             </div>
           ) : (
             <Alert variant="destructive">

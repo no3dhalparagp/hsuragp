@@ -23,6 +23,7 @@ export const addPollingdetails = async (values: PollingDetailsType) => {
         pollingdetailsno: parseInt(pollingdetailsno),
         malevoter: parseInt(malevoter),
         femalevoter: parseInt(femalevoter),
+        financialYear: new Date().getFullYear().toString(),
       },
     });
 

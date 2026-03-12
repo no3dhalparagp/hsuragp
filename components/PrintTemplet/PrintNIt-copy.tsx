@@ -39,7 +39,7 @@ interface TermsByCategory {
 }
 
 interface PDFInput {
-  field4: string;
+  callcount: string;
   memono1: string;
   memono2: string;
   memoDate1: string;
@@ -84,7 +84,7 @@ export const NITCopy = ({
         const response = await fetch("/api/tender-terms");
         if (!response.ok) {
           throw new Error(
-            `Failed to fetch tender terms: ${response.statusText}`
+            `Failed to fetch tender terms: ${response.statusText}`,
           );
         }
         const terms: TenderTerm[] = await response.json();
@@ -119,7 +119,7 @@ export const NITCopy = ({
       try {
         const response = await fetch(
           `/api/tender-term-templates?ids=${templateIds.join(",")}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         if (!response.ok) {
           throw new Error(`Failed to load templates: ${response.statusText}`);
@@ -163,7 +163,7 @@ export const NITCopy = ({
         ELIGIBLE: [],
         QUALIFICATION_CRITERIA: [],
         TERMS_CONDITIONS: [],
-      }
+      },
     );
   }, [selectedTemplates]);
 
@@ -225,7 +225,7 @@ export const NITCopy = ({
         ELIGIBLE: [],
         QUALIFICATION_CRITERIA: [],
         TERMS_CONDITIONS: [],
-      }
+      },
     );
   }, [templateIds.length, templateContentByCategory, defaultTerms]);
 
@@ -236,7 +236,8 @@ export const NITCopy = ({
 
   // Generate work items for PDF
   const generateWorkItems = useCallback((): string[][] => {
-    const PERFORMANCE_SECURITY_RATE = nitdetails.percentageofworkvaluerequired / 100;
+    const PERFORMANCE_SECURITY_RATE =
+      nitdetails.percentageofworkvaluerequired / 100;
     return nitdetails.WorksDetail.map((work, index) => {
       const activityDescription =
         work.ApprovedActionPlanDetails?.activityDescription || "N/A";
@@ -245,10 +246,10 @@ export const NITCopy = ({
       const estimateAmount = work.finalEstimateAmount.toFixed(2);
       const participationFee = work.participationFee.toFixed(2);
       const earnestMoney = Math.round(
-        work.finalEstimateAmount * EARNEST_MONEY_RATE
+        work.finalEstimateAmount * EARNEST_MONEY_RATE,
       ).toString();
       const performanceSecurity = Math.round(
-        work.finalEstimateAmount * PERFORMANCE_SECURITY_RATE
+        work.finalEstimateAmount * PERFORMANCE_SECURITY_RATE,
       ).toString();
 
       return [
@@ -271,7 +272,7 @@ export const NITCopy = ({
     const memoDateFormatted = formatDate(nitdetails.memoDate);
 
     return {
-      field4: `(E-Procurement- ${nitdetails.nitCount})`,
+      callcount: `(E-Procurement- ${nitdetails.nitCount})`,
       memono1: `Memo No: ${memoNumber}/${gpcode}/${memoYear}`,
       memono2: `Memo No: ${memoNumber}/${gpcode}/${memoYear}`,
       memoDate1: `Date: ${memoDateFormatted}`,
@@ -336,7 +337,7 @@ export const NITCopy = ({
       const link = document.createElement("a");
       link.href = url;
       link.download = `NIT_${nitdetails.nitCount}_${formatDate(
-        new Date()
+        new Date(),
       )}.pdf`;
       document.body.appendChild(link);
       link.click();
@@ -381,8 +382,8 @@ export const NITCopy = ({
           isLoading
             ? "Loading tender terms..."
             : isGenerating
-            ? "Generating PDF..."
-            : "Generate NIT PDF"
+              ? "Generating PDF..."
+              : "Generate NIT PDF"
         }
       >
         {isDisabled ? (

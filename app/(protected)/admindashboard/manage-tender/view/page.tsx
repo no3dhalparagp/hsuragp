@@ -3,11 +3,8 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import NITListWithYearFilter from "./NITListWithYearFilter";
 import { deleteNitAction } from "@/action/bookNitNuber";
-
-// Directly import the client component; Server Components can render Client Components
 
 async function getNITs() {
   try {
@@ -15,7 +12,9 @@ async function getNITs() {
       orderBy: { createdAt: "desc" },
       include: {
         WorksDetail: {
-          include: { ApprovedActionPlanDetails: true },
+          include: {
+            ApprovedActionPlanDetails: true,
+          },
         },
       },
     });
@@ -28,42 +27,74 @@ async function getNITs() {
 export default async function DemoPage() {
   const existnit = await getNITs();
 
-  // Handler for deleting NIT (passed to client component)
-  // This is a no-op here, but you can implement server actions if needed
   const handleDeleteNit = async (id: string) => {
     "use server";
     await deleteNitAction(id);
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className="w-full shadow-sm border-0">
-        <CardHeader className="bg-gray-50 border-b">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <CardTitle className="text-2xl font-semibold flex items-center gap-3">
-                <FileText className="h-6 w-6 text-blue-600" />
-                Manage NITs
-              </CardTitle>
-              <p className="text-sm text-gray-500">
-                Create and manage tender notices efficiently
+    <div className="min-h-screen bg-[#f1f5f9]">
+
+      {/* NIC Header */}
+      <div className="bg-[#1e40af] text-white shadow">
+
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+
+          <div className="flex items-center gap-3">
+
+            <FileText className="h-7 w-7" />
+
+            <div>
+              <h1 className="text-lg font-semibold">
+                Tender Management System
+              </h1>
+
+              <p className="text-xs text-blue-100">
+                Government of West Bengal
               </p>
             </div>
-            <Link href="/admindashboard/manage-tender/create" passHref>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                New NIT
-              </Button>
-            </Link>
+
           </div>
-        </CardHeader>
-        <CardContent className="p-6">
-          <NITListWithYearFilter
-            nits={existnit}
-            onDeleteNit={handleDeleteNit}
-          />
-        </CardContent>
-      </Card>
+
+          <Link href="/admindashboard/manage-tender/create">
+            <Button className="bg-white text-blue-700 hover:bg-blue-50">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create New NIT
+            </Button>
+          </Link>
+
+        </div>
+
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-6">
+
+        <div className="bg-white border border-gray-300 shadow-sm">
+
+          {/* Section Title */}
+          <div className="bg-[#e2e8f0] px-4 py-3 border-b">
+
+            <h2 className="text-gray-700 font-semibold">
+              NIT List
+            </h2>
+
+          </div>
+
+          {/* Table */}
+          <div className="p-4">
+
+            <NITListWithYearFilter
+              nits={existnit}
+              onDeleteNit={handleDeleteNit}
+            />
+
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
   );
 }

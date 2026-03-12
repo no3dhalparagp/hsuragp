@@ -36,6 +36,7 @@ import { MeasurementProgress } from "./components/MeasurementProgress";
 import { MeasurementSummary } from "./components/MeasurementSummary";
 import { AvailableItemsTable } from "./components/AvailableItemsTable";
 import { MeasuredItemsTable } from "./components/MeasuredItemsTable";
+import { gpname } from "@/constants/gpinfor";
 
 export default function MBCreateClientPage() {
   const [works, setWorks] = useState<any[]>([]);
@@ -344,8 +345,10 @@ export default function MBCreateClientPage() {
             ? entry.subItemId === editingSubItemId
             : !entry.subItemId);
         if (isTargetEntry) {
+          const firstParticular = measurements[0]?.description?.trim?.();
           const updatedEntry = {
             ...entry,
+            workItemDescription: firstParticular || entry.workItemDescription,
             measurements: measurements,
             quantityExecuted: totalQuantity,
             amount: totalQuantity * entry.rate,
@@ -384,6 +387,7 @@ export default function MBCreateClientPage() {
       });
     } else if (currentItem) {
       // For subitems, we need to store them differently
+      const firstParticular = measurements[0]?.description?.trim?.();
       const newEntry: MBEntry = {
         estimateItemId: currentItem.isSubItem
           ? currentItem.parentId!
@@ -391,7 +395,7 @@ export default function MBCreateClientPage() {
         subItemId: currentItem.isSubItem ? currentItem.id : undefined, // Store subitem ID
         mbNumber: metadata?.mbNumber || formData.mbNumber,
         mbPageNumber: metadata?.mbPageNumber || formData.mbPageNumber,
-        workItemDescription: currentItem.description,
+        workItemDescription: firstParticular || currentItem.description,
         unit: currentItem.unit,
         quantityExecuted: totalQuantity,
         rate: currentItem.rate,
@@ -510,51 +514,32 @@ export default function MBCreateClientPage() {
 
     setLoading(true);
     try {
-      const promises = [];
-
       if (newEntries.length > 0) {
-        promises.push(
-          fetch("/api/work-measurement-books", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              workId: selectedWorkId,
-              entries: newEntries,
-            }),
-          }).then(async (res) => {
-            if (!res.ok) throw new Error("Failed to save new entries");
-            return res.json();
+        // Send all entries so API replaces full set (keeps existing + new; avoids losing data)
+        const res = await fetch("/api/work-measurement-books", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workId: selectedWorkId,
+            entries: mbEntries,
           }),
-        );
+        });
+        if (!res.ok) throw new Error("Failed to save entries");
+      } else if (existingEntries.length > 0) {
+        const res = await fetch("/api/work-measurement-books", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entries: existingEntries }),
+        });
+        if (!res.ok) throw new Error("Failed to update entries");
       }
-
-      if (existingEntries.length > 0) {
-        promises.push(
-          fetch("/api/work-measurement-books", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              entries: existingEntries,
-            }),
-          }).then(async (res) => {
-            if (!res.ok) throw new Error("Failed to update entries");
-            return res.json();
-          }),
-        );
-      }
-
-      await Promise.all(promises);
 
       toast.success("Measurement Book saved successfully", {
         position: "top-center",
         duration: 3000,
         icon: <CheckCircle className="h-5 w-5 text-green-500" />,
       });
-      fetchMBEntries(selectedWorkId);
+      await fetchMBEntries(selectedWorkId);
     } catch (error) {
       console.error("Error saving MB entries:", error);
       toast.error("Error saving MB entries");
@@ -629,15 +614,12 @@ export default function MBCreateClientPage() {
         if (entry.estimateItemId !== item.parentId) return false;
         if (entry.subItemId) return entry.subItemId === item.id;
         // Backward compat: no subItemId - match by workItemDescription
-        return (
-          entry.workItemDescription?.trim() === item.description?.trim()
-        );
+        return entry.workItemDescription?.trim() === item.description?.trim();
       });
     }
     if (!item.isHeader) {
       return mbEntries.some(
-        (entry) =>
-          entry.estimateItemId === item.id && !entry.subItemId,
+        (entry) => entry.estimateItemId === item.id && !entry.subItemId,
       );
     }
     return false;
@@ -703,9 +685,12 @@ export default function MBCreateClientPage() {
 
   const sortedMbEntries = [...mbEntries].sort((a, b) => {
     const findParent = (entry: MBEntry) => {
-      if (entry.estimateItemId) return estimateItems.find((i) => i.id === entry.estimateItemId);
+      if (entry.estimateItemId)
+        return estimateItems.find((i) => i.id === entry.estimateItemId);
       // Fallback: search by subItem description
-      return estimateItems.find(i => i.subItems?.some(s => s.description === entry.workItemDescription));
+      return estimateItems.find((i) =>
+        i.subItems?.some((s) => s.description === entry.workItemDescription),
+      );
     };
 
     const itemA = findParent(a);
@@ -750,8 +735,7 @@ export default function MBCreateClientPage() {
     const workId = aap.activityCode || "";
     const location = aap.locationofAsset || "";
     const fund = aap.schemeName || "";
-    const agencyName =
-      agency.name || "No. 3 Dhalpara Gram Panchayat";
+    const agencyName = agency.name || { gpname };
 
     // Abstract items from MB entries
     const abstractItems = sortedMbEntries.map((entry) => ({

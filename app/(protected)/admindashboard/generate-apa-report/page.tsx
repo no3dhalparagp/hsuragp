@@ -37,7 +37,7 @@ interface WorkDetailWithRelations {
     memoDate?: Date | null;
   } | null;
   ApprovedActionPlanDetails?: {
-    activityCode?: number | null;
+    activityCode?: string | null;
     activityName?: string | null;
     activityDescription?: string | null;
     schemeName?: string | null;
@@ -65,12 +65,12 @@ interface WorkDetailWithRelations {
 
 const FinancialReportPage = async () => {
   // Financial year dates (April 2024 - March 2025)
-  const fyStart = new Date("2024-04-01");
-  const fyEnd = new Date("2025-03-31");
+  const fyStart = new Date("2025-04-01");
+  const fyEnd = new Date("2026-03-31");
 
   // Payment period (April 2024 - June 2025)
-  const paymentStart = new Date("2024-04-01");
-  const paymentEnd = new Date("2025-06-30");
+  const paymentStart = new Date("2025-04-01");
+  const paymentEnd = new Date("2026-06-30");
 
   const works = (await db.worksDetail.findMany({
     where: {
@@ -188,22 +188,22 @@ const FinancialReportPage = async () => {
   const totalWorkOrders = reportData.length;
   const totalWorkOrderValue = reportData.reduce(
     (sum, item) => sum + item.workOrderValue,
-    0
+    0,
   );
   const totalPaymentsInPeriod = reportData.reduce(
     (sum, item) => sum + item.paymentsInPeriod,
-    0
+    0,
   );
   const periodOverPayments = reportData.filter(
-    (item) => item.paymentsAfterPeriod > 0
+    (item) => item.paymentsAfterPeriod > 0,
   ).length;
 
   // Calculate completion metrics
   const worksWithCompletionDate = reportData.filter(
-    (item) => item.completionDate !== null
+    (item) => item.completionDate !== null,
   );
   const completedWithinPeriod = worksWithCompletionDate.filter(
-    (item) => item.completionDate! <= paymentEnd
+    (item) => item.completionDate! <= paymentEnd,
   ).length;
 
   // Calculate percentage of works completed within period relative to ALL work orders
@@ -443,10 +443,10 @@ const FinancialReportPage = async () => {
                           isTop5Incomplete
                             ? "bg-purple-100 hover:bg-purple-200"
                             : isHighlighted
-                            ? "bg-red-50 hover:bg-red-100"
-                            : isHighValue
-                            ? "bg-blue-50 hover:bg-blue-100"
-                            : "hover:bg-muted/50"
+                              ? "bg-red-50 hover:bg-red-100"
+                              : isHighValue
+                                ? "bg-blue-50 hover:bg-blue-100"
+                                : "hover:bg-muted/50"
                         }
                       `}
                     >
@@ -521,7 +521,7 @@ const FinancialReportPage = async () => {
                             <div className="text-xs text-destructive">
                               +₹
                               {item.paymentsAfterPeriod.toLocaleString(
-                                "en-IN"
+                                "en-IN",
                               )}{" "}
                               after period
                             </div>
@@ -542,7 +542,7 @@ const FinancialReportPage = async () => {
                       <TableCell>
                         {getStatusBadge(
                           item.workStatus,
-                          item.paymentsAfterPeriod
+                          item.paymentsAfterPeriod,
                         )}
                       </TableCell>
                     </TableRow>

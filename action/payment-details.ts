@@ -138,3 +138,128 @@ export const addPaymentDetails = async (
     return { error: "Failed to submit payment details. Please try again." };
   }
 };
+
+export const updatePaymentDetails = async (
+  values: FormValues,
+  worksDetailId: string,
+  paymentDetailsId: string
+) => {
+  try {
+    console.log(
+      "Updating payment details. WorksDetailId:",
+      worksDetailId,
+      "PaymentDetailsId:",
+      paymentDetailsId,
+      "Form Values:",
+      values
+    );
+
+    const validatedData = formSchema.safeParse(values);
+    if (!validatedData.success) {
+      console.error("Validation failed:", validatedData.error);
+      return { error: "Invalid fields!" };
+    }
+
+    const existingPayment = await db.paymentDetails.findUnique({
+      where: { id: paymentDetailsId },
+      include: {
+        lessIncomeTax: true,
+        lessLabourWelfareCess: true,
+        lessTdsCgst: true,
+        lessTdsSgst: true,
+        securityDeposit: true,
+        WorksDetail: true,
+      },
+    });
+
+    if (!existingPayment || !existingPayment.WorksDetail) {
+      console.error("Invalid paymentDetailsId:", paymentDetailsId);
+      return { error: "Invalid payment details reference" };
+    }
+
+    const currentDate = new Date();
+
+    // Update related deduction and security deposit records
+    await Promise.all([
+      existingPayment.lessIncomeTax &&
+        db.incomeTaxRegister.update({
+          where: { id: existingPayment.lessIncomeTax.id },
+          data: {
+            incomeTaaxAmount: validatedData.data.lessIncomeTax,
+          },
+        }),
+      existingPayment.lessLabourWelfareCess &&
+        db.labourWelfareCess.update({
+          where: { id: existingPayment.lessLabourWelfareCess.id },
+          data: {
+            labourWelfarecessAmt: validatedData.data.lessLabourWelfareCess,
+          },
+        }),
+      existingPayment.lessTdsCgst &&
+        db.tdsCgst.update({
+          where: { id: existingPayment.lessTdsCgst.id },
+          data: {
+            tdscgstAmt: validatedData.data.lessTdsCgst,
+          },
+        }),
+      existingPayment.lessTdsSgst &&
+        db.tdsSgst.update({
+          where: { id: existingPayment.lessTdsSgst.id },
+          data: {
+            tdsSgstAmt: validatedData.data.lessTdsSgst,
+          },
+        }),
+      existingPayment.securityDeposit &&
+        db.secrutityDeposit.update({
+          where: { id: existingPayment.securityDeposit.id },
+          data: {
+            securityDepositAmt: validatedData.data.securityDeposit,
+            maturityDate: calculateMaturityDate(
+              validatedData.data.workcompletaitiondate || null,
+              validatedData.data.billPaymentDate
+            ),
+            // keep existing paymentstatus and createdAt
+          },
+        }),
+    ]);
+
+    const isfinalbill = validatedData.data.billType === "Final Bill";
+
+    const updatedPaymentDetails = await db.paymentDetails.update({
+      where: { id: paymentDetailsId },
+      data: {
+        grossBillAmount: validatedData.data.grossBillAmount,
+        billPaymentDate: validatedData.data.billPaymentDate,
+        eGramVoucher: validatedData.data.eGramVoucher,
+        eGramVoucherDate: validatedData.data.eGramVoucherDate,
+        gpmsVoucherNumber: validatedData.data.gpmsVoucherNumber,
+        gpmsVoucherDate: validatedData.data.gpmsVoucherDate,
+        mbrefno: validatedData.data.mbrefno,
+        billType: validatedData.data.billType,
+        isfinalbill,
+        netAmt: validatedData.data.netAmount,
+        workcompletaitiondate: validatedData.data.workcompletaitiondate || null,
+      },
+    });
+
+    await db.worksDetail.update({
+      where: { id: worksDetailId },
+      data: {
+        completionDate: validatedData.data.workcompletaitiondate || null,
+        workStatus: validatedData.data.workcompletaitiondate
+          ? "billpaid"
+          : "workinprogress",
+      },
+    });
+
+    console.log("Updated PaymentDetails:", updatedPaymentDetails);
+
+    revalidatePath(`/works/${worksDetailId}`);
+    revalidatePath("/admindashboard/editpaymentdetails");
+
+    return { success: true, paymentDetails: updatedPaymentDetails };
+  } catch (error) {
+    console.error("Failed to update payment details:", error);
+    return { error: "Failed to update payment details. Please try again." };
+  }
+};

@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { UserRole, Designation } from "@prisma/client";
 import * as z from "zod";
 
 export const LoginSchema = z.object({
@@ -9,7 +9,6 @@ export const LoginSchema = z.object({
     message: "Password is required",
   }),
   code: z.optional(z.string()),
-  rememberMe: z.boolean().default(false),
 });
 
 export const ResetSchema = z.object({
@@ -73,6 +72,31 @@ export const RegisterSchema = z
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
+
+export const CreateUserSchema = z.object({
+  email: z.string().email({
+    message: "Please enter a valid email address",
+  }),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" }),
+  name: z.string().min(1, {
+    message: "Name is required",
+  }),
+  role: z.enum([UserRole.admin, UserRole.user, UserRole.staff, UserRole.superadmin]),
+  mobileNumber: z.string().regex(/^[0-9]{10}$/, {
+    message: "Mobile number must be a valid 10 digit number",
+  }),
+  designation: z.optional(z.nativeEnum(Designation)),
+}).refine((data) => {
+  if (data.role === "staff" && !data.designation) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Designation is required for staff members",
+  path: ["designation"],
+});
 
 export const SettingsSchema = z
   .object({

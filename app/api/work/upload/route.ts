@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
     // First pass: Check for duplicates in the uploaded file
     for (const row of data) {
-      const activityCode = row.activityCode.toString().trim();
+      const activityCode = row.activityCode.toString();
       if (processedActivityCodes.has(activityCode)) {
         duplicateActivityCodes.push(activityCode);
       }
@@ -103,8 +103,8 @@ export async function POST(request: Request) {
         );
       }
 
-      // Convert fields
-      const activityCode = row.activityCode.toString().trim();
+      // Convert numeric fields
+      const activityCode = row.activityCode.toString();
       const estimatedCost = parseInt(row.estimatedCost?.toString() || "0");
       const generalFund = parseInt(row.generalFund?.toString() || "0");
       const scFund = parseInt(row.scFund?.toString() || "0");
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
         data: {
           financialYear: row.financialYear,
           themeName: row.themeName,
-          activityCode,
+          activityCode: activityCode,
           activityName: row.activityName,
           activityDescription: row.activityDescription || "",
           activityFor: row.activityFor || "",

@@ -6,7 +6,9 @@ export const actionplanschema = z.object({
   themeName: z.string().min(2, {
     message: "Theme name must be at least 2 characters.",
   }),
-  activityCode: z.number().int().positive(),
+  activityCode: z.string().min(1, {
+    message: "Activity code is required",
+  }),
   activityName: z.string().min(2, {
     message: "Activity name must be at least 2 characters.",
   }),

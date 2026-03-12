@@ -16,24 +16,65 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Pencil, Trash2, Plus, Check, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Check,
+  X,
+  FileText,
+} from "lucide-react";
+
 import { db } from "@/lib/db";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { Prisma } from "@prisma/client";
 
-async function getNits() {
-  return await db.nitDetails.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+interface PageProps {
+  searchParams?: Promise<{
+    page?: string;
+    search?: string;
+  }>;
 }
 
-export default async function NitTablePage() {
-  const nits = await getNits();
+const ITEMS_PER_PAGE = 10;
 
-  // Format date as DD/MM/YYYY
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString("en-GB");
-  };
+export default async function NitTablePage({ searchParams }: PageProps) {
+  const params = await searchParams;
+
+  const page = Number(params?.page) || 1;
+  const search = params?.search?.trim() || "";
+
+  /* ✅ SAFE WHERE CONDITION FOR INT FIELD */
+  let whereCondition: Prisma.NitDetailsWhereInput | undefined;
+
+  if (search && !isNaN(Number(search))) {
+    whereCondition = {
+      memoNumber: Number(search),
+    };
+  } else {
+    whereCondition = undefined;
+  }
+
+  const totalCount = await db.nitDetails.count({
+    where: whereCondition,
+  });
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(totalCount / ITEMS_PER_PAGE)
+  );
+
+  const nits = await db.nitDetails.findMany({
+    where: whereCondition,
+    orderBy: { createdAt: "desc" },
+    skip: (page - 1) * ITEMS_PER_PAGE,
+    take: ITEMS_PER_PAGE,
+  });
+
+  const formatDate = (date: Date | null) =>
+    date ? new Date(date).toLocaleDateString("en-GB") : "-";
 
   return (
     <div className="container mx-auto py-8">
@@ -43,117 +84,180 @@ export default async function NitTablePage() {
             <CardTitle className="text-2xl font-bold text-gray-800">
               NIT Management
             </CardTitle>
-            <Link href="/nits/create" passHref>
-              <Button className="bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-md">
-                <Plus className="h-4 w-4 mr-2" />
-                Create New NIT
-              </Button>
-            </Link>
+
+            <div className="flex gap-3">
+              <form>
+                <Input
+                  name="search"
+                  defaultValue={search}
+                  placeholder="Search memo number..."
+                  className="w-64"
+                />
+              </form>
+
+              <Link href="/nits/create">
+                <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-md">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create NIT
+                </Button>
+              </Link>
+            </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="p-0">
           {nits.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="text-gray-500 mb-4">No NIT records found</div>
-              <Link href="/nits/create" passHref>
-                <Button className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200">
-                  Create your first NIT
+            <div className="py-16 text-center">
+              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <div className="text-gray-500 mb-4">
+                No NIT records found
+              </div>
+              <Link href="/nits/create">
+                <Button variant="outline">
+                  Create First NIT
                 </Button>
               </Link>
             </div>
           ) : (
-            <div className="rounded-b-xl overflow-hidden border-t">
-              <Table className="min-w-full">
-                <TableHeader className="bg-gray-50">
-                  <TableRow>
-                    <TableHead className="w-[80px] font-bold text-gray-700">Sl No</TableHead>
-                    <TableHead className="font-bold text-gray-700">Memo Number</TableHead>
-                    <TableHead className="font-bold text-gray-700">Memo Date</TableHead>
-                    <TableHead className="font-bold text-gray-700">Publishing Date</TableHead>
-                    <TableHead className="font-bold text-gray-700">Supply</TableHead>
-                    <TableHead className="font-bold text-gray-700">Status</TableHead>
-                    <TableHead className="text-right font-bold text-gray-700">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {nits.map((nit, index) => (
-                    <TableRow 
-                      key={nit.id} 
-                      className="border-b hover:bg-gray-50 transition-colors"
-                    >
-                      <TableCell className="font-medium text-gray-600">
-                        {index + 1}
-                      </TableCell>
-                      <TableCell className="font-semibold text-gray-800">
-                        {nit.memoNumber || "-"}
-                      </TableCell>
-                      <TableCell>
-                        {nit.memoDate ? formatDate(nit.memoDate) : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {nit.publishingDate ? formatDate(nit.publishingDate) : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {nit.isSupply ? (
-                          <Badge className="bg-green-100 text-green-800">
-                            <Check className="h-4 w-4 mr-1" /> Supply
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-amber-100 text-amber-800">
-                            <X className="h-4 w-4 mr-1" /> Non-Supply
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {nit.isPublished ? (
-                          <Badge className="bg-blue-100 text-blue-800">Published</Badge>
-                        ) : (
-                          <Badge variant="outline">Draft</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              className="h-8 w-8 p-0 focus:ring-2 focus:ring-indigo-200"
-                            >
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4 text-gray-500" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent 
-                            align="end" 
-                            className="rounded-lg shadow-lg border border-gray-200"
-                          >
-                            <DropdownMenuLabel className="text-gray-700">
-                              Actions
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                              <Link
-                                href={`/admindashboard/manage-tender/edit/${nit.id}`}
-                                className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer text-gray-700"
-                              >
-                                <Pencil className="mr-2 h-4 w-4 text-indigo-600" />
-                                Edit
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="p-0">
-                              <button className="w-full flex items-center px-4 py-2 hover:bg-red-50 cursor-pointer text-red-700">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </button>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead>Sl</TableHead>
+                      <TableHead>Memo Number</TableHead>
+                      <TableHead>Memo Date</TableHead>
+                      <TableHead>Publishing Date</TableHead>
+                      <TableHead>Supply</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">
+                        Actions
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+
+                  <TableBody>
+                    {nits.map((nit, index) => (
+                      <TableRow key={nit.id}>
+                        <TableCell>
+                          {(page - 1) * ITEMS_PER_PAGE + index + 1}
+                        </TableCell>
+
+                        <TableCell className="font-semibold">
+                          <Link
+                            href={`/nits/${nit.id}`}
+                            className="hover:underline text-indigo-600"
+                          >
+                            {nit.memoNumber ?? "-"}
+                          </Link>
+                        </TableCell>
+
+                        <TableCell>
+                          {formatDate(nit.memoDate)}
+                        </TableCell>
+
+                        <TableCell>
+                          {formatDate(nit.publishingDate)}
+                        </TableCell>
+
+                        <TableCell>
+                          {nit.isSupply ? (
+                            <Badge className="bg-green-100 text-green-800">
+                              <Check className="h-4 w-4 mr-1" />
+                              Supply
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-100 text-amber-800">
+                              <X className="h-4 w-4 mr-1" />
+                              Non-Supply
+                            </Badge>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          {nit.isPublished ? (
+                            <Badge className="bg-blue-100 text-blue-800">
+                              Published
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-gray-100 text-gray-700">
+                              Draft
+                            </Badge>
+                          )}
+                        </TableCell>
+
+                        {/* 🔐 Edit only if Draft */}
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>
+                                Actions
+                              </DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+
+                              {/* View Always */}
+                              <DropdownMenuItem asChild>
+                                <Link href={`/nits/${nit.id}`}>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  View
+                                </Link>
+                              </DropdownMenuItem>
+
+                              {/* Edit only if Draft */}
+                              {!nit.isPublished ? (
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    href={`/admindashboard/manage-tender/edit/${nit.id}`}
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4 text-indigo-600" />
+                                    Edit
+                                  </Link>
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  disabled
+                                  className="text-gray-400"
+                                >
+                                  <Check className="mr-2 h-4 w-4" />
+                                  Locked (Published)
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex justify-between items-center p-4 border-t bg-gray-50">
+                <div className="text-sm text-gray-600">
+                  Page {page} of {totalPages}
+                </div>
+
+                <div className="flex gap-2">
+                  {page > 1 && (
+                    <Link href={`?page=${page - 1}&search=${search}`}>
+                      <Button variant="outline">Previous</Button>
+                    </Link>
+                  )}
+
+                  {page < totalPages && (
+                    <Link href={`?page=${page + 1}&search=${search}`}>
+                      <Button variant="outline">Next</Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

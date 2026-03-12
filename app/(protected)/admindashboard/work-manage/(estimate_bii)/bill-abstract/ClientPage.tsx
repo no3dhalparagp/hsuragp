@@ -32,6 +32,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { generateBillAbstractPDF } from "@/lib/pdf-generators/bill-abstract-pdf";
+import PreviewAbstract from "@/components/PreviewAbstract";
 
 interface MBEntry {
   id: string;
@@ -98,6 +99,8 @@ export default function BillAbstractClientPage() {
   const [loading, setLoading] = useState(false);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [existingAbstractId, setExistingAbstractId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewPdfData, setPreviewPdfData] = useState<any | null>(null);
 
   const [formData, setFormData] = useState({
     billType: "1st & Final Bill",
@@ -395,6 +398,98 @@ export default function BillAbstractClientPage() {
     return calculateItemwiseTotal() - calculateContractualDeduction();
   };
 
+  const buildPdfPayload = () => {
+    const work = works.find((w) => w.id === selectedWorkId);
+    const workName =
+      work?.ApprovedActionPlanDetails?.activityDescription ||
+      `Work ${work?.workslno}`;
+    const location = work?.ApprovedActionPlanDetails?.locationofAsset || "";
+
+    const itemwiseTotal = calculateItemwiseTotal();
+    const contractualDeduction = calculateContractualDeduction();
+    const actualValue = calculateActualValue();
+    const sayAmount = Math.round(actualValue);
+
+    const cgstPercent = parseFloat(formData.cgstPercentage) || 0;
+    const sgstPercent = parseFloat(formData.sgstPercentage) || 0;
+    const lwcPercent = parseFloat(formData.labourCessPercentage) || 0;
+
+    const cgstAmount = Math.round((sayAmount * cgstPercent) / 100);
+    const sgstAmount = Math.round((sayAmount * sgstPercent) / 100);
+    const subTotal = sayAmount + cgstAmount + sgstAmount;
+
+    const lwcAmount = Math.round((subTotal * lwcPercent) / 100);
+    const grossBillAmount = subTotal + lwcAmount;
+
+    // Get all MB numbers and pages
+    const allMbNumbers = displayItems.map((e) => e.mbNumber).filter(Boolean);
+    const allMbPages = displayItems.map((e) => e.mbPageNumber).filter(Boolean);
+
+    // Extract unique MB numbers
+    const uniqueMbNumbers = Array.from(new Set(allMbNumbers));
+
+    // For pages: Always use "1 to last page" format
+    const pageNumbers = allMbPages
+      .map((p) => parseInt(p, 10))
+      .filter((p) => !isNaN(p) && p > 0);
+
+    let mbPages = "";
+    if (pageNumbers.length > 0) {
+      const lastPage = Math.max(...pageNumbers);
+      if (lastPage === 1) {
+        mbPages = "1";
+      } else {
+        mbPages = `1 to ${lastPage}`;
+      }
+    } else {
+      mbPages = "1";
+    }
+
+    // For MB numbers
+    let mbNumber = "";
+    if (uniqueMbNumbers.length === 1) {
+      mbNumber = uniqueMbNumbers[0];
+    } else if (uniqueMbNumbers.length > 1) {
+      mbNumber = uniqueMbNumbers[0];
+    }
+
+    const pdfData = {
+      billType: formData.billType,
+      projectName: workName,
+      projectLocation: location,
+      entries: displayItems.map((entry) => ({
+        workItemDescription: entry.description || "",
+        mbNumber: entry.mbNumber,
+        mbPageNumber: entry.mbPageNumber,
+        quantityExecuted: Number(entry.quantity) || 0,
+        unit: entry.unit || "",
+        rate: Number(entry.rate) || 0,
+        amount: Number(entry.amount) || 0,
+        remarks: entry.originalEntry?.remarks || "",
+        isHeader: entry.isHeader,
+        isSubItem: entry.isSubItem,
+        slNo: entry.slNo,
+      })),
+    itemwiseTotal,
+      contractualPercent: formData.contractualPercentage,
+      contractualDeduction,
+      actualValue,
+      sayAmount,
+      cgstPercent: formData.cgstPercentage,
+      cgstAmount,
+      sgstPercent: formData.sgstPercentage,
+      sgstAmount,
+      lwcPercent: formData.labourCessPercentage,
+      lwcAmount,
+      subTotal,
+      grossBillAmount,
+      mbNumber: mbNumber,
+      mbPages: mbPages,
+    };
+
+    return { pdfData, workName };
+  };
+
   const handleGeneratePDF = async () => {
     if (billEntries.length === 0) {
       toast.error("No bill entries to print");
@@ -403,97 +498,7 @@ export default function BillAbstractClientPage() {
 
     setGeneratingPDF(true);
     try {
-      const work = works.find((w) => w.id === selectedWorkId);
-      const workName =
-        work?.ApprovedActionPlanDetails?.activityDescription ||
-        `Work ${work?.workslno}`;
-      const location = work?.ApprovedActionPlanDetails?.locationofAsset || "";
-
-      const itemwiseTotal = calculateItemwiseTotal();
-      const contractualDeduction = calculateContractualDeduction();
-      const actualValue = calculateActualValue();
-      const sayAmount = Math.round(actualValue);
-
-      const cgstPercent = parseFloat(formData.cgstPercentage) || 0;
-      const sgstPercent = parseFloat(formData.sgstPercentage) || 0;
-      const lwcPercent = parseFloat(formData.labourCessPercentage) || 0;
-
-      const cgstAmount = Math.round((sayAmount * cgstPercent) / 100);
-      const sgstAmount = Math.round((sayAmount * sgstPercent) / 100);
-      const subTotal = sayAmount + cgstAmount + sgstAmount;
-
-      const lwcAmount = Math.round((subTotal * lwcPercent) / 100);
-      const grossBillAmount = subTotal + lwcAmount;
-
-      // Get all MB numbers and pages
-      const allMbNumbers = displayItems.map((e) => e.mbNumber).filter(Boolean);
-      const allMbPages = displayItems.map((e) => e.mbPageNumber).filter(Boolean);
-
-      // Extract unique MB numbers
-      const uniqueMbNumbers = Array.from(new Set(allMbNumbers));
-
-      // For pages: Always use "1 to last page" format
-      // Find the maximum page number
-      const pageNumbers = allMbPages
-        .map(p => parseInt(p, 10))
-        .filter(p => !isNaN(p) && p > 0);
-
-      let mbPages = "";
-      if (pageNumbers.length > 0) {
-        const lastPage = Math.max(...pageNumbers);
-        if (lastPage === 1) {
-          mbPages = "1";
-        } else {
-          mbPages = `1 to ${lastPage}`; // Always "1 to last page" format
-        }
-      } else {
-        // If no valid page numbers found, use default
-        mbPages = "1";
-      }
-
-      // For MB numbers
-      let mbNumber = "";
-      if (uniqueMbNumbers.length === 1) {
-        mbNumber = uniqueMbNumbers[0];
-      } else if (uniqueMbNumbers.length > 1) {
-        // If multiple MBs, use the first one
-        mbNumber = uniqueMbNumbers[0];
-      }
-
-      const pdfData = {
-        billType: formData.billType,
-        projectName: workName,
-        projectLocation: location,
-        entries: displayItems.map((entry) => ({
-          workItemDescription: entry.description || "",
-          mbNumber: entry.mbNumber,
-          mbPageNumber: entry.mbPageNumber,
-          quantityExecuted: Number(entry.quantity) || 0,
-          unit: entry.unit || "",
-          rate: Number(entry.rate) || 0,
-          amount: Number(entry.amount) || 0,
-          remarks: entry.originalEntry?.remarks || "",
-          isHeader: entry.isHeader,
-          isSubItem: entry.isSubItem,
-          slNo: entry.slNo,
-        })),
-        itemwiseTotal,
-        contractualPercent: formData.contractualPercentage,
-        contractualDeduction,
-        actualValue,
-        sayAmount,
-        cgstPercent: formData.cgstPercentage,
-        cgstAmount,
-        sgstPercent: formData.sgstPercentage,
-        sgstAmount,
-        lwcPercent: formData.labourCessPercentage,
-        lwcAmount,
-        subTotal,
-        grossBillAmount,
-        mbNumber: mbNumber,
-        mbPages: mbPages, // Now always "1 to lastPage" format
-      };
-
+      const { pdfData, workName } = buildPdfPayload();
       const pdfBytes = await generateBillAbstractPDF(pdfData);
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
@@ -512,6 +517,17 @@ export default function BillAbstractClientPage() {
     } finally {
       setGeneratingPDF(false);
     }
+  };
+
+  const handlePreviewPDF = async () => {
+    if (billEntries.length === 0) {
+      toast.error("No bill entries to preview");
+      return;
+    }
+
+    const { pdfData } = buildPdfPayload();
+    setPreviewPdfData(pdfData);
+    setPreviewOpen(true);
   };
 
   const handleSave = async () => {
@@ -602,6 +618,19 @@ export default function BillAbstractClientPage() {
           </Button>
           <Button
             variant="outline"
+            onClick={handlePreviewPDF}
+            disabled={billEntries.length === 0 || generatingPDF}
+            className="gap-2 border-wb-border hover:bg-wb-info/10 hover:border-wb-primary transition-colors"
+          >
+            {generatingPDF ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">Preview &amp; Print</span>
+          </Button>
+          <Button
+            variant="outline"
             onClick={handleGeneratePDF}
             disabled={billEntries.length === 0 || generatingPDF}
             className="gap-2 border-wb-border hover:bg-wb-success/10 hover:border-wb-success transition-colors"
@@ -611,7 +640,7 @@ export default function BillAbstractClientPage() {
             ) : (
               <Printer className="h-4 w-4" />
             )}
-            <span className="hidden sm:inline">Print PDF</span>
+            <span className="hidden sm:inline">Download PDF</span>
           </Button>
           <Button
             onClick={handleSave}
@@ -963,6 +992,11 @@ export default function BillAbstractClientPage() {
           </CardContent>
         </Card>
       </div>
+      <PreviewAbstract
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        pdfData={previewPdfData}
+      />
     </div>
   );
 }
