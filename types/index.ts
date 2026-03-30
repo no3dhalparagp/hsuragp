@@ -523,3 +523,41 @@ export type comparativeStatementProps = Prisma.WorksDetailGetPayload<{
     
          
 }}>
+
+export type TubewellWorkOrderWithRelations = Prisma.TubewellWorkOrderGetPayload<{
+  include: {
+    mistri: true;
+    request: true;
+    materials: {
+      include: {
+        material: true;
+      };
+    };
+    masterRollEntries: {
+      include: {
+        items: true;
+      };
+    };
+  };
+}>;
+
+export type TubewellBillWithRelations = Prisma.TubewellBillGetPayload<{
+  include: {
+    workOrders: {
+      include: {
+        mistri: true;
+        request: true;
+        materials: {
+          include: {
+            material: true;
+          };
+        };
+        masterRollEntries: {
+          include: {
+            items: true;
+          };
+        };
+      };
+    };
+  };
+}>;
