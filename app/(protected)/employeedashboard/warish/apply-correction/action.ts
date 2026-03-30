@@ -205,14 +205,25 @@ export async function requestWarishCorrection(formData: FormData): Promise<Waris
   try {
     const warishApplicationId = formData.get("warishApplicationId") as string | null;
     const warishDetailId = formData.get("warishDetailId") as string | null;
-    const fieldToModify = formData.get("fieldToModify") as string;
-    const currentValue = formData.get("currentValue") as string;
-    const proposedValue = formData.get("proposedValue") as string;
+    const modificationsJson = formData.get("modifications") as string;
     const reasonForModification = formData.get("reasonForModification") as string;
     const requestedBy = formData.get("requestedBy") as string;
 
-    // At least one of warishApplicationId or warishDetailId must be provided
-    if (!fieldToModify || !proposedValue || !reasonForModification || !requestedBy || (!warishApplicationId && !warishDetailId)) {
+    let modifications = [];
+    if (modificationsJson) {
+      modifications = JSON.parse(modificationsJson);
+    } else {
+      // Fallback for single field from FormData
+      const fieldToModify = formData.get("fieldToModify") as string;
+      const currentValue = formData.get("currentValue") as string;
+      const proposedValue = formData.get("proposedValue") as string;
+      
+      if (fieldToModify && proposedValue) {
+        modifications = [{ field: fieldToModify, oldValue: currentValue, newValue: proposedValue }];
+      }
+    }
+
+    if (modifications.length === 0 || !reasonForModification || !requestedBy || (!warishApplicationId && !warishDetailId)) {
       return createResponse(false, "Missing required fields");
     }
 
@@ -230,9 +241,11 @@ export async function requestWarishCorrection(formData: FormData): Promise<Waris
         warishApplicationId: warishApplicationId || undefined,
         warishDetailId: warishDetailId || undefined,
         targetType,
-        fieldToModify,
-        currentValue,
-        proposedValue,
+        modifications,
+        // Legacy fields for backward compatibility
+        fieldToModify: modifications[0].field,
+        currentValue: String(modifications[0].oldValue || ""),
+        proposedValue: String(modifications[0].newValue),
         reasonForModification,
         requestedBy,
         status: "pending",
@@ -256,19 +269,27 @@ export async function reviewWarishCorrection(
     if (!request) return createResponse(false, "Request not found");
 
     if (approve) {
-      // Update the main data (warishDetail or warishApplication)
-      if (request.targetType === 'detail' && request.warishDetailId) {
-        await db.warishDetail.update({
-          where: { id: request.warishDetailId },
-          data: { [request.fieldToModify]: request.proposedValue },
+      const updateData: any = {};
+      if (request.modifications && Array.isArray(request.modifications)) {
+        request.modifications.forEach((mod: any) => {
+          updateData[mod.field] = mod.newValue;
         });
-      } else if (request.targetType === 'application' && request.warishApplicationId) {
-        await db.warishApplication.update({
-          where: { id: request.warishApplicationId },
-          data: { [request.fieldToModify]: request.proposedValue },
-        });
-      } else {
-        return createResponse(false, "Invalid correction request target");
+      } else if (request.fieldToModify && request.proposedValue) {
+        updateData[request.fieldToModify] = request.proposedValue;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        if (request.targetType === 'detail' && request.warishDetailId) {
+          await db.warishDetail.update({
+            where: { id: request.warishDetailId },
+            data: updateData,
+          });
+        } else if (request.targetType === 'application' && request.warishApplicationId) {
+          await db.warishApplication.update({
+            where: { id: request.warishApplicationId },
+            data: updateData,
+          });
+        }
       }
     }
 
@@ -287,6 +308,7 @@ export async function reviewWarishCorrection(
     return createResponse(false, error.message || "Failed to review correction request");
   }
 }
+
 
 export async function getWarishCorrectionRequests(warishApplicationId: string) {
   return db.warishModificationRequest.findMany({

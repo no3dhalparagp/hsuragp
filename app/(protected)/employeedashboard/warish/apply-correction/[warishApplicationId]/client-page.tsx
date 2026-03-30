@@ -11,9 +11,14 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 
 interface CorrectionRequest {
   id: string;
-  fieldToModify: string;
-  currentValue: string;
-  proposedValue: string;
+  fieldToModify?: string | null;
+  currentValue?: string | null;
+  proposedValue?: string | null;
+  modifications?: Array<{
+    field: string;
+    oldValue: any;
+    newValue: any;
+  }> | null;
   reasonForModification: string;
   requestedBy: string;
   requestedDate: Date;
@@ -365,10 +370,27 @@ export default function ApplicationCorrectionRequestsClientPage({
                         )}
                       </h4>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Field:{" "}
-                        <span className="font-medium">
-                          {request.fieldToModify}
-                        </span>
+                        {request.modifications &&
+                        request.modifications.length > 0 ? (
+                          <span className="flex flex-wrap gap-1 mt-1">
+                            {request.modifications.map((mod, i) => (
+                              <Badge
+                                key={i}
+                                variant="outline"
+                                className="text-[10px] bg-muted/50"
+                              >
+                                {mod.field}
+                              </Badge>
+                            ))}
+                          </span>
+                        ) : (
+                          <>
+                            Field:{" "}
+                            <span className="font-medium">
+                              {request.fieldToModify}
+                            </span>
+                          </>
+                        )}
                       </p>
                     </div>
                     <div className="flex flex-col items-end">
@@ -391,16 +413,44 @@ export default function ApplicationCorrectionRequestsClientPage({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <p className="text-sm">Current Value</p>
-                      <p className="font-medium">{request.currentValue}</p>
+                  {request.modifications && request.modifications.length > 0 ? (
+                    <div className="mt-4 space-y-2">
+                      {request.modifications.map((mod, i) => (
+                        <div
+                          key={i}
+                          className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs p-2 bg-muted/30 rounded border border-dashed"
+                        >
+                          <div>
+                            <span className="text-muted-foreground block font-semibold uppercase text-[10px]">
+                              {mod.field} (Current)
+                            </span>
+                            <span className="line-through decoration-muted-foreground/50">
+                              {String(mod.oldValue || "Empty")}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-green-600 block font-semibold uppercase text-[10px]">
+                              Proposed
+                            </span>
+                            <span className="font-medium">
+                              {String(mod.newValue)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                      <p className="text-sm">Proposed Value</p>
-                      <p className="font-medium">{request.proposedValue}</p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div>
+                        <p className="text-sm">Current Value</p>
+                        <p className="font-medium">{request.currentValue}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm">Proposed Value</p>
+                        <p className="font-medium">{request.proposedValue}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="mt-4">
                     <p className="text-sm">Reason</p>

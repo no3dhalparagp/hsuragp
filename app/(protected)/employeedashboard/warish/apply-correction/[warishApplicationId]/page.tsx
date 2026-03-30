@@ -82,6 +82,7 @@ async function ApplicationCorrectionRequestsContent({
     targetType: (req.targetType === "application" || req.targetType === "detail"
       ? req.targetType
       : "detail") as "application" | "detail",
+    modifications: req.modifications as any, // Cast JSON to any
   }));
 
   return (
