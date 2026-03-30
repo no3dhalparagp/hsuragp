@@ -6,15 +6,26 @@ export const printStyles = `
 
 * {
   box-sizing: border-box;
+  -webkit-print-color-adjust: exact !important;
+  color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+@media print {
+  /* Prevent background printing issues */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 
 html, body {
   margin: 0;
   padding: 0;
-  font-family: "Times New Roman", serif;
+  font-family: "Merriweather", "Times New Roman", Times, serif;
   font-size: 11px;
-  color: #000;
-  background: #e5e7eb;
+  color: #1e293b; /* slate-800 for better readability */
+  background: #e2e8f0;
 }
 
 .print-root {
@@ -23,148 +34,184 @@ html, body {
   width: 100%;
 }
 
+/* PRINT RESET */
 @media print {
   html, body, .print-root {
     background: #fff !important;
   }
+
   .sheet {
     page-break-after: always;
     break-after: page;
+    box-shadow: none !important;
+    border: none !important;
   }
+
   .page-container {
     overflow: hidden;
   }
 }
 
-/* Sheet = one A4 landscape sheet holding two pages side-by-side */
+/* SHEET (BOOKLET SPREAD) */
 .sheet {
   width: 297mm;
   height: 210mm;
   display: flex;
-  gap: 4mm;
-  padding: 0 4mm;
+  gap: 16mm; /* Increased gap for center binding (gutter) */
+  padding: 0 4mm; /* Adjusted outer margins to shift content side by side */
   page-break-after: always;
   box-sizing: border-box;
   overflow: hidden;
+  background: white;
 }
 
-/* Each page occupies exactly half the landscape sheet */
+/* PAGE HALF */
 .page-container {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 1;
   height: 210mm;
-  max-height: 210mm;
   padding: 5mm;
   display: flex;
-  box-sizing: border-box;
   overflow: hidden;
 }
 
-/* Border */
+/* PAGE BORDER */
 .page-border {
-  border: 1px solid #000;
-  padding: 4mm;
+  border: 2px solid #0f172a; /* Stronger border for the page */
+  padding: 6mm;
   width: 100%;
-  min-width: 0;
   height: 100%;
-  max-height: 100%;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
-  overflow: hidden;
+  position: relative;
 }
 
-/* Header */
+/* HEADER */
 .page-header {
   height: 10mm;
-  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 2mm;
+  margin-bottom: 3mm;
+  color: #0f172a;
 }
 
-/* Content – fills remaining space, clips at boundary */
+/* CONTENT */
 .content {
-  flex: 1 1 0;
+  flex: 1;
   overflow: hidden;
-  min-height: 0;
 }
 
-/* Table */
-table {
+/* TABLE */
+table.mb-table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  font-size: 10.5px;
+  color: #1e293b;
 }
 
-thead {
+table.mb-table thead {
   display: table-header-group;
 }
 
-tr {
+table.mb-table tr {
   page-break-inside: avoid;
   break-inside: avoid;
 }
 
-th, td {
-  border: 1px solid #000;
-  padding: 3px 4px;
+/* HEADER CELLS */
+table.mb-table th {
+  border: 1px solid #475569;
+  padding: 6px 4px;
+  text-align: center;
+  font-weight: 700;
+  background: #eef2ff; /* Lighter background for better readability */
+  color: #0f172a;
+  font-size: 10px;
+}
+
+/* BODY CELLS */
+table.mb-table td {
+  border: 1px solid #64748b;
+  padding: 4px 5px;
   vertical-align: top;
-  white-space: normal;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  word-break: break-word;
-  line-height: 1.35;
-}
-
-td.cell-description,
-th.cell-description {
-  max-width: 0;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+  line-height: 1.4;
   word-break: break-word;
 }
 
-.cell-description-wide {
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+/* GROUP HEADER */
+table.mb-table .group-header td {
+  font-weight: 700;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* TOTAL ROW */
+table.mb-table .total-row td {
+  font-weight: 700;
+  border-top: 1.5px solid #0f172a;
+  border-bottom: 1.5px solid #0f172a;
+  background-color: #fefce8; /* Light yellow to highlight totals */
+}
+
+/* BROUGHT / CARRIED */
+table.mb-table .transfer-row td {
+  font-weight: 700;
+  border-top: 1px dashed #64748b;
+  color: #334155;
+}
+
+/* Keep each item's rows together */
+table.mb-table tbody.item-group {
+  break-inside: avoid;
+  page-break-inside: avoid; /* fallback for older browsers */
+}
+
+/* Handle long descriptions gracefully */
+table.mb-table td.description-cell {
   word-break: break-word;
-  line-height: 1.35;
+  overflow-wrap: break-word;
+  font-size: 9.5px; /* slightly smaller than default 10.5px */
+  line-height: 1.3;
 }
 
-tbody tr td {
-  min-height: 1.35em;
+/* Prevent brought/carried rows from breaking with next content */
+tbody:first-of-type .transfer-row,
+tbody:last-of-type .transfer-row {
+  break-inside: avoid;
 }
 
-/* Footer */
+/* SIGNATURE */
 .signature-block {
-  height: 16mm;
-  flex-shrink: 0;
+  height: 18mm;
   display: flex;
   justify-content: space-between;
-  margin-top: auto;
+  align-items: flex-end;
+  margin-top: 5mm;
+  width: 100%;
 }
 
-.signature-line {
-  min-width: 35mm;
+.signature {
+  width: 45mm;
   text-align: center;
+  font-size: 11px;
+  position: relative;
+  color: #1e293b;
+  font-weight: 600;
 }
 
-.signature-line::before {
+.signature::before {
   content: "";
   display: block;
-  border-top: 1px solid #000;
+  border-top: 1.5px dotted #475569;
   margin-bottom: 2mm;
 }
 
-.total-row td {
-  font-weight: bold;
-}
-
-.group-header td {
-  font-weight: bold;
-}
-
+/* ALIGNMENTS */
 .text-right {
   text-align: right;
 }
@@ -173,12 +220,9 @@ tbody tr td {
   text-align: center;
 }
 
-.bold {
-  font-weight: bold;
-}
-
 .page-number {
-  font-weight: bold;
-  font-size: 11px;
+  font-weight: 700;
+  font-size: 11.5px;
+  color: #0f172a;
 }
 `;

@@ -4,349 +4,201 @@ import React from "react";
 import { PrintRow } from "./types";
 
 interface MeasurementPageProps {
-
   rows: PrintRow[];
-
   pageIndex: number;
-
   mbNumber: string;
-
   metadata: any;
-
   broughtForwardQuantity: number;
-
   broughtForwardAmount: number;
-
   carryForwardQuantity: number;
-
   carryForwardAmount: number;
-
 }
 
 export function MeasurementPage({
-
   rows,
-
   pageIndex,
-
   mbNumber,
-
   metadata,
-
   broughtForwardQuantity,
-
   broughtForwardAmount,
-
   carryForwardQuantity,
-
   carryForwardAmount,
-
 }: MeasurementPageProps) {
+  const totalPages = metadata.totalMeasurementPages ?? 1;
+  const showBroughtForward = pageIndex > 0;
+  const showCarryForward = pageIndex < totalPages - 1;
 
-  const totalPages =
-    metadata.totalMeasurementPages ?? 1;
+  const pageNumber =
+    metadata.startPage ? metadata.startPage + pageIndex : pageIndex + 4;
 
-  const showBroughtForward =
-    pageIndex > 0;
+  // Group rows by item (each item starts with a "header" row)
+  const items: PrintRow[][] = [];
+  let currentItem: PrintRow[] = [];
 
-  const showCarryForward =
-    pageIndex < totalPages - 1;
-
-  // Page numbers: Cover=1, Rules=2, Details=3, then measurement pages start at 4
-  const pageNumber = (metadata.startPage ? metadata.startPage + pageIndex : pageIndex + 4);
+  rows.forEach((row) => {
+    if (row.type === "header") {
+      if (currentItem.length) {
+        items.push(currentItem);
+        currentItem = [];
+      }
+      currentItem.push(row);
+    } else {
+      currentItem.push(row);
+    }
+  });
+  if (currentItem.length) {
+    items.push(currentItem);
+  }
 
   return (
-
     <div className="page-container">
-
-      <div className="page-border">
-
+      <div className="page-border" style={{ backgroundColor: "#fff" }}>
         {/* HEADER */}
-
-        <div className="page-header">
-
-          <div>
-
-            <b>
-              Measurement Book No:
-            </b>{" "}
-            {mbNumber}
-
+        <div className="page-header" style={{ padding: "0 8px" }}>
+          <div style={{ fontWeight: "bold", color: "#0f172a" }}>
+            Measurement Book No : {mbNumber}
           </div>
-
-          <div className="page-number">
-
-            Page No: {pageNumber}
-
-          </div>
-
+          <div className="page-number">Page No : {pageNumber}</div>
         </div>
 
-        {/* CONTENT */}
-
+        {/* TABLE */}
         <div className="content">
-
-          <table>
-
+          <table className="mb-table">
             <thead>
-
               <tr>
-
-                <th style={{ width: "6%" }}>
-                  Sl No
-                </th>
-
-                <th className="cell-description" style={{ width: "34%" }}>
-                  Particulars
-                </th>
-
-                <th style={{ width: "6%" }}>
-                  No
-                </th>
-
-                <th style={{ width: "12%" }}>
-                  Length
-                </th>
-
-                <th style={{ width: "12%" }}>
-                  Breadth
-                </th>
-
-                <th style={{ width: "12%" }}>
-                  Depth
-                </th>
-
-                <th style={{ width: "10%" }}>
-                  Quantity
-                </th>
-
-                <th style={{ width: "8%" }}>
-                  Amount
-                </th>
-
+                <th style={{ width: "6%" }}>Sl No</th>
+                <th style={{ width: "30%" }}>Particulars</th>
+                <th style={{ width: "6%" }}>Nos</th>
+                <th style={{ width: "10%" }}>Length</th>
+                <th style={{ width: "10%" }}>Breadth</th>
+                <th style={{ width: "10%" }}>Depth</th>
+                <th style={{ width: "8%" }}>Quantity</th>
+                <th style={{ width: "8%" }}>Rate</th>
+                <th style={{ width: "12%" }}>Amount</th>
               </tr>
-
             </thead>
 
+            {/* BROUGHT FORWARD (separate tbody) */}
             <tbody>
-
-              {/* BROUGHT FORWARD */}
-
               {showBroughtForward && (
-
-                <tr className="total-row">
-
-                  <td colSpan={6}>
+                <tr className="transfer-row">
+                  <td colSpan={6} style={{ textAlign: "right", paddingRight: "16px", fontWeight: "bold" }}>
                     Brought Forward
                   </td>
-
                   <td className="text-right">
                     {(Number(broughtForwardQuantity) || 0).toFixed(3)}
                   </td>
+                  <td></td>
                   <td className="text-right">
                     {(Number(broughtForwardAmount) || 0).toFixed(2)}
                   </td>
-
                 </tr>
-
               )}
+            </tbody>
 
-              {/* MAIN ROWS */}
+            {/* Each item in its own tbody to keep together */}
+            {items.map((itemRows, idx) => (
+              <tbody key={idx} className="item-group">
+                {itemRows.map((row, index) => {
+                  if (row.type === "group-header") {
+                    return (
+                      <tr key={index} className="group-header">
+                        <td style={{ textAlign: "center", fontWeight: "bold" }}>{row.slNo}</td>
+                        <td colSpan={8} style={{ fontWeight: "bold" }}>
+                          {row.description}
+                        </td>
+                      </tr>
+                    );
+                  }
 
-              {rows.map((row, index): React.ReactNode => {
+                  if (row.type === "header") {
+                    return (
+                      <tr key={index}>
+                        <td style={{ textAlign: "center", fontWeight: "600" }}>{row.slNo}</td>
+                        <td colSpan={8} style={{ fontWeight: "600", color: "#1e293b" }}>
+                          {row.entry.workItemDescription}
+                        </td>
+                      </tr>
+                    );
+                  }
 
-                /* GROUP HEADER */
+                  if (row.type === "measurement") {
+                    const m = row.measurement;
+                    return (
+                      <tr key={index}>
+                        <td></td>
+                        <td className="description-cell">
+                          {(m.description && String(m.description).trim()) ||
+                            row.parentEntry?.workItemDescription ||
+                            ""}
+                        </td>
+                        <td className="text-center">{m.nos}</td>
+                        <td className="text-right">{m.length}</td>
+                        <td className="text-right">{m.breadth}</td>
+                        <td className="text-right">{m.depth}</td>
+                        <td className="text-right" style={{ fontWeight: "500" }}>
+                          {m.quantity}
+                        </td>
+                        <td></td>
+                        <td></td>
+                      </tr>
+                    );
+                  }
 
-                if (row.type === "group-header") {
+                  if (row.type === "total") {
+                    return (
+                      <tr key={index} className="total-row">
+                        <td colSpan={6} style={{ textAlign: "right", paddingRight: "16px", fontWeight: "bold" }}>
+                          Item Total
+                        </td>
+                        <td className="text-right">
+                          {(Number(row.entry.quantityExecuted) || 0).toFixed(3)}
+                        </td>
+                        <td className="text-right">
+                          {(Number(row.entry.rate) || 0).toFixed(2)}
+                        </td>
+                        <td className="text-right">
+                          {(Number(row.entry.amount) || 0).toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  }
 
-                  return (
+                  return null;
+                })}
+              </tbody>
+            ))}
 
-                    <tr
-                      key={index}
-                      className="group-header"
-                    >
-
-                      <td className="text-center bold">
-
-                        {row.slNo}
-
-                      </td>
-
-                      <td colSpan={7} className="bold cell-description-wide">
-
-                        {row.description}
-
-                      </td>
-
-                    </tr>
-
-                  );
-
-                }
-
-                /* ITEM HEADER */
-
-                if (row.type === "header") {
-
-                  return (
-
-                    <tr key={index}>
-
-                      <td className="text-center">
-
-                        {row.slNo}
-
-                      </td>
-
-                      <td colSpan={7} className="cell-description-wide">
-
-                        {row.entry.workItemDescription}
-
-                      </td>
-
-                    </tr>
-
-                  );
-
-                }
-
-                /* MEASUREMENT ROW */
-
-                if (row.type === "measurement") {
-
-                  const m =
-                    row.measurement;
-
-                  return (
-
-                    <tr key={index}>
-
-                      {/* SL NO */}
-                      <td></td>
-
-                      {/* DESCRIPTION / PARTICULARS */}
-                      <td className="cell-description">
-                        {(m.description && String(m.description).trim()) || row.parentEntry?.workItemDescription || ""}
-                      </td>
-
-                      {/* NOS */}
-                      <td className="text-center">
-
-                        {m.nos}
-
-                      </td>
-
-                      {/* LENGTH */}
-                      <td className="text-right">
-
-                        {m.length}
-
-                      </td>
-
-                      {/* BREADTH */}
-                      <td className="text-right">
-
-                        {m.breadth}
-
-                      </td>
-
-                      {/* DEPTH */}
-                      <td className="text-right">
-
-                        {m.depth}
-
-                      </td>
-
-                      {/* QUANTITY */}
-                      <td className="text-right">
-
-                        {m.quantity}
-
-                      </td>
-
-                      {/* AMOUNT */}
-                      <td></td>
-
-                    </tr>
-
-                  );
-
-                }
-
-                /* TOTAL */
-
-                if (row.type === "total") {
-
-                  return (
-
-                    <tr
-                      key={index}
-                      className="total-row"
-                    >
-
-                      <td colSpan={6}>
-                        Total
-                      </td>
-
-                      <td className="text-right">
-                        {(Number(row.entry.quantityExecuted) || 0).toFixed(3)}
-                      </td>
-                      <td className="text-right">
-                        {(Number(row.entry.amount) || 0).toFixed(2)}
-                      </td>
-                    </tr>
-                  );
-                }
-
-                return null;
-              })}
-
-              {/* CARRIED FORWARD */}
-
+            {/* CARRIED FORWARD (separate tbody) */}
+            <tbody>
               {showCarryForward && (
-                <tr className="total-row">
-                  <td colSpan={6}>
+                <tr className="transfer-row">
+                  <td colSpan={6} style={{ textAlign: "right", paddingRight: "16px", fontWeight: "bold" }}>
                     Carried Forward
                   </td>
                   <td className="text-right">
                     {(Number(carryForwardQuantity) || 0).toFixed(3)}
                   </td>
+                  <td></td>
                   <td className="text-right">
                     {(Number(carryForwardAmount) || 0).toFixed(2)}
                   </td>
-
                 </tr>
-
               )}
-
             </tbody>
-
           </table>
-
         </div>
 
         {/* SIGNATURE */}
-
-        <div className="signature-block">
-
-          <div className="signature-line">
-
-            Measured by
-
-          </div>
-
-          <div className="signature-line">
-
-            Checked by
-
-          </div>
-
+        <div
+          className="signature-block"
+          style={{ marginTop: "auto", paddingBottom: "16px", paddingLeft: "32px", paddingRight: "32px" }}
+        >
+          <div className="signature">Measured by</div>
+          <div className="signature">Checked by</div>
         </div>
-
       </div>
-
     </div>
-
   );
-
 }
+
