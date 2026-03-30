@@ -91,19 +91,36 @@ export async function POST(req: NextRequest) {
     const {
       warishApplicationId,
       warishDetailId,
-      fieldToModify,
-      currentValue,
-      proposedValue,
+      modifications, // Array of { field, oldValue, newValue }
       reasonForModification,
       requestedBy,
     } = body
 
+    // Support both single modification (old) and multiple (new)
+    const finalModifications = modifications || [
+      {
+        field: body.fieldToModify,
+        oldValue: body.currentValue || "",
+        newValue: body.proposedValue,
+      },
+    ]
+
     // Validation
-    if (!fieldToModify || !proposedValue || !reasonForModification || !requestedBy) {
+    if (!finalModifications || !Array.isArray(finalModifications) || finalModifications.length === 0) {
       return NextResponse.json(
         {
           success: false,
-          message: "Missing required fields: fieldToModify, proposedValue, reasonForModification, requestedBy",
+          message: "Modifications are required",
+        },
+        { status: 400 },
+      )
+    }
+
+    if (!reasonForModification || !requestedBy) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Missing required fields: reasonForModification, requestedBy",
         },
         { status: 400 },
       )
@@ -119,18 +136,29 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Determine target type and validate field
+    // Determine target type and validate fields
     const targetType = warishDetailId ? "detail" : "application"
     const validFields = targetType === "application" ? VALID_APPLICATION_FIELDS : VALID_DETAIL_FIELDS
     
-    if (!validFields.includes(fieldToModify)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: `Invalid field '${fieldToModify}' for ${targetType} corrections. Valid fields: ${validFields.join(", ")}`,
-        },
-        { status: 400 },
-      )
+    for (const mod of finalModifications) {
+      if (!mod.field || mod.newValue === undefined) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Each modification must have a 'field' and 'newValue'",
+          },
+          { status: 400 },
+        )
+      }
+      if (!validFields.includes(mod.field)) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Invalid field '${mod.field}' for ${targetType} corrections.`,
+          },
+          { status: 400 },
+        )
+      }
     }
 
     // Validate that the target exists
@@ -162,13 +190,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Check if a similar request already exists
+    // Check if a similar pending request already exists for any of the fields
+    const fieldsToModify = finalModifications.map(m => m.field)
     const existingRequest = await db.warishModificationRequest.findFirst({
       where: {
         warishApplicationId: warishApplicationId || undefined,
         warishDetailId: warishDetailId || undefined,
-        fieldToModify,
         status: "pending",
+        OR: [
+          { fieldToModify: { in: fieldsToModify } },
+          // Note: Checking JSON field is harder in Prisma with MongoDB, 
+          // but we can at least check if there's any pending request for this target
+        ]
       },
     })
 
@@ -176,7 +209,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "A pending correction request for this field already exists",
+          message: "A pending correction request for this application/member already exists. Please wait for it to be reviewed.",
         },
         { status: 409 },
       )
@@ -187,9 +220,11 @@ export async function POST(req: NextRequest) {
         warishApplicationId: warishApplicationId || undefined,
         warishDetailId: warishDetailId || undefined,
         targetType,
-        fieldToModify,
-        currentValue: currentValue || "",
-        proposedValue,
+        modifications: finalModifications,
+        // Keep these for backward compatibility (using the first one)
+        fieldToModify: finalModifications[0].field,
+        currentValue: String(finalModifications[0].oldValue || ""),
+        proposedValue: String(finalModifications[0].newValue),
         reasonForModification,
         requestedBy,
         status: "pending",

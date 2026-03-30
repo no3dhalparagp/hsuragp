@@ -44,30 +44,42 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ re
     // If approved, apply the changes
     if (approve) {
       try {
-        if (request.targetType === "detail" && request.warishDetailId) {
-          // Validate field exists and update
-
-       
-          const updateData: any = {}
+        const updateData: any = {}
+        
+        // Handle multiple modifications
+        if (request.modifications && Array.isArray(request.modifications)) {
+          request.modifications.forEach((mod: any) => {
+            updateData[mod.field] = mod.newValue
+          })
+        } 
+        // Fallback for old single-field requests
+        else if (request.fieldToModify && request.proposedValue) {
           updateData[request.fieldToModify] = request.proposedValue
-          
+        }
+
+        if (Object.keys(updateData).length === 0) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: "No modifications found to apply",
+            },
+            { status: 400 },
+          )
+        }
+
+        if (request.targetType === "detail" && request.warishDetailId) {
           await db.warishDetail.update({
             where: { id: request.warishDetailId },
             data: updateData,
           })
         } else if (request.targetType === "application" && request.warishApplicationId) {
-          // Validate field exists and update
-          const updateData: any = {}
-          updateData[request.fieldToModify] = request.proposedValue
-
           const warishdata = await db.warishApplication.update({
             where: { id: request.warishApplicationId },
             data: updateData,
           })
 
-    
-
-          const warisholdcertificate = await db.warishDocument.deleteMany({
+          // When application is modified, existing documents (certificates) might be invalid
+          await db.warishDocument.deleteMany({
             where: {
               warishId: warishdata.id
             }
