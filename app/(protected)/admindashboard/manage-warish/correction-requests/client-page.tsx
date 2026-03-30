@@ -105,13 +105,28 @@ export default function AdminCorrectionRequestsClientPage({
       // Search Query Match
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        return (
-          request.fieldToModify.toLowerCase().includes(query) ||
+        
+        // Check basic fields
+        const basicMatch = 
+          request.fieldToModify?.toLowerCase().includes(query) ||
           request.requestedBy.toLowerCase().includes(query) ||
           request.currentValue?.toLowerCase().includes(query) ||
           request.proposedValue?.toLowerCase().includes(query) ||
-          request.warishApplication?.acknowlegment.toLowerCase().includes(query)
-        );
+          request.warishApplication?.acknowlegment.toLowerCase().includes(query) ||
+          request.warishApplication?.applicantName.toLowerCase().includes(query);
+
+        if (basicMatch) return true;
+
+        // Check multi-field modifications if they exist
+        if (request.modifications && Array.isArray(request.modifications)) {
+          return request.modifications.some(mod => 
+            mod.field.toLowerCase().includes(query) ||
+            String(mod.oldValue || "").toLowerCase().includes(query) ||
+            String(mod.newValue || "").toLowerCase().includes(query)
+          );
+        }
+
+        return false;
       }
 
       return true;

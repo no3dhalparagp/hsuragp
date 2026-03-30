@@ -66,12 +66,11 @@ async function AdminCorrectionRequestsContent() {
   )
 
   // Helper function to map targetType to proper type
-  function mapTargetType<T extends { targetType: string }>(
-    requests: T[]
-  ): (Omit<T, "targetType"> & { targetType: CorrectionRequestTargetType })[] {
+  function mapTargetType(requests: any[]): CorrectionRequest[] {
     return requests.map((req) => ({
       ...req,
       targetType: req.targetType as CorrectionRequestTargetType,
+      modifications: req.modifications as any, // Cast JSON to any to satisfy type
     }));
   }
 

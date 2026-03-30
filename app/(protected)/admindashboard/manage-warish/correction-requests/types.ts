@@ -13,9 +13,14 @@ export interface WarishApplicationInfo {
 
 export interface CorrectionRequest {
     id: string;
-    fieldToModify: string;
-    currentValue: string;
-    proposedValue: string;
+    fieldToModify?: string | null;
+    currentValue?: string | null;
+    proposedValue?: string | null;
+    modifications?: Array<{
+        field: string;
+        oldValue: any;
+        newValue: any;
+    }> | null;
     reasonForModification: string;
     requestedBy: string;
     requestedDate: Date;
