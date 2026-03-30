@@ -23,7 +23,7 @@ export const createUser = async (values: z.infer<typeof CreateUserSchema>) => {
     return { error: "Invalid fields!" };
   }
 
-  const { email, password, name, role, mobileNumber, designation } = parseResult.data;
+  const { email, password, name, role, mobileNumber, designation, agencyDetailsId } = parseResult.data;
 
   try {
     const normalizedEmail = email.toLowerCase();
@@ -45,6 +45,7 @@ export const createUser = async (values: z.infer<typeof CreateUserSchema>) => {
         role,
         mobileNumber,
         designation: role === "staff" ? designation : null,
+        agencyDetailsId: role === "agency" ? agencyDetailsId : null,
         emailVerified: new Date(), // Admins creating users skip verification
       },
     });
@@ -118,7 +119,7 @@ export const userProfileImage = async (imageurl: string, imageKey: string) => {
   }
 };
 
-export type UserRole = 'user' | 'admin' | 'staff' | 'superadmin'
+export type UserRole = 'user' | 'admin' | 'staff' | 'superadmin' | 'agency'
 export async function toggleTwoFactor(userIds: string[], enable: boolean) {
   try {
     await db.user.updateMany({
