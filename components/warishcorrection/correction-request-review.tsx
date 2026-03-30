@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -33,7 +39,8 @@ import {
   User,
   CalendarDays,
   Check,
-  X
+  X,
+  FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -48,9 +55,14 @@ import { cn } from "@/lib/utils";
 
 interface CorrectionRequest {
   id: string;
-  fieldToModify: string;
-  currentValue: string;
-  proposedValue: string;
+  fieldToModify?: string | null;
+  currentValue?: string | null;
+  proposedValue?: string | null;
+  modifications?: Array<{
+    field: string;
+    oldValue: any;
+    newValue: any;
+  }> | null;
   reasonForModification: string;
   requestedBy: string;
   requestedDate: Date;
@@ -109,7 +121,7 @@ export default function CorrectionRequestReview({
             reviewedBy: "Admin", // Should be from context in real app
             reviewComments: reviewComments.trim() || undefined,
           }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -141,21 +153,30 @@ export default function CorrectionRequestReview({
     switch (status) {
       case "pending":
         return (
-          <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-200/50 gap-1 pr-2">
+          <Badge
+            variant="outline"
+            className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-200/50 gap-1 pr-2"
+          >
             <Clock className="w-3 h-3" />
             Pending Review
           </Badge>
         );
       case "approved":
         return (
-          <Badge variant="outline" className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-200/50 gap-1 pr-2">
+          <Badge
+            variant="outline"
+            className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-200/50 gap-1 pr-2"
+          >
             <CheckCircle className="w-3 h-3" />
             Approved
           </Badge>
         );
       case "rejected":
         return (
-          <Badge variant="outline" className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-200/50 gap-1 pr-2">
+          <Badge
+            variant="outline"
+            className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-200/50 gap-1 pr-2"
+          >
             <XCircle className="w-3 h-3" />
             Rejected
           </Badge>
@@ -176,7 +197,7 @@ export default function CorrectionRequestReview({
     const dateObj = typeof date === "string" ? new Date(date) : date;
     return format(dateObj, "MMM dd, yyyy");
   };
-  
+
   const formatDateTime = (date: Date | string) => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
     return format(dateObj, "MMM dd, yyyy 'at' h:mm a");
@@ -220,32 +241,44 @@ export default function CorrectionRequestReview({
       <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0 border-none shadow-2xl">
         <DialogHeader className="p-6 pb-4 bg-muted/30 border-b">
           <div className="flex items-center justify-between gap-4">
-             <DialogTitle className="text-xl">Correction Request Review</DialogTitle>
-             {selectedRequest && getStatusBadge(selectedRequest.status)}
+            <DialogTitle className="text-xl">
+              Correction Request Review
+            </DialogTitle>
+            {selectedRequest && getStatusBadge(selectedRequest.status)}
           </div>
           <div className="flex text-xs text-muted-foreground gap-3 mt-1">
-             <span className="font-mono bg-muted px-1.5 py-0.5 rounded border">ID: {selectedRequest?.id.slice(0, 8)}...</span>
-             <span>submitted on {selectedRequest && formatDate(selectedRequest.requestedDate)}</span>
+            <span className="font-mono bg-muted px-1.5 py-0.5 rounded border">
+              ID: {selectedRequest?.id.slice(0, 8)}...
+            </span>
+            <span>
+              submitted on{" "}
+              {selectedRequest && formatDate(selectedRequest.requestedDate)}
+            </span>
           </div>
         </DialogHeader>
 
         {selectedRequest && (
           <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-            <div className="grid grid-cols-2 gap-6 p-4 bg-muted/20 rounded-lg border">
+            <div className="flex items-center justify-between p-4 bg-muted/20 rounded-lg border">
               <div>
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                  Field to Modify
+                  Correction Target
                 </Label>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-foreground">
-                    {formatFieldName(selectedRequest.fieldToModify)}
-                  </span>
-                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 capitalize font-normal bg-background border shadow-sm">
+                  <Badge
+                    variant="secondary"
+                    className="text-xs h-6 px-2 capitalize font-medium bg-blue-100 text-blue-700 border-blue-200"
+                  >
                     {selectedRequest.targetType}
                   </Badge>
+                  {selectedRequest.warishApplication && (
+                    <span className="text-sm font-medium">
+                      {selectedRequest.warishApplication.applicantName}
+                    </span>
+                  )}
                 </div>
               </div>
-              
+
               <div className="text-right">
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                   Requested By
@@ -257,27 +290,79 @@ export default function CorrectionRequestReview({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border rounded-lg overflow-hidden shadow-sm">
-              <div className="p-4 bg-red-50/50 dark:bg-red-950/10 border-b md:border-b-0 md:border-r border-border/60">
-                <Label className="text-xs font-semibold text-red-600/80 dark:text-red-400/80 uppercase tracking-wider flex items-center gap-2 mb-2">
-                  <X className="w-3 h-3" /> Current Value
-                </Label>
-                <div className="p-3 bg-background border border-red-100 dark:border-red-900/30 rounded text-sm break-words min-h-[3rem] flex items-center shadow-sm">
-                  {selectedRequest.currentValue ? (
-                     <span className="text-muted-foreground line-through decoration-red-400/50">{selectedRequest.currentValue}</span>
-                  ) : (
-                    <span className="text-muted-foreground italic text-xs">Empty</span>
-                  )}
-                </div>
-              </div>
-              
-              <div className="p-4 bg-green-50/50 dark:bg-green-950/10">
-                <Label className="text-xs font-semibold text-green-600/80 dark:text-green-400/80 uppercase tracking-wider flex items-center gap-2 mb-2">
-                  <Check className="w-3 h-3" /> Proposed Value
-                </Label>
-                <div className="p-3 bg-background border border-green-100 dark:border-green-900/30 rounded text-sm break-words min-h-[3rem] flex items-center shadow-sm font-medium">
-                  <span className="text-foreground">{selectedRequest.proposedValue}</span>
-                </div>
+            <div className="space-y-4">
+              <Label className="font-semibold text-sm flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                Field Modifications
+              </Label>
+
+              <div className="space-y-3">
+                {selectedRequest.modifications &&
+                selectedRequest.modifications.length > 0 ? (
+                  selectedRequest.modifications.map((mod, i) => (
+                    <div
+                      key={i}
+                      className="border rounded-lg overflow-hidden shadow-sm"
+                    >
+                      <div className="bg-muted/30 px-3 py-1.5 border-b text-xs font-semibold flex items-center justify-between">
+                        <span>{formatFieldName(mod.field)}</span>
+                      </div>
+                      <div className="grid grid-cols-2">
+                        <div className="p-3 bg-red-50/30 dark:bg-red-950/5 border-r border-border/40">
+                          <span className="text-[10px] uppercase text-red-600/70 font-bold block mb-1">
+                            Current
+                          </span>
+                          <div className="text-sm text-muted-foreground line-through decoration-red-400/30 truncate">
+                            {mod.oldValue ? (
+                              formatFieldName(String(mod.oldValue))
+                            ) : (
+                              <span className="italic opacity-50">Empty</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-green-50/30 dark:bg-green-950/5">
+                          <span className="text-[10px] uppercase text-green-600/70 font-bold block mb-1">
+                            Proposed
+                          </span>
+                          <div className="text-sm font-medium text-foreground truncate">
+                            {formatFieldName(String(mod.newValue))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  // Fallback for old requests
+                  <div className="border rounded-lg overflow-hidden shadow-sm">
+                    <div className="bg-muted/30 px-3 py-1.5 border-b text-xs font-semibold">
+                      {selectedRequest.fieldToModify
+                        ? formatFieldName(selectedRequest.fieldToModify)
+                        : "Field"}
+                    </div>
+                    <div className="grid grid-cols-2">
+                      <div className="p-3 bg-red-50/30 border-r border-border/40">
+                        <span className="text-[10px] uppercase text-red-600/70 font-bold block mb-1">
+                          Current
+                        </span>
+                        <div className="text-sm text-muted-foreground line-through decoration-red-400/30">
+                          {selectedRequest.currentValue
+                            ? formatFieldName(selectedRequest.currentValue)
+                            : "Empty"}
+                        </div>
+                      </div>
+                      <div className="p-3 bg-green-50/30">
+                        <span className="text-[10px] uppercase text-green-600/70 font-bold block mb-1">
+                          Proposed
+                        </span>
+                        <div className="text-sm font-medium text-foreground">
+                          {selectedRequest.proposedValue
+                            ? formatFieldName(selectedRequest.proposedValue)
+                            : "N/A"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -293,14 +378,22 @@ export default function CorrectionRequestReview({
 
             {selectedRequest.status !== "pending" && (
               <div className="bg-muted/40 p-4 rounded-lg border space-y-3">
-                <h4 className="font-medium text-sm border-b pb-2 mb-2">Review Details</h4>
+                <h4 className="font-medium text-sm border-b pb-2 mb-2">
+                  Review Details
+                </h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground text-xs block mb-1">Reviewed By</span>
-                    <span className="font-medium">{selectedRequest.reviewedBy || "N/A"}</span>
+                    <span className="text-muted-foreground text-xs block mb-1">
+                      Reviewed By
+                    </span>
+                    <span className="font-medium">
+                      {selectedRequest.reviewedBy || "N/A"}
+                    </span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground text-xs block mb-1">Review Date</span>
+                    <span className="text-muted-foreground text-xs block mb-1">
+                      Review Date
+                    </span>
                     <span className="font-medium">
                       {selectedRequest.reviewedDate
                         ? formatDateTime(selectedRequest.reviewedDate)
@@ -309,8 +402,12 @@ export default function CorrectionRequestReview({
                   </div>
                   {selectedRequest.reviewComments && (
                     <div className="col-span-2 bg-background p-3 rounded border text-sm mt-1">
-                      <span className="text-muted-foreground text-xs block mb-1 font-semibold">Reviewer Comments</span>
-                      <p className="text-foreground/90">{selectedRequest.reviewComments}</p>
+                      <span className="text-muted-foreground text-xs block mb-1 font-semibold">
+                        Reviewer Comments
+                      </span>
+                      <p className="text-foreground/90">
+                        {selectedRequest.reviewComments}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -323,7 +420,10 @@ export default function CorrectionRequestReview({
                   htmlFor="reviewComments"
                   className="font-medium text-sm text-foreground"
                 >
-                  Review Comments <span className="text-muted-foreground font-normal">(Required for rejection)</span>
+                  Review Comments{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (Required for rejection)
+                  </span>
                 </Label>
                 <Textarea
                   id="reviewComments"
@@ -339,10 +439,14 @@ export default function CorrectionRequestReview({
 
         <div className="p-6 pt-2 border-t bg-muted/10 sticky bottom-0">
           <DialogFooter className="gap-2 sm:gap-3 w-full sm:justify-between items-center">
-            <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="text-muted-foreground">
+            <Button
+              variant="ghost"
+              onClick={() => setIsDialogOpen(false)}
+              className="text-muted-foreground"
+            >
               Close
             </Button>
-            
+
             {selectedRequest?.status === "pending" && (
               <div className="flex gap-2 w-full sm:w-auto">
                 <Button
@@ -398,7 +502,16 @@ export default function CorrectionRequestReview({
                 <TableRow key={request.id}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
-                      <span>{formatFieldName(request.fieldToModify)}</span>
+                      <span>
+                        {request.modifications &&
+                        request.modifications.length > 1
+                          ? `${request.modifications.length} Fields`
+                          : request.modifications?.[0]
+                            ? formatFieldName(request.modifications[0].field)
+                            : request.fieldToModify
+                              ? formatFieldName(request.fieldToModify)
+                              : "Multiple Fields"}
+                      </span>
                       <span className="text-[10px] text-muted-foreground capitalize bg-muted px-1.5 py-0.5 rounded w-fit mt-0.5 border">
                         {request.targetType}
                       </span>
@@ -408,7 +521,10 @@ export default function CorrectionRequestReview({
                     <div className="flex flex-col text-sm">
                       <span className="font-medium">{request.requestedBy}</span>
                       {request.warishApplication && (
-                        <span className="text-xs text-muted-foreground truncate max-w-[120px]" title={request.warishApplication.acknowlegment}>
+                        <span
+                          className="text-xs text-muted-foreground truncate max-w-[120px]"
+                          title={request.warishApplication.acknowlegment}
+                        >
                           App: {request.warishApplication.acknowlegment}
                         </span>
                       )}
@@ -417,17 +533,30 @@ export default function CorrectionRequestReview({
                   <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                     {format(new Date(request.requestedDate), "MMM dd, yyyy")}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate text-sm text-muted-foreground" title={request.currentValue}>
-                    {request.currentValue || "-"}
+                  <TableCell className="max-w-[150px] truncate text-sm text-muted-foreground">
+                    {request.modifications?.[0]
+                      ? String(request.modifications[0].oldValue || "-")
+                      : request.currentValue || "-"}
+                    {request.modifications &&
+                      request.modifications.length > 1 &&
+                      " ..."}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate font-medium text-green-600 dark:text-green-400 text-sm" title={request.proposedValue}>
-                    {request.proposedValue}
+                  <TableCell className="max-w-[150px] truncate font-medium text-green-600 dark:text-green-400 text-sm">
+                    {request.modifications?.[0]
+                      ? String(request.modifications[0].newValue)
+                      : request.proposedValue || "N/A"}
+                    {request.modifications &&
+                      request.modifications.length > 1 &&
+                      " ..."}
                   </TableCell>
                   <TableCell>{getStatusBadge(request.status)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                        <Button
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                        >
                           <span className="sr-only">Open menu</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
@@ -442,7 +571,9 @@ export default function CorrectionRequestReview({
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          onClick={() => navigator.clipboard.writeText(request.id)}
+                          onClick={() =>
+                            navigator.clipboard.writeText(request.id)
+                          }
                         >
                           Copy Request ID
                         </DropdownMenuItem>
@@ -464,13 +595,18 @@ export default function CorrectionRequestReview({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Recent Requests</h2>
+          <h2 className="text-xl font-semibold tracking-tight">
+            Recent Requests
+          </h2>
           <p className="text-sm text-muted-foreground mt-1">
-             Manage and track your correction requests.
+            Manage and track your correction requests.
           </p>
         </div>
-        <Badge variant="outline" className="px-3 py-1 bg-background text-sm font-medium">
-           {requests.length} Total
+        <Badge
+          variant="outline"
+          className="px-3 py-1 bg-background text-sm font-medium"
+        >
+          {requests.length} Total
         </Badge>
       </div>
 
@@ -479,61 +615,90 @@ export default function CorrectionRequestReview({
           <Card
             key={request.id}
             className={cn(
-               "group transition-all hover:shadow-md cursor-pointer border-l-4 overflow-hidden",
-               request.status === "pending" ? "border-l-yellow-500 hover:border-l-yellow-600" :
-               request.status === "approved" ? "border-l-green-500 hover:border-l-green-600" :
-               "border-l-red-500 hover:border-l-red-600"
+              "group transition-all hover:shadow-md cursor-pointer border-l-4 overflow-hidden",
+              request.status === "pending"
+                ? "border-l-yellow-500 hover:border-l-yellow-600"
+                : request.status === "approved"
+                  ? "border-l-green-500 hover:border-l-green-600"
+                  : "border-l-red-500 hover:border-l-red-600",
             )}
             onClick={() => openReviewDialog(request)}
           >
             <CardContent className="p-0">
-               <div className="flex flex-col sm:flex-row">
-                  <div className="flex-1 p-5 space-y-4">
-                     <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                           <div className="flex items-center gap-2">
-                             <h3 className="font-semibold text-base text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
-                               {formatFieldName(request.fieldToModify)}
-                             </h3>
-                             <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal capitalize bg-muted/50 border shadow-none">
-                               {request.targetType}
-                             </Badge>
-                           </div>
-                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <User className="h-3 w-3" /> {request.requestedBy}
-                              <span>•</span>
-                              <CalendarDays className="h-3 w-3" /> {formatDate(request.requestedDate)}
-                           </div>
-                        </div>
-                        <div className="sm:hidden">
-                           {getStatusBadge(request.status)}
-                        </div>
-                     </div>
-                     
-                     <div className="flex items-center gap-3 text-sm bg-muted/20 p-3 rounded-lg border border-border/50">
-                        <div className="flex-1 min-w-0">
-                           <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider block mb-0.5">Current</span>
-                           <div className="truncate text-muted-foreground line-through decoration-border/60" title={request.currentValue}>
-                              {request.currentValue || <span className="italic opacity-50">Empty</span>}
-                           </div>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-muted-foreground/40 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                           <span className="text-[10px] uppercase text-green-600/70 font-semibold tracking-wider block mb-0.5">Proposed</span>
-                           <div className="truncate font-medium text-foreground" title={request.proposedValue}>
-                              {request.proposedValue}
-                           </div>
-                        </div>
-                     </div>
+              <div className="flex flex-col sm:flex-row">
+                <div className="flex-1 p-5 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-base text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
+                          {request.modifications &&
+                          request.modifications.length > 1
+                            ? `${request.modifications.length} Corrections Requested`
+                            : request.modifications?.[0]
+                              ? formatFieldName(request.modifications[0].field)
+                              : request.fieldToModify
+                                ? formatFieldName(request.fieldToModify)
+                                : "Correction Request"}
+                        </h3>
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] h-5 px-1.5 font-normal capitalize bg-muted/50 border shadow-none"
+                        >
+                          {request.targetType}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <User className="h-3 w-3" /> {request.requestedBy}
+                        <span>•</span>
+                        <CalendarDays className="h-3 w-3" />{" "}
+                        {formatDate(request.requestedDate)}
+                      </div>
+                    </div>
+                    <div className="sm:hidden">
+                      {getStatusBadge(request.status)}
+                    </div>
                   </div>
-                  
-                  <div className="hidden sm:flex flex-col items-end justify-between p-5 border-l bg-muted/5 w-[140px] shrink-0">
-                     {getStatusBadge(request.status)}
-                     <Button variant="ghost" size="sm" className="text-xs text-muted-foreground group-hover:text-primary h-8 px-2 hover:bg-primary/5 w-full mt-auto">
-                        Details <ChevronRight className="w-3 h-3 ml-1" />
-                     </Button>
+
+                  <div className="flex items-center gap-3 text-sm bg-muted/20 p-3 rounded-lg border border-border/50">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider block mb-0.5">
+                        Current
+                      </span>
+                      <div
+                        className="truncate text-muted-foreground line-through decoration-border/60"
+                        title={request.currentValue ?? undefined}
+                      >
+                        {request.currentValue || (
+                          <span className="italic opacity-50">Empty</span>
+                        )}
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground/40 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] uppercase text-green-600/70 font-semibold tracking-wider block mb-0.5">
+                        Proposed
+                      </span>
+                      <div
+                        className="truncate font-medium text-foreground"
+                        title={request.proposedValue ?? undefined}
+                      >
+                        {request.proposedValue}
+                      </div>
+                    </div>
                   </div>
-               </div>
+                </div>
+
+                <div className="hidden sm:flex flex-col items-end justify-between p-5 border-l bg-muted/5 w-[140px] shrink-0">
+                  {getStatusBadge(request.status)}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground group-hover:text-primary h-8 px-2 hover:bg-primary/5 w-full mt-auto"
+                  >
+                    Details <ChevronRight className="w-3 h-3 ml-1" />
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ))}

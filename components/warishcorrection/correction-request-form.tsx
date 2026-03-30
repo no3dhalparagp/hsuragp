@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
@@ -25,7 +26,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-import { Loader2, Edit, Save, ArrowRight, Info } from "lucide-react";
+import { Loader2, Edit, Save, ArrowRight, Info, XCircle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 /* ===============================
@@ -48,9 +49,7 @@ UTIL
 ================================ */
 
 const formatLabel = (value: string) =>
-  value
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, (str) => str.toUpperCase());
+  value.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase());
 
 /* ===============================
 COMPONENT
@@ -69,15 +68,20 @@ export default function CorrectionRequestForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [selectedDetailId, setSelectedDetailId] = useState(
-    warishDetailId || ""
+    warishDetailId || "",
   );
 
-  const [formData, setFormData] = useState({
+  // New state for multiple modifications
+  const [modifications, setModifications] = useState<any[]>([]);
+
+  // Current field being edited in the form
+  const [currentMod, setCurrentMod] = useState({
     fieldToModify: "",
     proposedValue: "",
-    reasonForModification: "",
-    requestedBy: requesterName,
   });
+
+  const [reasonForModification, setReasonForModification] = useState("");
+  const [requestedBy, setRequestedBy] = useState(requesterName);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -98,37 +102,73 @@ export default function CorrectionRequestForm({
     })),
   };
 
-  const isSelectField = fieldOptionsMap[formData.fieldToModify];
+  const isSelectField = fieldOptionsMap[currentMod.fieldToModify];
 
   const selectedDetail = useMemo(
     () => warishDetails.find((d: any) => d.id === selectedDetailId),
-    [warishDetails, selectedDetailId]
+    [warishDetails, selectedDetailId],
   );
 
-  const currentValue = useMemo(() => {
-    if (!formData.fieldToModify) return "";
+  const getCurrentValue = (field: string) => {
+    if (!field) return "";
 
     if (targetType === "detail" && selectedDetail) {
-      return (selectedDetail as any)[formData.fieldToModify] || "";
+      return (selectedDetail as any)[field] || "";
     }
 
-    const field = availableFields.find(
-      (f: any) => f.value === formData.fieldToModify
-    );
+    const fieldObj = availableFields.find((f: any) => f.value === field);
 
-    return field?.currentValue || "";
-  }, [formData.fieldToModify, selectedDetail]);
+    return fieldObj?.currentValue || "";
+  };
+
+  const currentFieldValue = useMemo(
+    () => getCurrentValue(currentMod.fieldToModify),
+    [currentMod.fieldToModify, selectedDetail],
+  );
+
+  const addModification = () => {
+    if (!currentMod.fieldToModify || !currentMod.proposedValue) {
+      setFormErrors({
+        ...formErrors,
+        currentMod: "Please select a field and provide a proposed value",
+      });
+      return;
+    }
+
+    // Check if field already in modifications
+    if (modifications.find((m) => m.field === currentMod.fieldToModify)) {
+      setFormErrors({
+        ...formErrors,
+        currentMod: "This field is already in the list",
+      });
+      return;
+    }
+
+    const newMod = {
+      field: currentMod.fieldToModify,
+      oldValue: currentFieldValue,
+      newValue: currentMod.proposedValue,
+      label:
+        availableFields.find((f: any) => f.value === currentMod.fieldToModify)
+          ?.label || currentMod.fieldToModify,
+    };
+
+    setModifications([...modifications, newMod]);
+    setCurrentMod({ fieldToModify: "", proposedValue: "" });
+    setFormErrors({});
+  };
+
+  const removeModification = (index: number) => {
+    setModifications(modifications.filter((_, i) => i !== index));
+  };
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
 
-    if (!formData.fieldToModify)
-      errors.fieldToModify = "Select field";
+    if (modifications.length === 0 && !currentMod.fieldToModify)
+      errors.modifications = "Add at least one correction";
 
-    if (!formData.proposedValue)
-      errors.proposedValue = "Enter proposed value";
-
-    if (!formData.reasonForModification)
+    if (!reasonForModification)
       errors.reasonForModification = "Reason required";
 
     setFormErrors(errors);
@@ -139,17 +179,45 @@ export default function CorrectionRequestForm({
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    let finalModifications = [...modifications];
+
+    // If user has filled the current mod but not clicked "Add", add it automatically
+    if (
+      currentMod.fieldToModify &&
+      currentMod.proposedValue &&
+      !modifications.find((m) => m.field === currentMod.fieldToModify)
+    ) {
+      finalModifications.push({
+        field: currentMod.fieldToModify,
+        oldValue: currentFieldValue,
+        newValue: currentMod.proposedValue,
+        label:
+          availableFields.find((f: any) => f.value === currentMod.fieldToModify)
+            ?.label || currentMod.fieldToModify,
+      });
+    }
+
+    if (finalModifications.length === 0) {
+      setFormErrors({ modifications: "Add at least one correction" });
+      return;
+    }
+
+    if (!reasonForModification) {
+      setFormErrors({ reasonForModification: "Reason required" });
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
       const payload = {
         warishApplicationId,
-        warishDetailId:
-          targetType === "detail" ? selectedDetailId : undefined,
-        ...formData,
-        currentValue,
+        warishDetailId: targetType === "detail" ? selectedDetailId : undefined,
+        modifications: finalModifications.map(
+          ({ field, oldValue, newValue }) => ({ field, oldValue, newValue }),
+        ),
+        reasonForModification,
+        requestedBy,
       };
 
       const res = await fetch("/api/warish-correction-requests", {
@@ -157,7 +225,10 @@ export default function CorrectionRequestForm({
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Submission failed");
+      }
 
       toast({
         title: "Success",
@@ -165,11 +236,14 @@ export default function CorrectionRequestForm({
       });
 
       setIsOpen(false);
+      setModifications([]);
+      setCurrentMod({ fieldToModify: "", proposedValue: "" });
+      setReasonForModification("");
       onRequestSubmitted();
-    } catch {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Submission failed",
+        description: error.message || "Submission failed",
         variant: "destructive",
       });
     } finally {
@@ -184,173 +258,227 @@ export default function CorrectionRequestForm({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
+        <Button size="sm" variant="outline" className="shadow-sm">
           <Edit className="w-4 h-4 mr-2" />
           Request Correction
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-xl">
-
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* HEADER */}
 
         <DialogHeader className="border-b pb-3">
-          <DialogTitle className="flex items-center gap-2 text-lg">
+          <DialogTitle className="flex items-center gap-2 text-xl">
             <Info className="w-5 h-5 text-blue-600" />
             Correction Request
           </DialogTitle>
 
           <p className="text-sm text-muted-foreground">
-            Submit correction request for incorrect information.
+            You can request corrections for multiple fields in a single
+            submission.
           </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+          {/* ADD MODIFICATION SECTION */}
 
-          {/* FIELD SELECT */}
+          <Card className="p-4 bg-muted/30 border-dashed">
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Field to Correct</Label>
+                  <Select
+                    value={currentMod.fieldToModify}
+                    onValueChange={(value) =>
+                      setCurrentMod((prev) => ({
+                        ...prev,
+                        fieldToModify: value,
+                        proposedValue: "",
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select field" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableFields.map((field: any) => (
+                        <SelectItem
+                          key={field.value}
+                          value={field.value}
+                          disabled={modifications.some(
+                            (m) => m.field === field.value,
+                          )}
+                        >
+                          {field.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <Card className="p-4 space-y-3">
-            <Label>Field to Modify</Label>
-
-            <Select
-              value={formData.fieldToModify}
-              onValueChange={(value) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  fieldToModify: value,
-                  proposedValue: "",
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select field" />
-              </SelectTrigger>
-
-              <SelectContent>
-                {availableFields.map((field: any) => (
-                  <SelectItem key={field.value} value={field.value}>
-                    {field.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {currentValue && (
-              <div className="flex items-center gap-2 text-sm">
-                <Badge variant="secondary">
-                  Current Value
-                </Badge>
-
-                <span className="font-medium">
-                  {formatLabel(currentValue)}
-                </span>
+                <div className="space-y-2">
+                  <Label>Proposed Value</Label>
+                  {isSelectField ? (
+                    <Select
+                      value={currentMod.proposedValue}
+                      onValueChange={(value) =>
+                        setCurrentMod((prev) => ({
+                          ...prev,
+                          proposedValue: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select correct value" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {isSelectField.map((option: any) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      placeholder="Enter correct value"
+                      value={currentMod.proposedValue}
+                      onChange={(e) =>
+                        setCurrentMod((prev) => ({
+                          ...prev,
+                          proposedValue: e.target.value,
+                        }))
+                      }
+                      disabled={!currentMod.fieldToModify}
+                    />
+                  )}
+                </div>
               </div>
-            )}
-          </Card>
 
-          {/* PROPOSED VALUE */}
-
-          {formData.fieldToModify && (
-            <Card className="p-4 space-y-3">
-
-              <Label>Proposed Value</Label>
-
-              {isSelectField ? (
-                <Select
-                  value={formData.proposedValue}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      proposedValue: value,
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select correct value" />
-                  </SelectTrigger>
-
-                  <SelectContent>
-                    {isSelectField.map((option: any) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                      >
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  value={formData.proposedValue}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      proposedValue: e.target.value,
-                    }))
-                  }
-                />
+              {currentMod.fieldToModify && (
+                <div className="flex items-center justify-between bg-background p-2 rounded border text-sm">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">Current</Badge>
+                    <span className="font-medium">
+                      {formatLabel(currentFieldValue || "Empty")}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={addModification}
+                    disabled={!currentMod.proposedValue}
+                    variant="secondary"
+                  >
+                    Add to List
+                  </Button>
+                </div>
               )}
 
-              {formErrors.proposedValue && (
-                <p className="text-xs text-destructive">
-                  {formErrors.proposedValue}
+              {formErrors.currentMod && (
+                <p className="text-xs text-destructive font-medium">
+                  {formErrors.currentMod}
                 </p>
               )}
+            </div>
+          </Card>
 
-              <div className="flex items-center text-xs text-muted-foreground gap-2">
-                <ArrowRight className="w-3 h-3" />
-                Provide the correct value
+          {/* LIST OF MODIFICATIONS */}
+
+          {modifications.length > 0 && (
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold flex items-center gap-2">
+                Corrections to be requested ({modifications.length})
+              </Label>
+              <div className="space-y-2">
+                {modifications.map((mod, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-blue-50/50 dark:bg-blue-950/10 border border-blue-100 dark:border-blue-900/30 rounded-lg group animate-in slide-in-from-left-2 duration-200"
+                  >
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 items-center text-sm">
+                      <span className="font-semibold text-blue-700 dark:text-blue-400">
+                        {mod.label}
+                      </span>
+                      <div className="flex items-center gap-2 text-muted-foreground line-through decoration-muted-foreground/40 text-xs">
+                        {formatLabel(mod.oldValue || "Empty")}
+                      </div>
+                      <div className="flex items-center gap-2 font-medium">
+                        <ArrowRight className="w-3 h-3 text-blue-500" />
+                        {formatLabel(mod.newValue)}
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                      onClick={() => removeModification(index)}
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
-            </Card>
+            </div>
+          )}
+
+          {formErrors.modifications && (
+            <p className="text-sm text-destructive font-medium bg-destructive/5 p-2 rounded border border-destructive/20">
+              {formErrors.modifications}
+            </p>
           )}
 
           {/* REASON */}
 
-          <Card className="p-4 space-y-3">
-            <Label>Reason for Correction</Label>
-
+          <div className="space-y-3">
+            <Label className="font-semibold">Reason for Correction</Label>
             <Textarea
-              rows={4}
-              value={formData.reasonForModification}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  reasonForModification: e.target.value,
-                }))
-              }
-              placeholder="Explain why this correction is required..."
+              rows={3}
+              value={reasonForModification}
+              onChange={(e) => setReasonForModification(e.target.value)}
+              placeholder="Explain why these corrections are required (e.g., Spelling mistake in original document)..."
+              className="resize-none"
             />
-
             {formErrors.reasonForModification && (
-              <p className="text-xs text-destructive">
+              <p className="text-xs text-destructive font-medium">
                 {formErrors.reasonForModification}
               </p>
             )}
-          </Card>
+          </div>
 
           {/* ACTION */}
 
-          <div className="flex justify-end gap-3 pt-2 border-t">
-
+          <div className="flex justify-end gap-3 pt-4 border-t sticky bottom-0 bg-background">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="min-w-[140px]"
+              className="min-w-[160px] bg-blue-600 hover:bg-blue-700 shadow-md"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Submitting
+                  Submitting...
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Submit Request
+                  Submit{" "}
+                  {modifications.length +
+                    (currentMod.fieldToModify && currentMod.proposedValue
+                      ? 1
+                      : 0)}{" "}
+                  Corrections
                 </>
               )}
             </Button>
-
           </div>
         </form>
       </DialogContent>
