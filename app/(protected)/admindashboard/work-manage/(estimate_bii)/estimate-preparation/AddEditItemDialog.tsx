@@ -83,6 +83,7 @@ export default function AddEditItemDialog({
               submitLabel={isEditMode ? "Update Item" : "Add Item to Estimate"}
               globalDimensions={globalDimensions}
               drainParams={drainParams}
+              estimateType={estimateType}
             />
           </Form>
         </div>

@@ -27,15 +27,15 @@ export const WorkSelection: React.FC<WorkSelectionProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.05 }}
     >
-      <Card className="border-wb-border shadow-sm hover:shadow-md transition-shadow bg-white">
-        <CardHeader className="pb-4">
+      <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all bg-white rounded-xl">
+        <CardHeader className="pb-4 border-b border-slate-50">
           <CardTitle className="flex items-center gap-3">
-            <div className="p-2 bg-wb-primary/10 rounded-lg">
-              <BookOpen className="h-5 w-5 text-wb-primary" />
+            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+              <BookOpen className="h-5 w-5" />
             </div>
             <div>
-              <span>Select Work</span>
-              <CardDescription className="mt-1">
+              <span className="text-xl font-bold text-slate-800">Select Work</span>
+              <CardDescription className="mt-1 text-slate-500">
                 Choose a work to create measurement entries
               </CardDescription>
             </div>

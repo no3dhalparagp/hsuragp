@@ -36,6 +36,11 @@ interface AvailableItemsTableProps {
   setActiveTab: (tab: string) => void;
 }
 
+const truncateText = (text: string, maxLength: number = 700) => {
+  if (!text) return "";
+  return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+};
+
 export const AvailableItemsTable: React.FC<AvailableItemsTableProps> = ({
   availableEstimateItems,
   groupedItems,
@@ -52,17 +57,17 @@ export const AvailableItemsTable: React.FC<AvailableItemsTableProps> = ({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
       >
-        <Card className="border-wb-border bg-white">
-          <CardContent className="py-12 text-center">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="p-4 bg-wb-success/20 rounded-full">
-                <CheckCircle className="h-12 w-12 text-wb-success" />
+        <Card className="border border-green-100 bg-gradient-to-b from-green-50/30 to-white shadow-sm rounded-xl">
+          <CardContent className="py-16 text-center">
+            <div className="flex flex-col items-center justify-center space-y-5">
+              <div className="p-4 bg-green-100/80 rounded-full shadow-sm">
+                <CheckCircle className="h-12 w-12 text-green-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-xl text-gray-800">
+                <h3 className="font-bold text-2xl text-slate-800">
                   All Items Measured
                 </h3>
-                <p className="text-gray-500 mt-1 max-w-md mx-auto">
+                <p className="text-slate-500 mt-2 max-w-md mx-auto leading-relaxed">
                   Great job! All estimate items have been added to the
                   measurement book. You can now save or print the measurement
                   book.
@@ -71,7 +76,7 @@ export const AvailableItemsTable: React.FC<AvailableItemsTableProps> = ({
               <Button
                 variant="outline"
                 onClick={() => setActiveTab("measured")}
-                className="mt-4"
+                className="mt-6 border-slate-200 hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all"
               >
                 View Measured Items
               </Button>
@@ -83,10 +88,10 @@ export const AvailableItemsTable: React.FC<AvailableItemsTableProps> = ({
   }
 
   return (
-    <Card className="bg-white border border-wb-border">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Available Estimate Items</CardTitle>
-        <CardDescription>
+    <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+      <CardHeader className="pb-4 bg-slate-50/50 border-b border-slate-100">
+        <CardTitle className="text-xl font-bold text-slate-800">Available Estimate Items</CardTitle>
+        <CardDescription className="text-slate-500">
           Select items to add measurements. Items will move to measured section
           after adding.
         </CardDescription>
@@ -95,20 +100,20 @@ export const AvailableItemsTable: React.FC<AvailableItemsTableProps> = ({
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-wb-primary/5">
-                <TableHead className="w-20 font-semibold">SL No</TableHead>
-                <TableHead className="font-semibold">Description</TableHead>
-                <TableHead className="w-24 text-right font-semibold">
+              <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                <TableHead className="w-20 font-semibold text-slate-600">SL No</TableHead>
+                <TableHead className="font-semibold text-slate-600">Description</TableHead>
+                <TableHead className="w-24 text-right font-semibold text-slate-600">
                   Qty
                 </TableHead>
-                <TableHead className="w-20 font-semibold">Unit</TableHead>
-                <TableHead className="w-28 text-right font-semibold">
+                <TableHead className="w-20 font-semibold text-slate-600">Unit</TableHead>
+                <TableHead className="w-28 text-right font-semibold text-slate-600">
                   Rate
                 </TableHead>
-                <TableHead className="w-32 text-right font-semibold">
+                <TableHead className="w-32 text-right font-semibold text-slate-600">
                   Amount
                 </TableHead>
-                <TableHead className="w-32 font-semibold">Action</TableHead>
+                <TableHead className="w-32 font-semibold text-slate-600 text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -119,13 +124,13 @@ export const AvailableItemsTable: React.FC<AvailableItemsTableProps> = ({
                   return (
                     <React.Fragment key={group.id}>
                       {/* Parent Header Row */}
-                      <TableRow className="bg-wb-primary/5 border-t-2 border-wb-primary/20">
-                        <TableCell className="font-bold text-wb-primary">
+                      <TableRow className="bg-blue-50/30 border-t border-slate-200 transition-colors">
+                        <TableCell className="font-bold text-blue-700">
                           {group.slNo}
                         </TableCell>
                         <TableCell
                           colSpan={5}
-                          className="font-bold text-wb-primary border-b-2 border-wb-primary/20 pb-2"
+                          className="font-semibold text-slate-700 pb-2 border-b border-transparent"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -133,7 +138,7 @@ export const AvailableItemsTable: React.FC<AvailableItemsTableProps> = ({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => toggleGroup(group.id)}
-                                className="h-6 w-6 p-0"
+                                className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 rounded-md transition-colors"
                               >
                                 {isExpanded ? (
                                   <ChevronDown className="h-4 w-4" />
@@ -141,32 +146,41 @@ export const AvailableItemsTable: React.FC<AvailableItemsTableProps> = ({
                                   <ChevronRightIcon className="h-4 w-4" />
                                 )}
                               </Button>
-                              <span className="line-clamp-2">
-                                {group.description}
+                              <span className="line-clamp-2" title={group.description}>
+                                {truncateText(group.description)}
                               </span>
                               <Badge
-                                variant="outline"
-                                className="ml-2 text-xs bg-wb-primary/10 text-wb-primary border-wb-primary/30"
+                                variant="secondary"
+                                className="ml-2 text-[10px] uppercase font-bold tracking-wider bg-blue-100 text-blue-700 hover:bg-blue-200/80 border-transparent shadow-none"
                               >
                                 {group.availableSubItems.length} subitems
-                                available
                               </Badge>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => addAllSubItems(group)}
+                            onClick={() => {
+                              const truncatedGroup = {
+                                ...group,
+                                description: truncateText(group.description),
+                                availableSubItems: group.availableSubItems?.map((sub: any) => ({
+                                  ...sub,
+                                  description: truncateText(sub.description)
+                                }))
+                              };
+                              addAllSubItems(truncatedGroup);
+                            }}
                             disabled={
                               !formData.mbNumber ||
                               !formData.mbPageNumber ||
                               !formData.measuredBy
                             }
-                            className="w-full bg-wb-primary/10 hover:bg-wb-primary/20 text-wb-primary border-wb-primary/30 hover:border-wb-primary"
+                            className="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200 transition-all font-medium"
                           >
-                            <Plus className="h-3 w-3 mr-2" />
+                            <Plus className="h-3.5 w-3.5 mr-1.5" />
                             Add All
                           </Button>
                         </TableCell>
@@ -177,45 +191,46 @@ export const AvailableItemsTable: React.FC<AvailableItemsTableProps> = ({
                         group.availableSubItems.map((subItem: any) => (
                           <TableRow
                             key={subItem.id}
-                            className="bg-gray-50/50 hover:bg-gray-50"
+                            className="hover:bg-slate-50 group border-b border-slate-100 transition-colors"
                           >
-                            <TableCell className="pl-12 text-gray-500">
+                            <TableCell className="pl-12 text-slate-400 font-medium">
                               {subItem.displaySlNo}
                             </TableCell>
-                            <TableCell className="pl-10 text-gray-700 text-sm">
+                            <TableCell className="pl-10 text-slate-600 text-sm">
                               <div className="flex items-start gap-2">
-                                <span className="text-gray-500 font-medium min-w-fit">
+                                <span className="text-slate-400 font-medium min-w-fit">
                                   ({subItem.displaySlNo?.split("(")[1]}
                                 </span>
-                                <span className="line-clamp-2">
-                                  {subItem.description}
+                                <span className="line-clamp-2 group-hover:text-slate-800 transition-colors" title={subItem.description}>
+                                  {truncateText(subItem.description)}
                                 </span>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right font-medium">
+                            <TableCell className="text-right font-medium text-slate-700">
                               {(subItem.quantity ?? 0).toFixed(3)}
                             </TableCell>
                             <TableCell>
                               <Badge
                                 variant="outline"
-                                className="text-xs bg-gray-100 text-gray-700"
+                                className="text-[10px] bg-slate-100 text-slate-600 border-slate-200"
                               >
                                 {subItem.unit ?? "-"}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right text-gray-600">
+                            <TableCell className="text-right text-slate-500">
                               ₹{(subItem.rate ?? 0).toFixed(3)}
                             </TableCell>
-                            <TableCell className="text-right font-medium text-gray-800">
+                            <TableCell className="text-right font-semibold text-slate-700">
                               ₹{(subItem.amount ?? 0).toFixed(3)}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="text-center">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() =>
                                   openAddDialog({
                                     ...subItem,
+                                    description: truncateText(subItem.description),
                                     isSubItem: true,
                                     parentId: group.id,
                                     displaySlNo: subItem.displaySlNo,
@@ -226,9 +241,9 @@ export const AvailableItemsTable: React.FC<AvailableItemsTableProps> = ({
                                   !formData.mbPageNumber ||
                                   !formData.measuredBy
                                 }
-                                className="w-full bg-wb-bg hover:bg-wb-primary/5 text-gray-700 border-wb-border hover:border-wb-primary/50"
+                                className="w-full bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300 hover:text-slate-900 shadow-sm transition-all"
                               >
-                                <Plus className="h-3 w-3 mr-2" />
+                                <Plus className="h-3.5 w-3.5 mr-1" />
                                 Add
                               </Button>
                             </TableCell>
@@ -239,40 +254,43 @@ export const AvailableItemsTable: React.FC<AvailableItemsTableProps> = ({
                 } else {
                   // Regular item without subitems
                   return (
-                    <TableRow key={group.id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">
+                    <TableRow key={group.id} className="hover:bg-slate-50 transition-colors group">
+                      <TableCell className="font-medium text-slate-700">
                         {group.slNo}
                       </TableCell>
-                      <TableCell className="line-clamp-2">
-                        {group.description}
+                      <TableCell className="line-clamp-2 text-slate-600 group-hover:text-slate-800 transition-colors" title={group.description}>
+                        {truncateText(group.description)}
                       </TableCell>
-                      <TableCell className="text-right font-medium">
+                      <TableCell className="text-right font-medium text-slate-700">
                         {(group.quantity ?? 0).toFixed(3)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-[10px] bg-slate-100 text-slate-600 border-slate-200">
                           {group.unit ?? "-"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right text-slate-500">
                         ₹{(group.rate ?? 0).toFixed(3)}
                       </TableCell>
-                      <TableCell className="text-right font-medium text-green-600">
+                      <TableCell className="text-right font-semibold text-green-600">
                         ₹{(group.amount ?? 0).toFixed(3)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openAddDialog(group)}
+                          onClick={() => openAddDialog({
+                            ...group,
+                            description: truncateText(group.description)
+                          })}
                           disabled={
                             !formData.mbNumber ||
                             !formData.mbPageNumber ||
                             !formData.measuredBy
                           }
-                          className="w-full bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 text-blue-700 border-blue-200 hover:border-blue-300"
+                          className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 transition-all font-medium"
                         >
-                          <Plus className="h-3 w-3 mr-2" />
+                          <Plus className="h-3.5 w-3.5 mr-1.5" />
                           Add
                         </Button>
                       </TableCell>

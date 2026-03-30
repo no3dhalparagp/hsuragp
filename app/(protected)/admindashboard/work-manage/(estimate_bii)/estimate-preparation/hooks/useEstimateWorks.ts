@@ -18,6 +18,7 @@ export const useEstimateWorks = () => {
         location: "",
         preparedBy: "",
         date: new Date().toISOString().split("T")[0],
+        drawingData: "",
     });
 
     const loadWorks = useCallback(async () => {
@@ -67,6 +68,7 @@ export const useEstimateWorks = () => {
                 location: selected.ApprovedActionPlanDetails?.locationofAsset || "",
                 preparedBy: "Bappa Laha NS",
                 date: new Date().toISOString().split("T")[0],
+                drawingData: "",
             });
             setWorkSelected(true);
 
@@ -82,6 +84,7 @@ export const useEstimateWorks = () => {
             location: "",
             preparedBy: "",
             date: new Date().toISOString().split("T")[0],
+            drawingData: "",
         });
         // We intentionally don't reset selectedWorkId immediately causing UI flicker if used in resetForm usually
         // But aligning with original logic:

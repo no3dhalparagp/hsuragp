@@ -50,10 +50,73 @@ export interface EstimateItem {
   unit: string;
   rate: number;
   amount: number;
+  compactionFactor?: string;
   /** Link to drain param for length (cum/sqm items). When set, length is taken from drain params. */
   lengthParamKey?: DrainParamKey;
   breadthParamKey?: DrainParamKey;
   depthParamKey?: DrainParamKey;
+  rateAnalysis?: RateAnalysis;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Rate analysis domain types
+// ────────────────────────────────────────────────────────────────────────────────
+
+export type RateComponentCategory = "material" | "labour" | "carriage" | "other";
+
+export interface RateComponent {
+  id: string;
+  description: string;
+  unit: string;
+  quantity: number;
+  rate: number;
+  amount: number;
+  category: RateComponentCategory;
+  /** Optional reference like "Page-240, Item No-3.16" */
+  scheduleRef?: string;
+}
+
+export interface TransportBand {
+  id: string;
+  fromKm: number;
+  toKm: number;
+  quantity: number;
+  ratePerUnitPerKm: number;
+  amount: number;
+  description?: string;
+}
+
+export interface RateAnalysis {
+  id: string;
+  /** High-level schedule reference for the item */
+  scheduleRef?: string;
+  components: RateComponent[];
+  transportBands?: TransportBand[];
+  baseRatePerUnit: number;
+  consolidatedRate: number;
+  remarks?: string;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Tax / surcharge breakdown
+// ────────────────────────────────────────────────────────────────────────────────
+
+export type TaxType = "GST" | "LWC" | "Contingency" | "Other";
+
+export type TaxBase = "itemTotal" | "itemTotalPlusTax" | "custom";
+
+export interface TaxBreakup {
+  id: string;
+  label: string;
+  type: TaxType;
+  /** Percentage, when this tax is percentage-based (e.g. 18 for 18%) */
+  percentage?: number;
+  /** Fixed amount, usually computed on the backend or via calculations hook */
+  amount: number;
+  /** Which base this tax is calculated on */
+  appliesOn: TaxBase;
+  /** Order in which this tax is applied in the totals block */
+  order: number;
 }
 
 export interface ProjectInfo {
@@ -62,6 +125,7 @@ export interface ProjectInfo {
   location: string;
   preparedBy: string;
   date: string;
+  drawingData?: string;
 }
 
 export interface ApprovedActionPlanDetails {
@@ -74,6 +138,7 @@ export interface ApprovedActionPlanDetails {
 export interface Work {
   id: string;
   workslno: string;
+  finalEstimateAmount: number;
   ApprovedActionPlanDetails: ApprovedActionPlanDetails;
   [key: string]: any; // Allow other properties for now
 }
@@ -82,6 +147,8 @@ export interface EstimateData {
   items: EstimateItem[];
   projectInfo: ProjectInfo;
   contingency: number;
+  /** Optional tax / surcharge breakdown returned from API */
+  taxBreakups?: TaxBreakup[];
 }
 
 /** Road or Drain estimate type — different dimension UIs and behaviour */

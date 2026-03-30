@@ -1,4 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+"use client";
+
 import { useState, useEffect } from "react";
+import { v4 as uuid } from "uuid";
 import { UseFormReturn } from "react-hook-form";
 import {
   FormControl,
@@ -26,6 +30,7 @@ import {
   Save,
   X,
   Sparkles,
+  Droplets,
 } from "lucide-react";
 import {
   Table,
@@ -35,6 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { type EstimateItemFormValues } from "@/app/(protected)/admindashboard/work-manage/(estimate_bii)/estimate-preparation/schema";
 import {
   EstimateItem,
@@ -45,9 +51,17 @@ import {
   DRAIN_PARAM_KEYS,
   DRAIN_PARAM_LABELS,
   type DrainParamKey,
+  EstimateType,
 } from "@/app/(protected)/admindashboard/work-manage/(estimate_bii)/estimate-preparation/types";
 
-// Define the props interface
+import { calcQty, COMPACTION_OPTIONS, type CompactionKey } from "@/lib/construction-utils";
+
+const defaultGlobalDimensions: GlobalDimensions = {
+  length: "",
+  breadth: "",
+  depth: "",
+};
+
 interface AddEstimateItemCardProps {
   form: UseFormReturn<EstimateItemFormValues>;
   addItem: (item: EstimateItem) => void;
@@ -55,26 +69,15 @@ interface AddEstimateItemCardProps {
   isEditing: boolean;
   setItems: (items: EstimateItem[]) => void;
   items: EstimateItem[];
-  /** When true, used inside a dialog (compact header, optional cancel) */
   inDialog?: boolean;
-  /** Override submit button label */
   submitLabel?: string;
-  /** Road/Drain dimensions: pre-fill L,B,D for new items and after add */
   globalDimensions?: GlobalDimensions;
-  /** Drain estimate params: link item L/B/D to these (like Excel) */
   drainParams?: DrainParams;
+  estimateType?: EstimateType;
 }
 
-// Define FormSubItem type that matches the form's expected structure
-// Extend SubItem type to ensure compatibility
 type FormSubItem = Omit<SubItem, "id"> & {
   id?: string;
-};
-
-const defaultGlobalDimensions: GlobalDimensions = {
-  length: "",
-  breadth: "",
-  depth: "",
 };
 
 export default function AddEstimateItemCard({
@@ -88,6 +91,7 @@ export default function AddEstimateItemCard({
   submitLabel,
   globalDimensions = defaultGlobalDimensions,
   drainParams,
+  estimateType = "road",
 }: AddEstimateItemCardProps) {
   const [meas, setMeas] = useState({
     id: "",
@@ -111,21 +115,26 @@ export default function AddEstimateItemCard({
   });
 
   const [showSubItemsSection, setShowSubItemsSection] = useState(false);
-
   const [editingSubItemId, setEditingSubItemId] = useState<string | null>(null);
   const [editingMeasurementId, setEditingMeasurementId] = useState<
     string | null
   >(null);
 
-  // Watch form values
   const values = form.watch();
   const isCumOrSqm =
     (values.unit || "").toLowerCase() === "cum" ||
     (values.unit || "").toLowerCase() === "sqm";
-  const showDrainParamLinks = isCumOrSqm && drainParams && inDialog;
+  const showDrainParamLinks = isCumOrSqm && drainParams && inDialog && estimateType === "drain";
   const measurements = values.measurements || [];
   const subItems = values.subItems || [];
   const hasSubItems = subItems && subItems.length > 0;
+
+  const compactionFactorKey = values.compactionFactor as
+    | CompactionKey
+    | undefined;
+  const compactionFactorValue = compactionFactorKey
+    ? COMPACTION_OPTIONS[compactionFactorKey]
+    : 1.0;
 
   useEffect(() => {
     if (hasSubItems) {
@@ -133,19 +142,13 @@ export default function AddEstimateItemCard({
     }
   }, [hasSubItems]);
 
+  // ========== MEASUREMENT UTILITIES ==========
   const calculateMeasurementQty = (m: typeof meas, unit: string) => {
     const nos = Number(m.nos) || 0;
     const length = Number(m.length) || 0;
     const breadth = Number(m.breadth) || 0;
     const depth = Number(m.depth) || 0;
-
-    let qty = 0;
-    if (unit === "m") qty = nos * length;
-    else if (unit === "sqm") qty = nos * length * breadth;
-    else if (unit === "cum") qty = nos * length * breadth * depth;
-    else if (unit === "no") qty = nos;
-
-    return qty;
+    return calcQty(unit, nos, length, breadth, depth, compactionFactorValue);
   };
 
   const addMeasurement = () => {
@@ -157,8 +160,7 @@ export default function AddEstimateItemCard({
     const qty = calculateMeasurementQty(meas, values.unit);
 
     if (editingMeasurementId) {
-      // Update existing measurement
-      const updatedMeasurements = measurements.map((m: any) =>
+      const updatedMeasurements = measurements.map((m: Measurement) =>
         m.id === editingMeasurementId
           ? {
               ...m,
@@ -171,20 +173,16 @@ export default function AddEstimateItemCard({
             }
           : m,
       );
-
       const totalQty = updatedMeasurements.reduce(
         (sum: number, m: Measurement) => sum + m.quantity,
         0,
       );
-
       form.setValue("measurements", updatedMeasurements);
       form.setValue("quantity", totalQty.toFixed(3));
-
       setEditingMeasurementId(null);
     } else {
-      // Add new measurement
       const newMeasurement: Measurement = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: uuid(),
         description: meas.description,
         nos: Number(meas.nos) || 0,
         length: Number(meas.length) || 0,
@@ -192,15 +190,13 @@ export default function AddEstimateItemCard({
         depth: Number(meas.depth) || 0,
         quantity: qty,
       };
-
       const updatedMeasurements = [...measurements, newMeasurement];
       const totalQty = updatedMeasurements.reduce(
-        (sum: number, m: any) => sum + (m.quantity || 0),
+        (sum: number, m: Measurement) => sum + m.quantity,
         0,
       );
-
       form.setValue("measurements", updatedMeasurements);
-      form.setValue("quantity", totalQty.toFixed(3) as any);
+      form.setValue("quantity", totalQty.toFixed(3));
     }
 
     setMeas({
@@ -236,10 +232,8 @@ export default function AddEstimateItemCard({
       (sum: number, m: Measurement) => sum + m.quantity,
       0,
     );
-
     form.setValue("measurements", updatedMeasurements);
     form.setValue("quantity", totalQty.toFixed(3));
-
     if (editingMeasurementId === id) {
       setEditingMeasurementId(null);
       setMeas({
@@ -253,6 +247,7 @@ export default function AddEstimateItemCard({
     }
   };
 
+  // ========== SUB-ITEM UTILITIES ==========
   const addSubItem = () => {
     const qty = Number(subItemForm.quantity) || 0;
     const rate = Number(subItemForm.rate) || 0;
@@ -265,19 +260,16 @@ export default function AddEstimateItemCard({
       alert("Please enter a description for the sub-item");
       return;
     }
-
     if (qty <= 0) {
       alert("Please enter a valid quantity greater than 0");
       return;
     }
-
     if (rate <= 0) {
       alert("Please enter a valid rate greater than 0");
       return;
     }
 
     if (editingSubItemId) {
-      // Update existing sub-item
       const updatedSubItems = subItems.map((item: FormSubItem) =>
         item.id === editingSubItemId
           ? {
@@ -294,13 +286,11 @@ export default function AddEstimateItemCard({
             }
           : item,
       );
-
       form.setValue("subItems", updatedSubItems);
       setEditingSubItemId(null);
     } else {
-      // Add new sub-item
       const newSubItem: FormSubItem = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: uuid(),
         description: subItemForm.description,
         quantity: qty,
         unit: subItemForm.unit,
@@ -311,7 +301,6 @@ export default function AddEstimateItemCard({
         breadth,
         depth,
       };
-
       const updatedSubItems = [...subItems, newSubItem];
       form.setValue("subItems", updatedSubItems);
     }
@@ -331,50 +320,45 @@ export default function AddEstimateItemCard({
 
   const editSubItem = (id: string, idx: number) => {
     let item = id
-      ? (subItems as FormSubItem[]).find((item: FormSubItem) => item.id === id)
-      : (subItems as FormSubItem[])[idx];
+      ? subItems.find((item: FormSubItem) => item.id === id)
+      : subItems[idx];
 
-    // If item exists but has no ID, assign one to ensure update works
     if (item && !item.id) {
-      const newId = Math.random().toString(36).substr(2, 9);
-      const updatedSubItems = [...(subItems as FormSubItem[])];
+      const newId = uuid();
+      const updatedSubItems = [...subItems];
       updatedSubItems[idx] = { ...item, id: newId };
-
       form.setValue("subItems", updatedSubItems);
-
       item = updatedSubItems[idx];
     }
 
     if (item) {
+      const typedItem = item as FormSubItem;
       setSubItemForm({
-        id: item.id || "",
-        description: item.description || "",
-        quantity: (item.quantity || 0).toString(),
-        unit: item.unit || "m",
-        rate: (item.rate || 0).toString(),
-        nos: item.nos !== undefined ? item.nos.toString() : "1",
-        length: (item.length !== undefined ? item.length : 0).toString(),
-        breadth: (item.breadth !== undefined ? item.breadth : 0).toString(),
-        depth: (item.depth !== undefined ? item.depth : 0).toString(),
+        id: typedItem.id || "",
+        description: typedItem.description || "",
+        quantity: (typedItem.quantity || 0).toString(),
+        unit: typedItem.unit || "m",
+        rate: (typedItem.rate || 0).toString(),
+        nos: typedItem.nos !== undefined ? typedItem.nos.toString() : "1",
+        length: (typedItem.length !== undefined
+          ? typedItem.length
+          : 0
+        ).toString(),
+        breadth: (typedItem.breadth !== undefined
+          ? typedItem.breadth
+          : 0
+        ).toString(),
+        depth: (typedItem.depth !== undefined ? typedItem.depth : 0).toString(),
       });
-      setEditingSubItemId(item.id || null);
+      setEditingSubItemId(typedItem.id || null);
     }
   };
 
   const removeSubItem = (id: string, idx: number) => {
-    let updatedSubItems;
-    if (id) {
-      updatedSubItems = (subItems as FormSubItem[]).filter(
-        (item: FormSubItem) => item.id !== id,
-      );
-    } else {
-      updatedSubItems = (subItems as FormSubItem[]).filter(
-        (_: FormSubItem, index: number) => index !== idx,
-      );
-    }
-
+    const updatedSubItems = id
+      ? subItems.filter((item: FormSubItem) => item.id !== id)
+      : subItems.filter((_: FormSubItem, index: number) => index !== idx);
     form.setValue("subItems", updatedSubItems);
-
     if (editingSubItemId === id) {
       setEditingSubItemId(null);
       setSubItemForm({
@@ -415,58 +399,35 @@ export default function AddEstimateItemCard({
     });
   };
 
+  // ========== MAIN QUANTITY CALCULATION (used for the main item) ==========
   const calculateQuantity = () => {
-    // If we have measurements, use them
-    if (measurements && measurements.length > 0) {
-      return measurements
-        .reduce((sum: number, m: Measurement) => sum + m.quantity, 0)
-        .toFixed(3);
+    if (measurements.length > 0) {
+      return measurements.reduce(
+        (sum: number, m: Measurement) => sum + m.quantity,
+        0,
+      );
     }
 
     const nos = Number(values.nos) || 1;
     const length = Number(values.length) || 0;
     const breadth = Number(values.breadth) || 0;
     const depth = Number(values.depth) || 0;
-    const ls = Number(values.nos) || 1;
-
-    let calculatedQuantity = 0;
-
-    switch (values.unit) {
-      case "m":
-        calculatedQuantity = nos * length;
-        break;
-      case "sqm":
-        calculatedQuantity = nos * length * breadth;
-        break;
-      case "cum":
-        calculatedQuantity = nos * length * breadth * depth;
-        break;
-      case "no":
-        calculatedQuantity = nos;
-        break;
-      case "ls":
-        calculatedQuantity = ls;
-        break;
-      default:
-        return values.quantity;
-    }
-
-    return calculatedQuantity > 0 ? calculatedQuantity.toFixed(3) : "0";
+    return calcQty(
+      values.unit,
+      nos,
+      length,
+      breadth,
+      depth,
+      compactionFactorValue,
+    );
   };
 
-  // Auto-update quantity when dimensions change (only if no measurements)
+  // Auto‑update quantity when dimensions change (only if no measurements and no sub-items)
   useEffect(() => {
-    if (!measurements || measurements.length === 0) {
-      if (
-        values.unit === "m" ||
-        values.unit === "sqm" ||
-        values.unit === "cum" ||
-        values.unit === "no"
-      ) {
-        const calculatedQty = calculateQuantity();
-        if (calculatedQty !== values.quantity && calculatedQty !== "0") {
-          form.setValue("quantity", calculatedQty);
-        }
+    if (measurements.length === 0 && !hasSubItems) {
+      const calculatedQty = calculateQuantity();
+      if (calculatedQty > 0 && calculatedQty.toFixed(3) !== values.quantity) {
+        form.setValue("quantity", calculatedQty.toFixed(3));
       }
     }
   }, [
@@ -475,10 +436,39 @@ export default function AddEstimateItemCard({
     values.breadth,
     values.depth,
     values.unit,
+    compactionFactorValue,
     measurements,
+    hasSubItems,
   ]);
 
-  // When drain param keys or drainParams change, sync form L/B/D for quantity calc
+  // Auto‑update sub‑item quantity when its dimensions change
+  useEffect(() => {
+    const nos = Number(subItemForm.nos) || 0;
+    const length = Number(subItemForm.length) || 0;
+    const breadth = Number(subItemForm.breadth) || 0;
+    const depth = Number(subItemForm.depth) || 0;
+    const unit = subItemForm.unit;
+    const qty = calcQty(
+      unit,
+      nos,
+      length,
+      breadth,
+      depth,
+      compactionFactorValue,
+    );
+    if (qty > 0 && qty.toFixed(3) !== subItemForm.quantity) {
+      setSubItemForm((prev) => ({ ...prev, quantity: qty.toFixed(3) }));
+    }
+  }, [
+    subItemForm.nos,
+    subItemForm.length,
+    subItemForm.breadth,
+    subItemForm.depth,
+    subItemForm.unit,
+    compactionFactorValue,
+  ]);
+
+  // Sync drain params to main item fields
   useEffect(() => {
     if (!drainParams || !showDrainParamLinks) return;
     const lk = values.lengthParamKey as DrainParamKey | undefined;
@@ -498,79 +488,50 @@ export default function AddEstimateItemCard({
     showDrainParamLinks,
   ]);
 
-  // Auto-update sub-item quantity
-  useEffect(() => {
-    const nos = Number(subItemForm.nos) || 0;
-    const length = Number(subItemForm.length) || 0;
-    const breadth = Number(subItemForm.breadth) || 0;
-    const depth = Number(subItemForm.depth) || 0;
-
-    let qty = 0;
-    const unit = subItemForm.unit;
-
-    if (unit === "m") qty = nos * length;
-    else if (unit === "sqm") qty = nos * length * breadth;
-    else if (unit === "cum") qty = nos * length * breadth * depth;
-    else if (unit === "no") qty = nos;
-
-    if (["m", "sqm", "cum", "no"].includes(unit)) {
-      const calculated = qty.toFixed(3);
-      // Avoid infinite loop by checking if value is different
-      if (calculated !== subItemForm.quantity) {
-        setSubItemForm((prev) => ({ ...prev, quantity: calculated }));
-      }
-    }
-  }, [
-    subItemForm.nos,
-    subItemForm.length,
-    subItemForm.breadth,
-    subItemForm.depth,
-    subItemForm.unit,
-  ]);
-
+  // ========== ADD ITEM TO ESTIMATE ==========
   const handleAddItem = () => {
-    let quantityToUse = Number(values.quantity);
-    let amountToUse = quantityToUse * Number(values.rate);
-
-    // If subItems exist, use their total amount
-    if (subItems && subItems.length > 0) {
-      amountToUse = (subItems as FormSubItem[]).reduce(
-        (sum: number, item: FormSubItem) => sum + item.amount,
-        0,
-      );
-      quantityToUse = 1; // Container item
-    }
-
-    // Validate
     if (!values.description?.trim()) {
       alert("Please enter description");
       return;
     }
-
-    if (
-      (!subItems || subItems.length === 0) &&
-      (!quantityToUse || !Number(values.rate))
-    ) {
-      alert("Please enter quantity and rate, or add sub-items");
+    if (!values.schedulePageNo?.trim()) {
+      alert("Please enter Schedule Page No.");
       return;
     }
 
-    if (subItems && subItems.length > 0) {
-      // Validate sub-items have valid amounts
-      const invalidSubItems = (subItems as FormSubItem[]).filter(
+    let quantityToUse = Number(values.quantity);
+    let amountToUse = quantityToUse * Number(values.rate);
+
+    // Sub‑item container logic: if sub‑items exist, treat main item as LS container
+    if (hasSubItems) {
+      amountToUse = subItems.reduce(
+        (sum: number, item: FormSubItem) => sum + item.amount,
+        0,
+      );
+      quantityToUse = 1;
+    }
+
+    // Validate main item if no sub‑items
+    if (!hasSubItems && (!quantityToUse || !Number(values.rate))) {
+      alert("Please enter quantity and rate, or add sub‑items");
+      return;
+    }
+
+    if (hasSubItems) {
+      const invalidSubItems = subItems.filter(
         (item: FormSubItem) => item.amount <= 0,
       );
       if (invalidSubItems.length > 0) {
-        alert("All sub-items must have a valid amount (quantity × rate)");
+        alert("All sub‑items must have a valid amount (quantity × rate)");
         return;
       }
     }
 
-    // Convert FormSubItem[] to SubItem[] by ensuring all items have required id
-    const subItemsForEstimate: SubItem[] = (subItems as FormSubItem[]).map(
-      (item) => ({
+    // Prepare sub‑items with IDs
+    const subItemsForEstimate: SubItem[] = subItems.map(
+      (item: FormSubItem) => ({
         ...item,
-        id: item.id || Math.random().toString(36).substr(2, 9), // Ensure id is not undefined
+        id: item.id || uuid(),
       }),
     );
 
@@ -583,21 +544,24 @@ export default function AddEstimateItemCard({
     const dKey = toParamKey(values.depthParamKey);
     const unitLower = (values.unit || "").toLowerCase();
     const depthForItem = unitLower === "sqm" ? 0 : Number(values.depth) || 0;
+
     const newItem: EstimateItem = {
-      id: "",
+      id: uuid(),
       slNo: items.length + 1,
       schedulePageNo: values.schedulePageNo || "---",
       description: values.description,
-      measurements: measurements || [],
+      measurements: measurements,
       subItems: subItemsForEstimate,
       nos: Number(values.nos) || 1,
       length: Number(values.length) || 0,
       breadth: Number(values.breadth) || 0,
       depth: depthForItem,
-      quantity: quantityToUse,
-      unit: values.unit,
+      quantity: hasSubItems ? 1 : quantityToUse,
+      unit: hasSubItems ? "LS" : values.unit,
       rate: Number(values.rate) || 0,
       amount: amountToUse,
+      compactionFactor:
+        values.unit === "bags" ? compactionFactorKey : undefined,
       ...(isCumOrSqm && (lKey || bKey || dKey)
         ? {
             lengthParamKey: lKey,
@@ -608,9 +572,13 @@ export default function AddEstimateItemCard({
     };
 
     addItem(newItem);
+
+    // Reset form with fresh defaults
     const L = drainParams?.lengthOfDrain ?? globalDimensions?.length ?? "0";
-    const B = drainParams?.widthEarthCutting ?? globalDimensions?.breadth ?? "0";
-    const D = drainParams?.avgDepthEarthCutting ?? globalDimensions?.depth ?? "0";
+    const B =
+      drainParams?.widthEarthCutting ?? globalDimensions?.breadth ?? "0";
+    const D =
+      drainParams?.avgDepthEarthCutting ?? globalDimensions?.depth ?? "0";
     form.reset({
       schedulePageNo: "",
       description: "",
@@ -619,16 +587,17 @@ export default function AddEstimateItemCard({
       breadth: B,
       depth: D,
       quantity: "0",
-      unit: "cum",
+      unit: estimateType === "drain" ? "cum" : "m",
       rate: "0",
       measurements: [],
       subItems: [],
       lengthParamKey: "",
       breadthParamKey: "",
       depthParamKey: "",
+      compactionFactor: "",
     });
 
-    // Reset edit states
+    // Reset local edit states
     setEditingSubItemId(null);
     setEditingMeasurementId(null);
     setSubItemForm({
@@ -652,15 +621,14 @@ export default function AddEstimateItemCard({
     });
   };
 
-  const hasMeasurements = measurements && measurements.length > 0;
-  const totalSubItemsAmount =
-    (subItems as FormSubItem[])?.reduce(
-      (sum: number, item: FormSubItem) => sum + item.amount,
-      0,
-    ) || 0;
-
+  const hasMeasurements = measurements.length > 0;
+  const totalSubItemsAmount = subItems.reduce(
+    (sum: number, item: FormSubItem) => sum + item.amount,
+    0,
+  );
   const buttonLabel = submitLabel ?? "Add Item to Estimate";
 
+  // ========== RENDER ==========
   return (
     <Card className={inDialog ? "border-0 shadow-none" : "border-0 shadow-lg"}>
       {!inDialog && (
@@ -719,6 +687,7 @@ export default function AddEstimateItemCard({
                         <SelectItem value="kg">Kilogram (kg)</SelectItem>
                         <SelectItem value="MT">Metric Ton (MT)</SelectItem>
                         <SelectItem value="no">Number (no)</SelectItem>
+                        <SelectItem value="bags">Bags</SelectItem>
                         <SelectItem value="LS">Lumpsum (LS)</SelectItem>
                         <SelectItem value="ha">Hectare (ha)</SelectItem>
                         <SelectItem value="l">Liter (l)</SelectItem>
@@ -731,30 +700,72 @@ export default function AddEstimateItemCard({
             </div>
           </div>
 
+          {/* Compaction factor selection for bags */}
+          {values.unit === "bags" && (
+            <div>
+              <FormField
+                control={form.control}
+                name="compactionFactor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Compaction Factor</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={estimateExists && !isEditing}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="border-slate-300">
+                          <SelectValue placeholder="Select compaction factor" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="normal">Normal (1.10)</SelectItem>
+                        <SelectItem value="loose">Loose (1.15)</SelectItem>
+                        <SelectItem value="river">River (1.12)</SelectItem>
+                        <SelectItem value="machine">Machine (1.08)</SelectItem>
+                        <SelectItem value="hand">Hand (1.12)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+
+          {/* Drain param linking */}
           {showDrainParamLinks && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 space-y-3">
-              <p className="text-sm font-medium text-slate-700">
-                Link to drain parameters (change at top to auto-update this item)
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-5 space-y-4 shadow-sm transition-all hover:shadow-md">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                  <Droplets className="h-4 w-4" />
+                  Link to Drain Parameters
+                </p>
+                <Badge variant="outline" className="bg-amber-100/50 text-amber-700 border-amber-200">
+                  Auto-sync enabled
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="lengthParamKey"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs">Length from</FormLabel>
+                      <FormLabel className="text-xs font-bold text-amber-900">Length Source</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value || "none"}
                         disabled={estimateExists && !isEditing}
                       >
                         <FormControl>
-                          <SelectTrigger className="border-slate-300 bg-white">
-                            <SelectValue placeholder="Manual" />
+                          <SelectTrigger className="border-amber-200 bg-white hover:border-amber-300 transition-colors">
+                            <SelectValue placeholder="Manual Entry" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="none">Manual</SelectItem>
+                          <SelectItem value="none">Manual Entry</SelectItem>
                           {DRAIN_PARAM_KEYS.map((key) => (
                             <SelectItem key={key} value={key}>
                               {DRAIN_PARAM_LABELS[key]}
@@ -770,19 +781,19 @@ export default function AddEstimateItemCard({
                   name="breadthParamKey"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs">Breadth from</FormLabel>
+                      <FormLabel className="text-xs font-bold text-amber-900">Breadth Source</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value || "none"}
                         disabled={estimateExists && !isEditing}
                       >
                         <FormControl>
-                          <SelectTrigger className="border-slate-300 bg-white">
-                            <SelectValue placeholder="Manual" />
+                          <SelectTrigger className="border-amber-200 bg-white hover:border-amber-300 transition-colors">
+                            <SelectValue placeholder="Manual Entry" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="none">Manual</SelectItem>
+                          <SelectItem value="none">Manual Entry</SelectItem>
                           {DRAIN_PARAM_KEYS.map((key) => (
                             <SelectItem key={key} value={key}>
                               {DRAIN_PARAM_LABELS[key]}
@@ -798,19 +809,19 @@ export default function AddEstimateItemCard({
                   name="depthParamKey"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs">Depth from</FormLabel>
+                      <FormLabel className="text-xs font-bold text-amber-900">Depth Source</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value || "none"}
                         disabled={estimateExists && !isEditing}
                       >
                         <FormControl>
-                          <SelectTrigger className="border-slate-300 bg-white">
-                            <SelectValue placeholder="Manual" />
+                          <SelectTrigger className="border-amber-200 bg-white hover:border-amber-300 transition-colors">
+                            <SelectValue placeholder="Manual Entry" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="none">Manual</SelectItem>
+                          <SelectItem value="none">Manual Entry</SelectItem>
                           {DRAIN_PARAM_KEYS.map((key) => (
                             <SelectItem key={key} value={key}>
                               {DRAIN_PARAM_LABELS[key]}
@@ -822,6 +833,27 @@ export default function AddEstimateItemCard({
                   )}
                 />
               </div>
+
+              {/* Visual feedback for current linked values */}
+              {(values.lengthParamKey !== "none" || values.breadthParamKey !== "none" || values.depthParamKey !== "none") && (
+                <div className="flex flex-wrap gap-4 pt-2 border-t border-amber-200/50">
+                  {values.lengthParamKey && values.lengthParamKey !== "none" && (
+                    <div className="text-[10px] text-amber-700">
+                      Linked Length: <span className="font-bold">{values.length}m</span>
+                    </div>
+                  )}
+                  {values.breadthParamKey && values.breadthParamKey !== "none" && (
+                    <div className="text-[10px] text-amber-700">
+                      Linked Breadth: <span className="font-bold">{values.breadth}m</span>
+                    </div>
+                  )}
+                  {values.depthParamKey && values.depthParamKey !== "none" && (
+                    <div className="text-[10px] text-amber-700">
+                      Linked Depth: <span className="font-bold">{values.depth}m</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -872,7 +904,7 @@ export default function AddEstimateItemCard({
             </div>
 
             {/* List of added measurements */}
-            {measurements && measurements.length > 0 && (
+            {measurements.length > 0 && (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -1095,7 +1127,7 @@ export default function AddEstimateItemCard({
                 size="sm"
                 onClick={() => {
                   const calculatedQty = calculateQuantity();
-                  form.setValue("quantity", calculatedQty);
+                  form.setValue("quantity", calculatedQty.toFixed(3));
                 }}
                 className="w-full"
                 disabled={estimateExists && !isEditing}
@@ -1150,7 +1182,7 @@ export default function AddEstimateItemCard({
                   size="icon"
                   className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50"
                   onClick={() => {
-                    if ((subItems as FormSubItem[]).length > 0) {
+                    if (subItems.length > 0) {
                       if (
                         confirm("This will remove all sub-items. Continue?")
                       ) {
@@ -1168,69 +1200,64 @@ export default function AddEstimateItemCard({
               </div>
             </div>
 
-            {(subItems as FormSubItem[]) &&
-              (subItems as FormSubItem[]).length > 0 && (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="w-20">Qty</TableHead>
-                      <TableHead className="w-16">Unit</TableHead>
-                      <TableHead className="w-24">Rate</TableHead>
-                      <TableHead className="w-24 text-right">Amount</TableHead>
-                      <TableHead className="w-20"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(subItems as FormSubItem[]).map(
-                      (item: FormSubItem, idx: number) => (
-                        <TableRow key={item.id || idx}>
-                          <TableCell className="text-xs">
-                            {item.description}
-                          </TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>{item.unit}</TableCell>
-                          <TableCell>{item.rate}</TableCell>
-                          <TableCell className="text-right">
-                            {(item.amount || 0).toFixed(3)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => editSubItem(item.id || "", idx)}
-                                disabled={estimateExists && !isEditing}
-                              >
-                                <Edit className="h-4 w-4 text-blue-500" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() =>
-                                  removeSubItem(item.id || "", idx)
-                                }
-                                disabled={estimateExists && !isEditing}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ),
-                    )}
-                    <TableRow className="bg-slate-100 font-medium">
-                      <TableCell colSpan={4} className="text-right">
-                        Total Amount:
+            {subItems.length > 0 && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="w-20">Qty</TableHead>
+                    <TableHead className="w-16">Unit</TableHead>
+                    <TableHead className="w-24">Rate</TableHead>
+                    <TableHead className="w-24 text-right">Amount</TableHead>
+                    <TableHead className="w-20"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {subItems.map((item: FormSubItem, idx: number) => (
+                    <TableRow key={item.id || idx}>
+                      <TableCell className="text-xs">
+                        {item.description}
                       </TableCell>
+                      <TableCell>{item.quantity}</TableCell>
+                      <TableCell>{item.unit}</TableCell>
+                      <TableCell>{item.rate}</TableCell>
                       <TableCell className="text-right">
-                        {totalSubItemsAmount.toFixed(3)}
+                        {(item.amount || 0).toFixed(3)}
                       </TableCell>
-                      <TableCell></TableCell>
+                      <TableCell>
+                        <div className="flex space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => editSubItem(item.id || "", idx)}
+                            disabled={estimateExists && !isEditing}
+                          >
+                            <Edit className="h-4 w-4 text-blue-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeSubItem(item.id || "", idx)}
+                            disabled={estimateExists && !isEditing}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableBody>
-                </Table>
-              )}
+                  ))}
+                  <TableRow className="bg-slate-100 font-medium">
+                    <TableCell colSpan={4} className="text-right">
+                      Total Amount:
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {totalSubItemsAmount.toFixed(3)}
+                    </TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            )}
 
             <div className="space-y-4">
               {/* Row 1: Description, Unit, Rate */}
@@ -1269,6 +1296,7 @@ export default function AddEstimateItemCard({
                       <SelectItem value="kg">kg</SelectItem>
                       <SelectItem value="MT">MT</SelectItem>
                       <SelectItem value="no">no</SelectItem>
+                      <SelectItem value="bags">bags</SelectItem>
                       <SelectItem value="LS">LS</SelectItem>
                       <SelectItem value="ha">ha</SelectItem>
                       <SelectItem value="l">l</SelectItem>

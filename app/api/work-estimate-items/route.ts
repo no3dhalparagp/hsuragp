@@ -36,6 +36,38 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(null);
       }
 
+      const taxBreakups = workEstimate
+        ? (workEstimate.taxBreakups as any[]) || [
+            {
+              id: "GST",
+              label: "GST",
+              type: "GST",
+              percentage: undefined,
+              amount: workEstimate.gst || 0,
+              appliesOn: "itemTotalPlusTax",
+              order: 2,
+            },
+            {
+              id: "LWC",
+              label: "Labour Welfare Cess",
+              type: "LWC",
+              percentage: undefined,
+              amount: workEstimate.labourCess || 0,
+              appliesOn: "itemTotalPlusTax",
+              order: 3,
+            },
+            {
+              id: "OTHER",
+              label: "Other Charges",
+              type: "Other",
+              percentage: undefined,
+              amount: workEstimate.otherCharges || 0,
+              appliesOn: "custom",
+              order: 4,
+            },
+          ]
+        : [];
+
       return NextResponse.json({
         items,
         projectInfo: workEstimate
@@ -45,6 +77,10 @@ export async function GET(request: NextRequest) {
               location: workEstimate.location,
               preparedBy: workEstimate.preparedBy,
               date: workEstimate.estimateDate.toISOString().split("T")[0],
+              drawingData:
+                typeof workEstimate.drawingData === "string"
+                  ? workEstimate.drawingData
+                  : ((workEstimate.drawingData as any)?.imageDataUrl ?? ""),
             }
           : {
               projectName: "",
@@ -54,6 +90,7 @@ export async function GET(request: NextRequest) {
               date: new Date().toISOString().split("T")[0],
             },
         contingency: workEstimate?.contingency || 0,
+        taxBreakups,
       });
     }
 
@@ -86,7 +123,7 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
     const body = await request.json();
-    const { items, workId, projectInfo, contingency } = body; // Add projectInfo and contingency to request body
+    const { items, workId, projectInfo, contingency, taxBreakups } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -115,6 +152,24 @@ export async function POST(request: NextRequest) {
           preparedBy: projectInfo.preparedBy,
           estimateDate: new Date(projectInfo.date),
           contingency: contingency || 0,
+          labourCess:
+            Array.isArray(taxBreakups)
+              ? (taxBreakups.find((t: any) => t.type === "LWC")?.amount as number) || 0
+              : 0,
+          gst:
+            Array.isArray(taxBreakups)
+              ? (taxBreakups.find((t: any) => t.type === "GST")?.amount as number) || 0
+              : 0,
+          otherCharges:
+            Array.isArray(taxBreakups)
+              ? taxBreakups
+                  .filter((t: any) => t.type === "Other")
+                  .reduce((sum: number, t: any) => sum + (t.amount as number || 0), 0)
+              : 0,
+          taxBreakups: Array.isArray(taxBreakups) ? taxBreakups : [],
+          drawingData: projectInfo.drawingData
+            ? { imageDataUrl: projectInfo.drawingData }
+            : null,
         },
         create: {
           workDetailId: workId,
@@ -124,6 +179,24 @@ export async function POST(request: NextRequest) {
           preparedBy: projectInfo.preparedBy,
           estimateDate: new Date(projectInfo.date),
           contingency: contingency || 0,
+          labourCess:
+            Array.isArray(taxBreakups)
+              ? (taxBreakups.find((t: any) => t.type === "LWC")?.amount as number) || 0
+              : 0,
+          gst:
+            Array.isArray(taxBreakups)
+              ? (taxBreakups.find((t: any) => t.type === "GST")?.amount as number) || 0
+              : 0,
+          otherCharges:
+            Array.isArray(taxBreakups)
+              ? taxBreakups
+                  .filter((t: any) => t.type === "Other")
+                  .reduce((sum: number, t: any) => sum + (t.amount as number || 0), 0)
+              : 0,
+          taxBreakups: Array.isArray(taxBreakups) ? taxBreakups : [],
+          drawingData: projectInfo.drawingData
+            ? { imageDataUrl: projectInfo.drawingData }
+            : null,
         },
       });
     }
@@ -153,16 +226,21 @@ export async function POST(request: NextRequest) {
         slNo: item.slNo,
         schedulePageNo: item.schedulePageNo || "",
         description: item.description,
-        nos: item.nos || 1,
-        length: item.length || 0,
-        breadth: item.breadth || 0,
-        depth: item.depth || 0,
-        quantity: item.quantity,
+        nos: Number(item.nos) || 1,
+        length: Number(item.length) || 0,
+        breadth: Number(item.breadth) || 0,
+        depth: Number(item.depth) || 0,
+        quantity: Number(item.quantity) || 0,
         unit: item.unit,
-        rate: item.rate,
-        amount: item.amount,
+        rate: Number(item.rate) || 0,
+        amount: Number(item.amount) || 0,
         measurements: item.measurements || [],
         subItems: item.subItems || [],
+        rateAnalysis: item.rateAnalysis || null,
+        compactionFactor: item.compactionFactor || null,
+        lengthParamKey: item.lengthParamKey || null,
+        breadthParamKey: item.breadthParamKey || null,
+        depthParamKey: item.depthParamKey || null,
       })),
     });
 

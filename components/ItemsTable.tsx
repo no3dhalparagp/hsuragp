@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, Pencil, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash2, Pencil, ArrowUp, ArrowDown, FileText } from "lucide-react";
 
 export interface Measurement {
   id?: string;
@@ -55,6 +55,7 @@ interface ItemsTableProps {
   deleteItem: (index: number) => void;
   editItem?: (index: number) => void;
   moveItem?: (index: number, direction: 'up' | 'down') => void;
+  onRateAnalysisClick?: (index: number) => void;
   estimateExists: boolean;
   isEditing: boolean;
 }
@@ -64,6 +65,7 @@ export default function ItemsTable({
   deleteItem,
   editItem,
   moveItem,
+  onRateAnalysisClick,
   estimateExists,
   isEditing,
 }: ItemsTableProps) {
@@ -105,7 +107,7 @@ export default function ItemsTable({
             <TableHead className="h-11 font-semibold text-slate-700 text-right w-24 shrink-0">
               Amount (₹)
             </TableHead>
-            <TableHead className="h-11 font-semibold text-slate-700 w-28 shrink-0 text-center rounded-tr-lg">
+            <TableHead className="h-11 font-semibold text-slate-700 w-32 shrink-0 text-center rounded-tr-lg">
               Action
             </TableHead>
           </TableRow>
@@ -122,10 +124,22 @@ export default function ItemsTable({
                   {item.schedulePageNo}
                 </TableCell>
                 <TableCell
-                  colSpan={9}
+                  colSpan={6}
                   className="text-sm font-medium text-slate-800 whitespace-pre-wrap align-top py-3"
                 >
                   {item.description}
+                </TableCell>
+                <TableCell className="text-right text-sm font-medium text-slate-800 align-top py-3">
+                  {Number(item.quantity || 0).toFixed(3)}
+                </TableCell>
+                <TableCell className="text-center text-sm text-slate-600 align-top py-3">
+                  {item.unit}
+                </TableCell>
+                <TableCell className="text-right text-sm text-slate-600 align-top py-3">
+                  {Number(item.rate || 0).toFixed(3)}
+                </TableCell>
+                <TableCell className="text-right text-sm font-semibold text-slate-800 align-top py-3">
+                  {Number(item.amount || 0).toFixed(3)}
                 </TableCell>
                 <TableCell className="align-top py-3">
                   <div className="flex items-center justify-center gap-1">
@@ -163,6 +177,18 @@ export default function ItemsTable({
                         title="Edit"
                       >
                         <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {onRateAnalysisClick && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => onRateAnalysisClick(idx)}
+                        className="h-8 w-8 rounded-lg text-sky-700 hover:text-sky-800 hover:bg-sky-50"
+                        disabled={estimateExists && !isEditing}
+                        title="Rate analysis"
+                      >
+                        <FileText className="h-4 w-4" />
                       </Button>
                     )}
                     <Button
@@ -220,23 +246,23 @@ export default function ItemsTable({
                         <TableCell className="text-right text-xs border-0 py-2">{m.length}</TableCell>
                         <TableCell className="text-right text-xs border-0 py-2">{m.breadth}</TableCell>
                         <TableCell className="text-right text-xs border-0 py-2">{m.depth}</TableCell>
-                        <TableCell className="text-right text-xs border-0 py-2">
+                        <TableCell className="text-right text-xs border-0 py-2 font-medium text-slate-700">
                           {Number(m.quantity || 0).toFixed(3)}
                         </TableCell>
                         <TableCell colSpan={4} className="border-0 py-2"></TableCell>
                       </TableRow>
                     ))
                   ) : (
-                    <TableRow key={item.id} className="border-b border-slate-50 bg-slate-50/30">
+                    <TableRow key={item.id || `item-${idx}-simple`} className="border-b border-slate-50 bg-slate-50/30">
                       <TableCell colSpan={2} className="border-0 py-2"></TableCell>
-                      <TableCell className="pl-8 text-xs text-slate-600 border-0 py-2">
-                        Measurement
+                      <TableCell className="pl-8 text-xs text-slate-600 border-0 py-2 italic">
+                        Manual Entry
                       </TableCell>
                       <TableCell className="text-right text-xs border-0 py-2">{item.nos}</TableCell>
                       <TableCell className="text-right text-xs border-0 py-2">{item.length}</TableCell>
                       <TableCell className="text-right text-xs border-0 py-2">{item.breadth}</TableCell>
                       <TableCell className="text-right text-xs border-0 py-2">{item.depth}</TableCell>
-                      <TableCell className="text-right text-xs border-0 py-2">
+                      <TableCell className="text-right text-xs border-0 py-2 font-medium text-slate-700">
                         {Number(item.quantity || 0).toFixed(3)}
                       </TableCell>
                       <TableCell colSpan={4} className="border-0 py-2"></TableCell>

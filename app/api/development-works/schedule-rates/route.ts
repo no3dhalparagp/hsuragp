@@ -86,7 +86,10 @@ export async function POST(request: NextRequest) {
       effectiveFrom,
       effectiveTo,
       isPattern,
-      subItems
+      subItems,
+      pageReference,
+      chapter,
+      rateAnalysis
     } = body;
 
     // Validate required fields
@@ -124,13 +127,16 @@ export async function POST(request: NextRequest) {
           create: subItems.map((item: any) => ({
             description: item.description,
             unit: item.unit,
-            rate: parseFloat(item.rate.toString()),
-            amount: item.amount ? parseFloat(item.amount.toString()) : undefined,
+            rate: parseFloat(item.rate?.toString() || "0"),
+            amount: item.amount ? parseFloat(item.amount.toString()) : (parseFloat(item.quantity?.toString() || "0") * parseFloat(item.rate?.toString() || "0")),
             quantity: item.quantity ? parseFloat(item.quantity.toString()) : undefined
           }))
         } : undefined,
         effectiveFrom: effectiveFrom ? new Date(effectiveFrom) : new Date(),
-        effectiveTo: effectiveTo ? new Date(effectiveTo) : null
+        effectiveTo: effectiveTo ? new Date(effectiveTo) : null,
+        pageReference: pageReference || null,
+        chapter: chapter || null,
+        rateAnalysis: rateAnalysis || null
       },
       include: {
         estimateType: {
@@ -174,7 +180,10 @@ export async function PUT(request: NextRequest) {
       isActive,
       verified,
       isPattern,
-      subItems
+      subItems,
+      pageReference,
+      chapter,
+      rateAnalysis
     } = body;
 
     if (!id) {
@@ -229,6 +238,9 @@ export async function PUT(request: NextRequest) {
     if (isActive !== undefined) updateData.isActive = isActive;
     if (verified !== undefined) updateData.verified = verified;
     if (isPattern !== undefined) updateData.isPattern = isPattern;
+    if (pageReference !== undefined) updateData.pageReference = pageReference;
+    if (chapter !== undefined) updateData.chapter = chapter;
+    if (rateAnalysis !== undefined) updateData.rateAnalysis = rateAnalysis || null;
 
     const subItemsUpdate = subItems !== undefined ? {
       subItems: {
@@ -236,8 +248,8 @@ export async function PUT(request: NextRequest) {
         create: Array.isArray(subItems) ? subItems.map((item: any) => ({
           description: item.description,
           unit: item.unit,
-          rate: parseFloat(item.rate.toString()),
-          amount: item.amount ? parseFloat(item.amount.toString()) : undefined,
+          rate: parseFloat(item.rate?.toString() || "0"),
+          amount: item.amount ? parseFloat(item.amount.toString()) : (parseFloat(item.quantity?.toString() || "0") * parseFloat(item.rate?.toString() || "0")),
           quantity: item.quantity ? parseFloat(item.quantity.toString()) : undefined
         })) : []
       }

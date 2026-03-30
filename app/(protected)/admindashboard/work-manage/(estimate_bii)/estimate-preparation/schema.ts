@@ -34,6 +34,7 @@ export const estimateItemSchema = z.object({
   lengthParamKey: z.string().optional(),
   breadthParamKey: z.string().optional(),
   depthParamKey: z.string().optional(),
+  compactionFactor: z.string().optional(),
 });
 
 export type EstimateItemFormValues = z.infer<typeof estimateItemSchema>;

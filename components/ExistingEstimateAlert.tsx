@@ -50,6 +50,7 @@ export default function ExistingEstimateAlert({
                   location: "",
                   preparedBy: "",
                   date: new Date().toISOString().split("T")[0],
+                  drawingData: "",
                 });
                 setContingency(existingEstimate.contingency || 0);
               }}
@@ -68,6 +69,7 @@ export default function ExistingEstimateAlert({
                   location: "",
                   preparedBy: "",
                   date: new Date().toISOString().split("T")[0],
+                  drawingData: "",
                 });
                 setContingency(existingEstimate.contingency || 0);
                 setShowPreview(true);

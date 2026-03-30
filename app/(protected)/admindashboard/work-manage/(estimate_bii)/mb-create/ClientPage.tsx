@@ -13,8 +13,7 @@ import {
   Ruler,
   CheckCircle,
 } from "lucide-react";
-import MBMeasurementDialog from "@/components/MBMeasurementDialog";
-import { MBPrintPreview } from "@/components/MBPrintPreview";
+
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
@@ -37,6 +36,8 @@ import { MeasurementSummary } from "./components/MeasurementSummary";
 import { AvailableItemsTable } from "./components/AvailableItemsTable";
 import { MeasuredItemsTable } from "./components/MeasuredItemsTable";
 import { gpname } from "@/constants/gpinfor";
+import MBMeasurementDialog from "./components/MBMeasurementDialog";
+import { MBPrintPreview } from "./components/MBPrintPreview";
 
 export default function MBCreateClientPage() {
   const [works, setWorks] = useState<any[]>([]);
@@ -216,18 +217,8 @@ export default function MBCreateClientPage() {
       return;
     }
 
-    // Create a proper estimate item object for the dialog
-    const itemForDialog = {
-      ...estimateItem,
-      // If it's a subitem, we need to get the parent item's subitem for initial measurements
-      measurements: estimateItem.isSubItem
-        ? undefined // Subitems usually don't have initial measurements from estimate
-        : estimateItem.measurements,
-      // Ensure description is set properly
-      description: estimateItem.description,
-    };
-
-    setCurrentItem(itemForDialog);
+    // Pass the estimate item as is – the dialog will read nos, length, breadth, depth
+    setCurrentItem(estimateItem);
     setDialogMeasurements([]);
     setEditingEstimateItemId(null);
     setIsDialogOpen(true);
@@ -271,10 +262,10 @@ export default function MBCreateClientPage() {
             {
               id: Date.now().toString(),
               description: subItem.description,
-              nos: 1,
-              length: 0,
-              breadth: 0,
-              depth: 0,
+              nos: subItem.nos ?? 1,
+              length: subItem.length ?? 0,
+              breadth: subItem.breadth ?? 0,
+              depth: subItem.depth ?? 0,
               quantity: subItem.quantity,
             },
           ],
@@ -592,10 +583,11 @@ export default function MBCreateClientPage() {
             subItemIndex: idx + 1,
             subItems: undefined, // Clear nested subItems
             displaySlNo: `${item.slNo}(${alphaIdx})`, // Format: 1(a), 1(b)
+            // Sub‑item dimensions are already in 'sub' (nos, length, breadth, depth)
           });
         });
       } else {
-        // Single item without subitems
+        // Single item without subitems – dimensions already in 'item'
         measurable.push({
           ...item,
           displaySlNo: item.slNo.toString(),

@@ -1,5 +1,5 @@
 
-import { EstimateItem, ProjectInfo, Work, EstimateData } from "./types";
+import { EstimateItem, ProjectInfo, Work, EstimateData, TaxBreakup } from "./types";
 
 export const fetchWorks = async (): Promise<Work[]> => {
   try {
@@ -37,7 +37,8 @@ export const saveEstimate = async (
   workId: string,
   items: EstimateItem[],
   projectInfo: ProjectInfo,
-  contingency: number
+  contingency: number,
+  taxBreakups?: TaxBreakup[]
 ): Promise<EstimateItem[]> => {
   // Filter out any existing contingency items to avoid duplication
   const cleanItems = items.filter(
@@ -72,6 +73,7 @@ export const saveEstimate = async (
       workId,
       projectInfo,
       contingency,
+      taxBreakups,
     }),
   });
 

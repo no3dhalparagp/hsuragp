@@ -34,6 +34,7 @@ enum UserRole {
   admin
   staff
   superadmin
+  agency
 }
 
 enum UserStatus {
@@ -51,18 +52,20 @@ enum Designation {
 }
 
 model User {
-  id            String       @id @default(auto()) @map("_id") @db.ObjectId
-  name          String?
-  email         String?      @unique
-  mobileNumber  String?      @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          UserRole     @default(user)
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  name            String?
+  email           String?        @unique
+  mobileNumber    String?        @unique
+  emailVerified   DateTime?
+  image           String?
+  password        String?
+  role            UserRole       @default(user)
   // staff then degignation by enum
-  designation   Designation?
-  accounts      Account[]
-  sessions      Session[]
+  designation     Designation?
+  agencyDetails   AgencyDetails? @relation(fields: [agencyDetailsId], references: [id])
+  agencyDetailsId String?        @db.ObjectId
+  accounts        Account[]
+  sessions        Session[]
 
   isTwoFactorEnabled    Boolean                @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
@@ -369,9 +372,11 @@ model AgencyDetails {
   tin            String?
   gst            String?
   contactDetails String
+  cooperative    Boolean     @default(false)
   Bidagency      Bidagency[]
   Bid            Bid[]
   Order          Order[]
+  users          User[]
 }
 
 model ApprovedActionPlanDetails {
@@ -1891,14 +1896,19 @@ enum TimelineStatus {
 
 // Simple Modification Request Model
 model WarishModificationRequest {
-  id                    String                    @id @default(auto()) @map("_id") @db.ObjectId
-  warishApplicationId   String?                   @db.ObjectId // Now optional
-  warishDetailId        String?                   @db.ObjectId // Optional
-  targetType            String // 'application' or 'detail'
-  warishApplication     WarishApplication?        @relation(fields: [warishApplicationId], references: [id], onDelete: Cascade)
-  fieldToModify         String // Field name to be modified
-  currentValue          String // Current value in the application or detail
-  proposedValue         String // Proposed new value
+  id                  String             @id @default(auto()) @map("_id") @db.ObjectId
+  warishApplicationId String?            @db.ObjectId // Now optional
+  warishDetailId      String?            @db.ObjectId // Optional
+  targetType          String // 'application' or 'detail'
+  warishApplication   WarishApplication? @relation(fields: [warishApplicationId], references: [id], onDelete: Cascade)
+
+  // Support for multiple field modifications
+  // Array of { field: string, oldValue: string, newValue: string }
+  modifications Json?
+
+  fieldToModify         String? // Deprecated: use modifications
+  currentValue          String? // Deprecated: use modifications
+  proposedValue         String? // Deprecated: use modifications
   reasonForModification String // Reason for the change
   requestedBy           String // Name of person requesting
   requestedDate         DateTime                  @default(now())
@@ -2374,6 +2384,7 @@ model WorkEstimateItem {
   amount         Float
   measurements   Json?
   subItems       Json? // id* quantity* unit* rate* amount*
+  rateAnalysis   Json? // material/labour/carriage breakdown per item
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2443,6 +2454,8 @@ model WorkEstimate {
   labourCess   Float @default(0)
   gst          Float @default(0)
   otherCharges Float @default(0)
+  taxBreakups  Json? // structured tax rows used in estimate summary
+  drawingData  Json? // estimate drawing/sketch payload (data URL + metadata)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2613,6 +2626,7 @@ model ScheduleRate {
 
   chapter       String?
   pageReference String?
+  rateAnalysis  Json? // reusable rate-analysis template for estimate preparation
 
   // Link to estimate type
   estimateTypeId String       @db.ObjectId
@@ -3367,4 +3381,175 @@ model Attendance {
 
   @@unique([userId, date])
   @@map("attendances")
+}
+
+model SystemConfig {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  key         String   @unique
+  value       String
+  description String?
+  level       Int      @default(1)
+  updatedAt   DateTime @updatedAt
+}
+
+// ============================================================================
+// TUBEWELL WORKFLOW MODELS
+// ============================================================================
+
+model Mistri {
+  id            String              @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  mobileNumber  String?
+  address       String?
+  isActive      Boolean             @default(true)
+  bankName      String?
+  accountNumber String?
+  ifscCode      String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  workOrders    TubewellWorkOrder[]
+}
+
+model TubewellMaterial {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  bengaliName String?
+  unit        String // e.g., "pcs", "ft", "kg"
+  stock       Int      @default(0)
+  rate        Float    @default(0.0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stockLogs  TubewellStockLog[]
+  orderItems TubewellOrderMaterial[]
+}
+
+enum StockTransactionType {
+  IN
+  OUT
+}
+
+model TubewellStockLog {
+  id              String               @id @default(auto()) @map("_id") @db.ObjectId
+  materialId      String               @db.ObjectId
+  material        TubewellMaterial     @relation(fields: [materialId], references: [id])
+  transactionType StockTransactionType
+  quantity        Int
+  rate            Float?
+  remarks         String?
+  referenceId     String?
+  createdAt       DateTime             @default(now())
+  userId          String?              @db.ObjectId
+}
+
+enum RepairRequestStatus {
+  PENDING
+  APPROVED
+  WORK_ORDER_ISSUED
+  COMPLETED
+  REJECTED
+}
+
+model TubewellRepairRequest {
+  id             String              @id @default(auto()) @map("_id") @db.ObjectId
+  citizenName    String
+  mobileNumber   String?
+  address        String
+  mouza          String
+  problemDetails String?
+  status         RepairRequestStatus @default(PENDING)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  workOrders     TubewellWorkOrder[]
+}
+
+enum WorkOrderStatus {
+  ISSUED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model TubewellWorkOrder {
+  id          String                 @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber String                 @unique
+  requestId   String?                @db.ObjectId
+  request     TubewellRepairRequest? @relation(fields: [requestId], references: [id])
+  mistriId    String                 @db.ObjectId
+  mistri      Mistri                 @relation(fields: [mistriId], references: [id])
+
+  mustiAmount    Float           @default(0) // Manual entry for labor charge, now optional
+  status         WorkOrderStatus @default(ISSUED)
+  issueDate      DateTime        @default(now())
+  completionDate DateTime?
+
+  materials         TubewellOrderMaterial[]
+  billId            String?                   @db.ObjectId
+  bill              TubewellBill?             @relation(fields: [billId], references: [id])
+  masterRollEntries TubewellMasterRollEntry[]
+}
+
+model TubewellMasterRollEntry {
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  workOrderId String            @db.ObjectId
+  workOrder   TubewellWorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  nameOfPlace   String
+  villageSansad String
+
+  items TubewellMasterRollItem[]
+
+  total Float
+}
+
+model TubewellMasterRollItem {
+  id                String                  @id @default(auto()) @map("_id") @db.ObjectId
+  masterRollEntryId String                  @db.ObjectId
+  masterRollEntry   TubewellMasterRollEntry @relation(fields: [masterRollEntryId], references: [id], onDelete: Cascade)
+
+  workType String // e.g., "Pipe Lifting", "Bore Drilling"
+  quantity Int
+  rate     Float
+  total    Float
+}
+
+model TubewellOrderMaterial {
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  workOrderId String            @db.ObjectId
+  workOrder   TubewellWorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  materialId  String            @db.ObjectId
+  material    TubewellMaterial  @relation(fields: [materialId], references: [id])
+  quantity    Int
+  rate        Float
+}
+
+enum TubewellBillStatus {
+  GENERATED
+  PAID
+  CANCELLED
+}
+
+model TubewellBill {
+  id                String              @id @default(auto()) @map("_id") @db.ObjectId
+  billNumber        String              @unique
+  workOrders        TubewellWorkOrder[]
+  totalMaterialCost Float
+  totalLaborCost    Float
+  netAmount         Float
+  status            TubewellBillStatus  @default(GENERATED)
+  billDate          DateTime            @default(now())
+  paymentDate       DateTime?
+}
+
+model TubewellLaborRate {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  workType         String // e.g., "UPPERING", "LOWERING", "REPAIRING", "GORA_KHORA"
+  rate             Float
+  effectiveFrom    DateTime @default(now())
+  resolutionNumber String? // optional reference to a government resolution
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([workType, effectiveFrom])
 }

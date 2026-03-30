@@ -20,6 +20,11 @@ import { Trash2, FileText, Ruler } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MBEntry, EstimateItem } from "./types";
 
+const truncateText = (text: string, maxLength: number = 700) => {
+  if (!text) return "";
+  return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+};
+
 interface MeasuredItemsTableProps {
   mbEntries: MBEntry[];
   sortedMbEntries: MBEntry[];
@@ -43,17 +48,17 @@ export const MeasuredItemsTable: React.FC<MeasuredItemsTableProps> = ({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
       >
-        <Card className="border-dashed border-2 border-wb-border bg-white">
-          <CardContent className="py-12 text-center">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="p-4 bg-gray-100 rounded-full">
-                <Ruler className="h-12 w-12 text-gray-400" />
+        <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50 shadow-sm rounded-xl">
+          <CardContent className="py-16 text-center">
+            <div className="flex flex-col items-center justify-center space-y-5">
+              <div className="p-5 bg-white shadow-sm rounded-full">
+                <Ruler className="h-10 w-10 text-slate-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-xl text-gray-600">
+                <h3 className="font-bold text-2xl text-slate-700">
                   No Measurements Yet
                 </h3>
-                <p className="text-gray-500 mt-1 max-w-md mx-auto">
+                <p className="text-slate-500 mt-2 max-w-md mx-auto leading-relaxed">
                   Go to the &quot;Available Items&quot; tab to start adding measurements
                   to your book.
                 </p>
@@ -66,10 +71,10 @@ export const MeasuredItemsTable: React.FC<MeasuredItemsTableProps> = ({
   }
 
   return (
-    <Card className="bg-white border border-wb-border">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Recorded Measurements</CardTitle>
-        <CardDescription>
+    <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden">
+      <CardHeader className="pb-4 bg-slate-50/50 border-b border-slate-100">
+        <CardTitle className="text-xl font-bold text-slate-800">Recorded Measurements</CardTitle>
+        <CardDescription className="text-slate-500">
           Items that have been measured and added to the measurement book
         </CardDescription>
       </CardHeader>
@@ -77,18 +82,21 @@ export const MeasuredItemsTable: React.FC<MeasuredItemsTableProps> = ({
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-wb-primary/5">
-                <TableHead className="w-16 font-semibold">SL No</TableHead>
-                <TableHead className="w-32 font-semibold">MB Details</TableHead>
-                <TableHead className="font-semibold">Description</TableHead>
-                <TableHead className="w-28 text-right font-semibold">
+              <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                <TableHead className="w-16 font-semibold text-slate-600">SL No</TableHead>
+                <TableHead className="w-32 font-semibold text-slate-600">MB Details</TableHead>
+                <TableHead className="font-semibold text-slate-600">Description</TableHead>
+                <TableHead className="w-28 text-right font-semibold text-slate-600">
                   Qty Exec
                 </TableHead>
-                <TableHead className="w-24 font-semibold">Unit</TableHead>
-                <TableHead className="w-28 text-right font-semibold">
+                <TableHead className="w-24 font-semibold text-slate-600">Unit</TableHead>
+                <TableHead className="w-28 text-right font-semibold text-slate-600">
+                  Rate
+                </TableHead>
+                <TableHead className="w-28 text-right font-semibold text-slate-600">
                   Amount
                 </TableHead>
-                <TableHead className="w-24 font-semibold">Actions</TableHead>
+                <TableHead className="w-24 font-semibold text-slate-600 text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -148,13 +156,13 @@ export const MeasuredItemsTable: React.FC<MeasuredItemsTableProps> = ({
                       rows.push(
                         <TableRow 
                           key={`group-${parentItem.id}-${index}`} 
-                          className="bg-wb-primary/5 hover:bg-wb-primary/10"
+                          className="bg-blue-50/30 hover:bg-blue-50/50 border-t border-slate-200 transition-colors"
                         >
-                          <TableCell className="font-bold text-gray-800 border-r align-top">
+                          <TableCell className="font-bold text-blue-700 align-top">
                             {parentItem.slNo}
                           </TableCell>
-                          <TableCell colSpan={6} className="font-bold text-gray-800">
-                            {parentItem.description}
+                          <TableCell colSpan={6} className="font-semibold text-slate-700" title={parentItem.description}>
+                            {truncateText(parentItem.description)}
                           </TableCell>
                         </TableRow>
                       );
@@ -174,67 +182,72 @@ export const MeasuredItemsTable: React.FC<MeasuredItemsTableProps> = ({
                         }}
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ duration: 0.3 }}
-                        className="group hover:bg-gray-50"
+                        className="group hover:bg-slate-50 transition-colors border-b border-slate-100"
                       >
-                        <TableCell className="font-medium text-gray-600">
+                        <TableCell className="font-medium text-slate-600">
                           {displaySlNo}
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-1">
+                          <div className="flex flex-col gap-1.5">
                             <Badge
                               variant="outline"
-                              className="w-fit bg-wb-primary/10 text-wb-primary border-wb-primary/30 text-[10px]"
+                              className="w-fit bg-blue-50 text-blue-700 border-blue-200 text-[10px] uppercase font-bold tracking-wider shadow-sm"
                             >
                               MB: {entry.mbNumber}
                             </Badge>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-[11px] font-medium text-slate-500">
                               Pg: {entry.mbPageNumber}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="max-w-[300px]">
-                            <p className={`line-clamp-2 font-medium text-gray-800 ${isSubItem ? "pl-4" : ""}`}>
-                              {entry.workItemDescription}
+                            <p className={`line-clamp-2 font-medium text-slate-800 group-hover:text-slate-900 transition-colors ${isSubItem ? "pl-4 border-l-2 border-slate-200 ml-1" : ""}`} title={entry.workItemDescription}>
+                              {truncateText(entry.workItemDescription)}
                             </p>
-                            <div className={`flex items-center gap-2 mt-1 text-xs text-gray-500 ${isSubItem ? "pl-4" : ""}`}>
+                            <div className={`flex items-center gap-2 mt-1.5 text-xs text-slate-500 ${isSubItem ? "pl-5 ml-1" : ""}`}>
                               <span className="flex items-center gap-1">
-                                <FileText className="h-3 w-3" />
+                                <FileText className="h-3.5 w-3.5 text-slate-400" />
                                 {new Date(
                                   entry.measuredDate,
                                 ).toLocaleDateString()}
                               </span>
-                              <span>•</span>
-                              <span>By: {entry.measuredBy}</span>
+                              <span className="text-slate-300">•</span>
+                              <span className="font-medium">By: {entry.measuredBy}</span>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right font-medium">
+                        <TableCell className="text-right font-medium text-slate-700">
                           {entry.quantityExecuted.toFixed(2)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 hover:bg-slate-200/80">
                             {entry.unit}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right font-semibold text-wb-success">
+                        <TableCell className="text-right font-medium text-slate-600">
+                          ₹{(Number(entry.rate) || 0).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-green-600">
                           ₹{entry.amount.toFixed(2)}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          <div className="flex justify-center items-center gap-1.5">
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
                               onClick={() => openEditDialog(entry)}
-                              className="h-8 w-8 p-0 text-wb-primary hover:text-wb-primary hover:bg-wb-primary/10"
+                              className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-colors"
+                              title="Edit Entry"
                             >
                               <FileText className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
                               onClick={() => handleDeleteEntry(entry)}
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              title="Delete Entry"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -254,3 +267,4 @@ export const MeasuredItemsTable: React.FC<MeasuredItemsTableProps> = ({
     </Card>
   );
 };
+

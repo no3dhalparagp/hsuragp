@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,7 +13,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Save, FileText, Printer, Calculator, Loader2, Pencil } from "lucide-react";
+import {
+  Save,
+  FileText,
+  Printer,
+  Calculator,
+  Loader2,
+  Pencil,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -98,7 +106,9 @@ export default function BillAbstractClientPage() {
   const [billEntries, setBillEntries] = useState<BillAbstractEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [generatingPDF, setGeneratingPDF] = useState(false);
-  const [existingAbstractId, setExistingAbstractId] = useState<string | null>(null);
+  const [existingAbstractId, setExistingAbstractId] = useState<string | null>(
+    null,
+  );
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewPdfData, setPreviewPdfData] = useState<any | null>(null);
 
@@ -151,7 +161,9 @@ export default function BillAbstractClientPage() {
       if (response.ok) {
         const data = await response.json();
         const items = data.items || data || [];
-        const validItems = items.filter((i: any) => !(i.description === "Contingency" && i.slNo === 9999));
+        const validItems = items.filter(
+          (i: any) => !(i.description === "Contingency" && i.slNo === 9999),
+        );
         setEstimateItems(validItems.sort((a: any, b: any) => a.slNo - b.slNo));
       }
     } catch (error) {
@@ -179,7 +191,7 @@ export default function BillAbstractClientPage() {
       if (response.ok) {
         const data = await response.json();
 
-        const selectedWork = works.find(w => w.id === workId);
+        const selectedWork = works.find((w) => w.id === workId);
         let calculatedPercentage = "0.150";
 
         if (selectedWork) {
@@ -204,7 +216,9 @@ export default function BillAbstractClientPage() {
           setFormData({
             billType: abstract.billType || "1st & Final Bill",
             period: abstract.period || "",
-            contractualPercentage: abstract.contractualPercentage?.toString() || calculatedPercentage,
+            contractualPercentage:
+              abstract.contractualPercentage?.toString() ||
+              calculatedPercentage,
             cgstPercentage: "9.00",
             sgstPercentage: "9.00",
             labourCessPercentage: "1.00",
@@ -212,10 +226,10 @@ export default function BillAbstractClientPage() {
         } else {
           setBillEntries([]);
           setExistingAbstractId(null);
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
             contractualPercentage: calculatedPercentage,
-            period: ""
+            period: "",
           }));
         }
       }
@@ -281,32 +295,41 @@ export default function BillAbstractClientPage() {
 
     estimateItems.forEach((estItem) => {
       const group = entryGroups.get(estItem.id);
-      
+
       if (group && group.length > 0) {
         if (estItem.subItems && estItem.subItems.length > 0) {
-          const groupTotalAmount = group.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-          
+          const groupTotalAmount = group.reduce(
+            (sum, e) => sum + (Number(e.amount) || 0),
+            0,
+          );
+
           displayItems.push({
             isHeader: true,
             slNo: estItem.slNo.toString(),
             description: estItem.description,
             mbNumber: "",
             mbPageNumber: "",
-            quantity: "", 
+            quantity: "",
             unit: "",
             rate: "",
             amount: groupTotalAmount,
           });
 
           estItem.subItems.forEach((sub, subIdx) => {
-            const subEntry = group.find(e => e.subItemId === sub.id || e.workItemDescription === sub.description);
-            
+            const subEntry = group.find(
+              (e) =>
+                e.subItemId === sub.id ||
+                e.workItemDescription === sub.description,
+            );
+
             if (subEntry) {
-              const originalIndex = billEntries.findIndex(e => e === subEntry);
+              const originalIndex = billEntries.findIndex(
+                (e) => e === subEntry,
+              );
               displayItems.push({
                 isHeader: false,
                 slNo: `${String.fromCharCode(97 + subIdx)})`,
-                description: subEntry.workItemDescription,
+                description: sub.description,
                 mbNumber: subEntry.mbNumber,
                 mbPageNumber: subEntry.mbPageNumber,
                 quantity: subEntry.quantityExecuted,
@@ -315,68 +338,69 @@ export default function BillAbstractClientPage() {
                 amount: subEntry.amount,
                 entryIndex: originalIndex,
                 originalEntry: subEntry,
-                isSubItem: true
+                isSubItem: true,
               });
             }
           });
         } else {
-          group.forEach(entry => {
-             const originalIndex = billEntries.findIndex(e => e === entry);
-             displayItems.push({
-                isHeader: false,
-                slNo: estItem.slNo.toString(),
-                description: entry.workItemDescription,
-                mbNumber: entry.mbNumber,
-                mbPageNumber: entry.mbPageNumber,
-                quantity: entry.quantityExecuted,
-                unit: entry.unit,
-                rate: entry.rate,
-                amount: entry.amount,
-                entryIndex: originalIndex,
-                originalEntry: entry
-             });
+          group.forEach((entry) => {
+            const originalIndex = billEntries.findIndex((e) => e === entry);
+            displayItems.push({
+              isHeader: false,
+              slNo: estItem.slNo.toString(),
+              description: estItem.description,
+              mbNumber: entry.mbNumber,
+              mbPageNumber: entry.mbPageNumber,
+              quantity: entry.quantityExecuted,
+              unit: entry.unit,
+              rate: entry.rate,
+              amount: entry.amount,
+              entryIndex: originalIndex,
+              originalEntry: entry,
+            });
           });
         }
       }
     });
 
     if (estimateItems.length === 0 && billEntries.length > 0) {
-        return billEntries.map((entry, idx) => ({
-             isHeader: false,
-             slNo: (idx + 1).toString(),
-             description: entry.workItemDescription,
-             mbNumber: entry.mbNumber,
-             mbPageNumber: entry.mbPageNumber,
-             quantity: entry.quantityExecuted,
-             unit: entry.unit,
-             rate: entry.rate,
-             amount: entry.amount,
-             entryIndex: idx,
-             originalEntry: entry
-        }));
+      return billEntries.map((entry, idx) => ({
+        isHeader: false,
+        slNo: (idx + 1).toString(),
+        description: entry.workItemDescription,
+        mbNumber: entry.mbNumber,
+        mbPageNumber: entry.mbPageNumber,
+        quantity: entry.quantityExecuted,
+        unit: entry.unit,
+        rate: entry.rate,
+        amount: entry.amount,
+        entryIndex: idx,
+        originalEntry: entry,
+      }));
     }
-    
+
     const specificIdsProcessed = new Set<string>();
-    displayItems.forEach(d => {
-        if(d.originalEntry && d.originalEntry.mbEntryId) specificIdsProcessed.add(d.originalEntry.mbEntryId);
+    displayItems.forEach((d) => {
+      if (d.originalEntry && d.originalEntry.mbEntryId)
+        specificIdsProcessed.add(d.originalEntry.mbEntryId);
     });
 
     billEntries.forEach((entry, idx) => {
-        if (!specificIdsProcessed.has(entry.mbEntryId)) {
-             displayItems.push({
-                isHeader: false,
-                slNo: "?",
-                description: entry.workItemDescription,
-                mbNumber: entry.mbNumber,
-                mbPageNumber: entry.mbPageNumber,
-                quantity: entry.quantityExecuted,
-                unit: entry.unit,
-                rate: entry.rate,
-                amount: entry.amount,
-                entryIndex: idx,
-                originalEntry: entry
-             });
-        }
+      if (!specificIdsProcessed.has(entry.mbEntryId)) {
+        displayItems.push({
+          isHeader: false,
+          slNo: (idx + 1).toString(),
+          description: entry.workItemDescription,
+          mbNumber: entry.mbNumber,
+          mbPageNumber: entry.mbPageNumber,
+          quantity: entry.quantityExecuted,
+          unit: entry.unit,
+          rate: entry.rate,
+          amount: entry.amount,
+          entryIndex: idx,
+          originalEntry: entry,
+        });
+      }
     });
 
     return displayItems;
@@ -385,7 +409,10 @@ export default function BillAbstractClientPage() {
   const displayItems = getDisplayItems();
 
   const calculateItemwiseTotal = () => {
-    return billEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
+    return billEntries.reduce(
+      (sum, entry) => sum + (Number(entry.amount) || 0),
+      0,
+    );
   };
 
   const calculateContractualDeduction = () => {
@@ -470,7 +497,7 @@ export default function BillAbstractClientPage() {
         isSubItem: entry.isSubItem,
         slNo: entry.slNo,
       })),
-    itemwiseTotal,
+      itemwiseTotal,
       contractualPercent: formData.contractualPercentage,
       contractualDeduction,
       actualValue,
@@ -504,7 +531,7 @@ export default function BillAbstractClientPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Bill_Abstract_${workName.substring(0, 20).replace(/[^a-z0-9]/gi, '_')}.pdf`;
+      link.download = `Bill_Abstract_${workName.substring(0, 20).replace(/[^a-z0-9]/gi, "_")}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -577,15 +604,25 @@ export default function BillAbstractClientPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(
-          isUpdate ? { id: existingAbstractId, ...payload } : { workId: selectedWorkId, ...payload }
+          isUpdate
+            ? { id: existingAbstractId, ...payload }
+            : { workId: selectedWorkId, ...payload },
         ),
       });
 
       if (response.ok) {
-        toast.success(isUpdate ? "Bill Abstract updated successfully" : "Bill Abstract saved successfully");
+        toast.success(
+          isUpdate
+            ? "Bill Abstract updated successfully"
+            : "Bill Abstract saved successfully",
+        );
         fetchBillAbstract(selectedWorkId);
       } else {
-        toast.error(isUpdate ? "Failed to update Bill Abstract" : "Failed to save Bill Abstract");
+        toast.error(
+          isUpdate
+            ? "Failed to update Bill Abstract"
+            : "Failed to save Bill Abstract",
+        );
       }
     } catch (error) {
       console.error("Error saving Bill Abstract:", error);
@@ -654,14 +691,18 @@ export default function BillAbstractClientPage() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            <span className="hidden sm:inline">{existingAbstractId ? "Update Abstract" : "Save Abstract"}</span>
+            <span className="hidden sm:inline">
+              {existingAbstractId ? "Update Abstract" : "Save Abstract"}
+            </span>
           </Button>
         </div>
       </div>
 
       <Card className="border-t-4 border-t-wb-primary bg-white border border-wb-border shadow-sm">
         <CardHeader>
-          <CardTitle className="text-wb-primary">Work Details & Configuration</CardTitle>
+          <CardTitle className="text-wb-primary">
+            Work Details & Configuration
+          </CardTitle>
           <CardDescription>
             Select a work and configure bill parameters
           </CardDescription>
@@ -716,7 +757,10 @@ export default function BillAbstractClientPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contractualPercentage" className="font-semibold">
+                <Label
+                  htmlFor="contractualPercentage"
+                  className="font-semibold"
+                >
                   Contractual Percentage
                 </Label>
                 <div className="relative">
@@ -754,8 +798,10 @@ export default function BillAbstractClientPage() {
                 <TableHeader className="bg-wb-primary/5">
                   <TableRow>
                     <TableHead className="w-[50px]">Sl No</TableHead>
-                    <TableHead className="w-[40%]">Items</TableHead>
-                    <TableHead className="w-[120px]">MB No. & Page No.</TableHead>
+                    <TableHead className="w-[40%]">Items Name</TableHead>
+                    <TableHead className="w-[120px]">
+                      MB No. & Page No.
+                    </TableHead>
                     <TableHead className="text-right">Quantity</TableHead>
                     <TableHead className="w-[80px]">Unit</TableHead>
                     <TableHead className="text-right">Rate</TableHead>
@@ -776,84 +822,115 @@ export default function BillAbstractClientPage() {
                     </TableRow>
                   ) : (
                     displayItems.map((item, dIndex) => {
-                       if (item.isHeader) {
-                           return (
-                               <TableRow key={`header-${dIndex}`} className="bg-wb-primary/10 hover:bg-wb-primary/15 font-semibold border-b-2 border-wb-primary/20">
-                                   <TableCell className="font-bold text-center align-middle">{item.slNo}</TableCell>
-                                   <TableCell colSpan={5} className="align-middle text-wb-primary">
-                                       {item.description}
-                                   </TableCell>
-                                   <TableCell className="text-right font-mono font-bold align-middle">
-                                       {typeof item.amount === 'number' ? item.amount.toFixed(2) : item.amount}
-                                   </TableCell>
-                               </TableRow>
-                           );
-                       } else {
-                           return (
-                               <TableRow key={`item-${dIndex}`} className="hover:bg-muted/5">
-                                 <TableCell className="font-medium text-center align-top">
-                                   {item.slNo}
-                                 </TableCell>
-                                 <TableCell className="max-w-[300px]">
-                                   <span className={`font-medium text-sm text-foreground/90 whitespace-pre-wrap block ${item.isSubItem ? "pl-12" : ""}`}>
-                                     {item.description}
-                                   </span>
-                                 </TableCell>
-                                 <TableCell className="align-top">
-                                   <div className="flex flex-col gap-1.5">
-                                     <div className="flex items-center gap-1">
-                                       <span className="text-[10px] text-muted-foreground w-6">MB:</span>
-                                       <Input
-                                         className="h-6 text-xs font-mono"
-                                         placeholder="MB No"
-                                         value={item.mbNumber}
-                                         onChange={(e) =>
-                                           item.entryIndex !== undefined && updateEntryMbRef(
-                                             item.entryIndex,
-                                             "mbNumber",
-                                             e.target.value,
-                                           )
-                                         }
-                                       />
-                                     </div>
-                                     <div className="flex items-center gap-1">
-                                       <span className="text-[10px] text-muted-foreground w-6">Pg:</span>
-                                       <Input
-                                         className="h-6 text-xs font-mono"
-                                         placeholder="Page"
-                                         value={item.mbPageNumber}
-                                         onChange={(e) =>
-                                            item.entryIndex !== undefined && updateEntryMbRef(
-                                             item.entryIndex,
-                                             "mbPageNumber",
-                                             e.target.value,
-                                           )
-                                         }
-                                       />
-                                     </div>
-                                   </div>
-                                 </TableCell>
-                                 <TableCell className="text-right font-mono text-sm align-top">
-                                   {typeof item.quantity === 'number' ? item.quantity.toFixed(3) : item.quantity}
-                                 </TableCell>
-                                 <TableCell className="text-muted-foreground text-sm align-top">
-                                   {item.unit}
-                                 </TableCell>
-                                 <TableCell className="text-right font-mono text-sm align-top">
-                                   {typeof item.rate === 'number' ? item.rate.toFixed(2) : item.rate}
-                                 </TableCell>
-                                 <TableCell className="text-right font-mono font-medium text-sm align-top">
-                                   {typeof item.amount === 'number' ? item.amount.toFixed(2) : item.amount}
-                                 </TableCell>
-                               </TableRow>
-                           );
-                       }
+                      if (item.isHeader) {
+                        return (
+                          <TableRow
+                            key={`header-${dIndex}`}
+                            className="bg-wb-primary/10 hover:bg-wb-primary/15 font-semibold border-b-2 border-wb-primary/20"
+                          >
+                            <TableCell className="font-bold text-center align-middle">
+                              {item.slNo}
+                            </TableCell>
+                            <TableCell
+                              colSpan={5}
+                              className="align-middle text-wb-primary"
+                            >
+                              {item.description}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-bold align-middle">
+                              {typeof item.amount === "number"
+                                ? item.amount.toFixed(2)
+                                : item.amount}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      } else {
+                        return (
+                          <TableRow
+                            key={`item-${dIndex}`}
+                            className="hover:bg-muted/5"
+                          >
+                            <TableCell className="font-medium text-center align-top">
+                              {item.slNo}
+                            </TableCell>
+                            <TableCell className="max-w-[300px]">
+                              <span
+                                className={`font-medium text-sm text-foreground/90 whitespace-pre-wrap block ${item.isSubItem ? "pl-12" : ""}`}
+                              >
+                                {item.description}
+                              </span>
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] text-muted-foreground w-6">
+                                    MB:
+                                  </span>
+                                  <Input
+                                    className="h-6 text-xs font-mono"
+                                    placeholder="MB No"
+                                    value={item.mbNumber}
+                                    onChange={(e) =>
+                                      item.entryIndex !== undefined &&
+                                      updateEntryMbRef(
+                                        item.entryIndex,
+                                        "mbNumber",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] text-muted-foreground w-6">
+                                    Pg:
+                                  </span>
+                                  <Input
+                                    className="h-6 text-xs font-mono"
+                                    placeholder="Page"
+                                    value={item.mbPageNumber}
+                                    onChange={(e) =>
+                                      item.entryIndex !== undefined &&
+                                      updateEntryMbRef(
+                                        item.entryIndex,
+                                        "mbPageNumber",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-sm align-top">
+                              {typeof item.quantity === "number"
+                                ? item.quantity.toFixed(3)
+                                : item.quantity}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm align-top">
+                              {item.unit}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-sm align-top">
+                              {typeof item.rate === "number"
+                                ? item.rate.toFixed(2)
+                                : item.rate}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-medium text-sm align-top">
+                              {typeof item.amount === "number"
+                                ? item.amount.toFixed(2)
+                                : item.amount}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
                     })
                   )}
                   {billEntries.length > 0 && (
                     <TableRow className="bg-wb-primary/5 font-medium">
-                      <TableCell colSpan={6} className="text-right pr-4 py-3">Itemwise Total =</TableCell>
-                      <TableCell className="text-right font-mono py-3">{calculateItemwiseTotal().toFixed(2)}</TableCell>
+                      <TableCell colSpan={6} className="text-right pr-4 py-3">
+                        Itemwise Total =
+                      </TableCell>
+                      <TableCell className="text-right font-mono py-3">
+                        {calculateItemwiseTotal().toFixed(2)}
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -867,8 +944,10 @@ export default function BillAbstractClientPage() {
             {(() => {
               const itemwiseTotal = calculateItemwiseTotal();
 
-              const contractualPercentage = parseFloat(formData.contractualPercentage) || 0;
-              const contractualDeduction = (itemwiseTotal * contractualPercentage) / 100;
+              const contractualPercentage =
+                parseFloat(formData.contractualPercentage) || 0;
+              const contractualDeduction =
+                (itemwiseTotal * contractualPercentage) / 100;
 
               const actualValue = itemwiseTotal - contractualDeduction;
               const sayAmount = Math.round(actualValue);
@@ -890,7 +969,9 @@ export default function BillAbstractClientPage() {
                 <>
                   <div className="flex justify-between items-center py-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">Less contractual percentage @</span>
+                      <span className="text-sm text-muted-foreground">
+                        Less contractual percentage @
+                      </span>
                       <div className="relative w-20">
                         <Input
                           type="number"
@@ -904,10 +985,14 @@ export default function BillAbstractClientPage() {
                             })
                           }
                         />
-                        <span className="absolute right-2 top-1.5 text-xs text-muted-foreground">%</span>
+                        <span className="absolute right-2 top-1.5 text-xs text-muted-foreground">
+                          %
+                        </span>
                       </div>
                     </div>
-                    <span className="font-mono text-sm">{contractualDeduction.toFixed(2)}</span>
+                    <span className="font-mono text-sm">
+                      {contractualDeduction.toFixed(2)}
+                    </span>
                   </div>
                   <Separator />
 
@@ -916,12 +1001,18 @@ export default function BillAbstractClientPage() {
                     <span className="font-mono">{actualValue.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center py-1">
-                    <span className="text-sm text-muted-foreground text-right w-full pr-4">SAY</span>
-                    <span className="font-mono font-bold">{sayAmount.toFixed(2)}</span>
+                    <span className="text-sm text-muted-foreground text-right w-full pr-4">
+                      SAY
+                    </span>
+                    <span className="font-mono font-bold">
+                      {sayAmount.toFixed(2)}
+                    </span>
                   </div>
                   <Separator className="my-2" />
 
-                  <div className="text-sm font-semibold underline mb-1">Add:-</div>
+                  <div className="text-sm font-semibold underline mb-1">
+                    Add:-
+                  </div>
 
                   <div className="flex justify-between items-center py-1">
                     <div className="flex items-center gap-2">
@@ -939,10 +1030,14 @@ export default function BillAbstractClientPage() {
                             })
                           }
                         />
-                        <span className="absolute right-2 top-1.5 text-xs text-muted-foreground">%</span>
+                        <span className="absolute right-2 top-1.5 text-xs text-muted-foreground">
+                          %
+                        </span>
                       </div>
                     </div>
-                    <span className="font-mono text-sm">{cgstAmount.toFixed(2)}</span>
+                    <span className="font-mono text-sm">
+                      {cgstAmount.toFixed(2)}
+                    </span>
                   </div>
 
                   <div className="flex justify-between items-center py-1">
@@ -961,30 +1056,46 @@ export default function BillAbstractClientPage() {
                             })
                           }
                         />
-                        <span className="absolute right-2 top-1.5 text-xs text-muted-foreground">%</span>
+                        <span className="absolute right-2 top-1.5 text-xs text-muted-foreground">
+                          %
+                        </span>
                       </div>
                     </div>
-                    <span className="font-mono text-sm">{sgstAmount.toFixed(2)}</span>
+                    <span className="font-mono text-sm">
+                      {sgstAmount.toFixed(2)}
+                    </span>
                   </div>
 
                   <div className="flex justify-between items-center py-1 border-t mt-1 pt-2">
-                    <span className="text-sm font-medium text-right w-full pr-4">Sub Total=</span>
-                    <span className="font-mono font-semibold">{subTotal.toFixed(2)}</span>
+                    <span className="text-sm font-medium text-right w-full pr-4">
+                      Sub Total=
+                    </span>
+                    <span className="font-mono font-semibold">
+                      {subTotal.toFixed(2)}
+                    </span>
                   </div>
 
                   <div className="flex justify-between items-center py-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">Add L.W.Cess @</span>
-                      <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">1.00%</span>
+                      <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">
+                        1.00%
+                      </span>
                     </div>
-                    <span className="font-mono text-sm">{lwcAmount.toFixed(2)}</span>
+                    <span className="font-mono text-sm">
+                      {lwcAmount.toFixed(2)}
+                    </span>
                   </div>
 
                   <Separator className="my-2 bg-wb-primary/20" />
 
                   <div className="flex justify-between items-center py-2 bg-wb-primary/10 px-4 -mx-4 rounded-md">
-                    <span className="font-bold text-lg text-wb-primary">GROSS BILL AMOUNT=</span>
-                    <span className="font-mono text-xl font-bold tracking-tight text-wb-primary">{grossBillAmount.toFixed(0)}</span>
+                    <span className="font-bold text-lg text-wb-primary">
+                      GROSS BILL AMOUNT=
+                    </span>
+                    <span className="font-mono text-xl font-bold tracking-tight text-wb-primary">
+                      {grossBillAmount.toFixed(0)}
+                    </span>
                   </div>
                 </>
               );

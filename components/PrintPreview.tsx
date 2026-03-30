@@ -401,6 +401,19 @@ export default function PrintPreview({
             </tbody>
           </table>
 
+          {projectInfo?.drawingData ? (
+            <div className="pt-4">
+              <h3 className="text-sm font-semibold text-slate-700 mb-2">Estimate Drawing / Sketch</h3>
+              <div className="border border-slate-300 rounded p-2">
+                <img
+                  src={projectInfo.drawingData}
+                  alt="Estimate drawing"
+                  className="w-full max-h-[260px] object-contain"
+                />
+              </div>
+            </div>
+          ) : null}
+
           {/* ABSTRACT SUMMARY - right side only */}
           <div className="grid grid-cols-2 gap-12">
             <div />
