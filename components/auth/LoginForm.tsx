@@ -97,9 +97,7 @@ export default function LoginForm() {
             form.setValue("code", "")
             generateCaptcha()
             setError(data.error)
-          }
-
-          if (data?.twoFactor) {
+          } else if (data?.twoFactor) {
             setShowTwoFactor(true)
           } else if (data?.success) {
             if (data.success.includes("Confirmation email sent")) {
@@ -107,7 +105,7 @@ export default function LoginForm() {
               setShowVerificationDialog(true)
             } else {
               setSuccess(data.success)
-              window.location.href = data.redirectUrl ?? DEFAULT_LOGIN_REDIRECT
+              window.location.href = (data as { redirectUrl?: string }).redirectUrl ?? DEFAULT_LOGIN_REDIRECT
             }
           }
         })
@@ -147,7 +145,18 @@ export default function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 p-4">
       <Card className="w-full max-w-md border-none shadow-2xl bg-white/80 backdrop-blur-sm">
         <CardHeader className="space-y-4 px-8 pt-10 pb-4 text-center">
-         
+          <div className="flex justify-center">
+            <Link href="/" className="flex-shrink-0 hover:opacity-90 transition-opacity">
+              <Image
+                src="/images/logo.png"
+                width={100}
+                height={35}
+                alt="Dhalpara Gram Panchayat Logo"
+                className="object-contain"
+                priority
+              />
+            </Link>
+          </div>
           <div>
             <CardTitle className="text-2xl font-bold text-foreground">
               {showTwoFactor ? "Verify Your Identity" : "Welcome Back"}
@@ -261,7 +270,7 @@ export default function LoginForm() {
                           <div className="relative">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                             <Input
-                              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                              placeholder="••••••••"
                               type={showPassword ? "text" : "password"}
                               className="pl-10 pr-10 py-2.5 transition-colors focus:bg-primary/5"
                               disabled={isPending}
